@@ -3,6 +3,8 @@
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署位置：`D:\steam\steamapps\common\RimWorld\Mods\GNH-本地修复补丁\`
 
+- 模组版本：**1.3.7**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+
 ## 构建与部署
 
     dotnet build GNH.LocalFixes.csproj -c Release
