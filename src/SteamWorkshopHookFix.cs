@@ -44,7 +44,8 @@ namespace GNH.LocalFixes
     // 【代价是什么】
     //
     // 顶替之后，「Steam 信息」对象里那个「作者」字段会保持默认值（空的）。
-    // 唯一的影响是：「作者是否为你本人」这一项不再显示。
+    // 与它相关的判断只有 MayHaveAuthorNotCurrentUser 一处，而它读的是缓存字段、
+    // 不是去问 Steam，所以这里也谈不上有什么副作用（该属性在整个游戏程序集里没有调用点）。
     //
     // 而其它所有对外属性（名称、描述、标签、目录、预览图、版本）
     // 都是转发给 owner 字段去查的 —— 我们在下面手动把 owner 填好了，
@@ -68,7 +69,11 @@ namespace GNH.LocalFixes
     {
         private const string DetailsQueryName = "SendSteamDetailsQuery";
         private const string GetHookName = "GetWorkshopItemHook";
-        private const int ErrorKey = 2030417;
+        // Log.ErrorOnce 的「去重键」：同一个键在整个进程里只会输出一次。
+        // 两条错误消息必须各用各的键 —— 共用一个键的话，后出现的那条会被静默丢掉，
+        // 而它往往正是最需要看到的一条（真实异常堆栈）。
+        private const int ErrorKeyFieldsNotFound = 2030417;
+        private const int ErrorKeyHookFailed = 2030418;
 
         private static bool installed;
 
@@ -170,7 +175,7 @@ namespace GNH.LocalFixes
                 {
                     // 找不到字段，说明将来游戏版本把内部结构改了。
                     // 这时就放弃接管，老老实实走游戏原本的路径。
-                    Log.ErrorOnce("[GNH LocalFixes] Workshop hook fields not found; falling back to the vanilla path.", ErrorKey);
+                    Log.ErrorOnce("[GNH LocalFixes] Workshop hook fields not found; falling back to the vanilla path.", ErrorKeyFieldsNotFound);
                     return true;
                 }
 
@@ -186,8 +191,10 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.ErrorOnce("[GNH LocalFixes] SafeGetWorkshopItemHook failed: " + ex, ErrorKey);
-                __result = null;
+                Log.ErrorOnce("[GNH LocalFixes] SafeGetWorkshopItemHook failed: " + ex, ErrorKeyHookFailed);
+                // 出异常就交还给游戏原本的实现（返回 true = 继续执行原方法），
+                // 而不是塞一个 null 出去 —— 调用方拿到 null 很可能会直接空引用崩溃。
+                return true;
             }
 
             return false;

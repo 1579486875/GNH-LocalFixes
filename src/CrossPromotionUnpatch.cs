@@ -73,8 +73,18 @@ namespace GNH.LocalFixes
         private static bool neutralized;
         private static bool uiHookInstalled;
 
+        // 是否已经「安装」过（本方法可能被重复调用，比如模组类被重新构造时）。
+        private static bool installCalled;
+
         internal static void Install()
         {
+            if (installCalled)
+            {
+                // 已经安排过了，不用再来一遍 —— 否则会重复往 LongEventHandler 里排队。
+                return;
+            }
+            installCalled = true;
+
             TryNeutralize("startup");
 
             if (!neutralized)
@@ -126,11 +136,26 @@ namespace GNH.LocalFixes
                 // 那就自己查：把目标方法上的补丁表读出来，看还剩几个前缀。
                 // 还剩着就说明没摘干净，保持 neutralized = false 继续重试；
                 // 一个都不剩才算真的办妥了。
+                // 判定「摘干净了没有」，只能盯住**我们要摘的那一个补丁方法**，
+                // 绝不能看 DoModInfo 上的前缀总数 —— 别的模组也可能给同一个方法挂前缀，
+                // 那样总数永远不为 0，就会一直判定「没摘干净」：UI 钩子常驻下来，
+                // 每帧遍历一次全部程序集、每帧写一条日志，白白掉帧还刷屏。
                 Patches info = Harmony.GetPatchInfo(target);
-                int remaining = info != null ? info.Prefixes.Count : -1;
-                neutralized = remaining == 0;
+                bool stillThere = false;
+                if (info != null && info.Prefixes != null)
+                {
+                    for (int i = 0; i < info.Prefixes.Count; i++)
+                    {
+                        if (info.Prefixes[i].PatchMethod == prefix)
+                        {
+                            stillThere = true;
+                            break;
+                        }
+                    }
+                }
+                neutralized = !stillThere;
                 Log.Message("[GNH LocalFixes] Removed CrossPromotion's DoModInfo prefix (stage=" + stage + ")."
-                    + " Prefixes remaining on DoModInfo: " + (info != null ? info.Prefixes.Count : -1) + ".");
+                    + " Still present: " + stillThere + ".");
 
                 UninstallUiRetryHook();
             }
@@ -157,6 +182,8 @@ namespace GNH.LocalFixes
                 }
                 catch (Exception)
                 {
+                    // 这个程序集加载不出来（比如是那种只有元数据的引用程序集），
+                    // 直接跳过继续找下一个 —— 这里失败属于正常情况，不该刷日志。
                     continue;
                 }
 
@@ -240,8 +267,10 @@ namespace GNH.LocalFixes
             try
             {
                 MethodInfo postfix = AccessTools.Method(typeof(CrossPromotionUnpatch), nameof(UiRetryPostfix));
-                MethodInfo entry = AccessTools.Method(typeof(UIRoot_Entry), "Update");
-                MethodInfo play = AccessTools.Method(typeof(UIRoot_Play), "Update");
+                // 名字必须和安装时一致，都是 UIRootUpdate（原因见本文件上方那段说明：
+                // 这两个界面根类根本没有 Update 方法，写错了反射只会安静地返回 null）。
+                MethodInfo entry = AccessTools.Method(typeof(UIRoot_Entry), "UIRootUpdate");
+                MethodInfo play = AccessTools.Method(typeof(UIRoot_Play), "UIRootUpdate");
                 if (entry != null)
                 {
                     LocalFixesMod.HarmonyInstance.Unpatch(entry, postfix);

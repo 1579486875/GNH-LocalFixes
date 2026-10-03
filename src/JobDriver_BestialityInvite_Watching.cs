@@ -21,8 +21,11 @@ namespace ElToro_BAddon
     //
     // 【我们的做法】
     //
-    // 直接照着作者自己的源码，把这个类原样补回来
-    // （同一个命名空间、同一个类名），这样那个 Def 就能正常解析了。
+    // 按 ElToro 同类任务（JobDriver_BestialityInvite_InviteToWatch）的结构重写一份，
+    // 放在同一个命名空间、用同一个类名，这样那个 Def 就能正常解析了。
+    // （说明：作者并没发布过这个类的源码，所以这里是「重写」而不是「照抄」；
+    //   判定互动用的 API 也与同类不同 —— 同类用 GetResistanceLevel() 的枚举，
+    //   这里用 GetCalculatedResistance() 的 float 配阈值。）
     //
     // 【将来作者自己补上了怎么办】
     //
@@ -48,17 +51,15 @@ namespace ElToro_BAddon
             this.FailOn(() => pawn.Drafted);
             this.FailOn(() => TargetA.Pawn.Drafted);
 
-            var waitMating = Toils_General.Wait(400);
+            // 用带 face 参数的重载，而不是自己覆盖 initAction / tickAction。
+            //
+            // 原因是反编译看出来的：Toils_General.Wait 在 initAction 里放了
+            // pather.StopDead()（让小人停下脚步）。早先的写法整个覆盖掉 initAction，
+            // 停步那一步就没了 —— 表现是小人一边「等待」一边继续沿着原来的路线走。
+            // 而传了 face 参数之后，框架会自己把 handlingFacing 打开，
+            // 并在 tickIntervalAction 里让小人转头面向目标，正好就是要的效果。
+            var waitMating = Toils_General.Wait(400, TargetIndex.A);
             waitMating.socialMode = RandomSocialMode.Off;
-            waitMating.initAction = () =>
-            {
-                pawn.rotationTracker.FaceCell(human.Position);
-            };
-            waitMating.tickAction = () =>
-            {
-                pawn.rotationTracker.FaceCell(human.Position);
-            };
-            waitMating.handlingFacing = true;
             yield return waitMating;
 
             var interactToil = new Toil();
@@ -79,10 +80,15 @@ namespace ElToro_BAddon
                     if (Settings.DebugMode)
                         ModLog.Message($"[Bestiality Milestone] Milestone reached for pawn {pawn.NameShortColored}: Witnessed Consensual Bestiality.");
                 }
+                // 0.025 = 每看一次涨 2.5% 好感，幅度刻意很小：
+                // 这个行为是「看着别人做事」，不该比亲自参与涨得还快。
                 memory.ApplyAnimalOpinion(animal, 0.025f, isPermanent: false);
 
                 float resistance = memory.GetCalculatedResistance();
                 InteractionDef interaction;
+                // 按「对方有多抗拒」挑三种反应之一：
+                //   0.30 以下 = 不太抗拒（低抗拒版）、0.70 以下 = 中等、再高 = 高抗拒版。
+                // 三个候选互动都是从 ElToro 作者自己的 Def 里取现成的，本文件不新增文本。
                 if (resistance <= 0.30f)
                 {
                     interaction = defs.BestialityInvite_Interaction_Watching_LowRes;
