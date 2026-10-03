@@ -5,7 +5,7 @@
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`GNH-本地修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.7**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.3.8**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
 ## 构建与部署
 

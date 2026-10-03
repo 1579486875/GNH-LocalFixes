@@ -80,6 +80,15 @@ namespace GNH.LocalFixes
         private static FieldInfo cacheField;
         private static FieldInfo ownerField;
 
+        /// <summary>
+        /// WorkshopItemHook 里那个「作者 SteamID」字段。
+        /// 为什么要管它：游戏判断模组能不能上传创意工坊时，最后一道检查是
+        /// MayHaveAuthorNotCurrentUser，而它读的正是这个字段。空壳对象里
+        /// 这个字段是默认值（CSteamID.Nil），会被判定成「作者可能不是你」，
+        /// 于是上传/更新那一项直接从「高级…」菜单里消失，且没有任何提示。
+        /// </summary>
+        private static FieldInfo authorField;
+
         internal static void Install()
         {
             if (installed)
@@ -184,6 +193,58 @@ namespace GNH.LocalFixes
                 {
                     hook = (WorkshopItemHook)FormatterServices.GetUninitializedObject(typeof(WorkshopItemHook));
                     ownerField.SetValue(hook, __instance);
+
+                    // 光填 owner 是不够的 —— 这里必须再补一个「作者」字段，
+                    // 否则「上传到创意工坊 / 在创意工坊更新」那一项会凭空消失。
+                    //
+                    // 原因：游戏判断一个模组能不能上传时（ModMetaData.CanToUploadToWorkshop）
+                    // 最后会问 GetWorkshopItemHook().MayHaveAuthorNotCurrentUser，而它读的是
+                    // WorkshopItemHook 自己的 steamAuthor 字段 —— 这个字段并不从 owner 转发，
+                    // 空壳对象里是默认值 CSteamID.Nil，于是那句话会判定成
+                    // 「作者可能不是你」，直接禁止上传；表现就是「高级…」菜单里没有上传项，
+                    // 而且不报任何错，极难查。
+                    //
+                    // 这里把它填成当前登录的 Steam 用户：这些模组本来就放在本机 Mods 目录、
+                    // 由本人发布，填自己才是事实。只对「本机 Mods 文件夹里的模组」这么做；
+                    // 工坊订阅来的模组保持原样（Nil），免得把别人的作品误判成自己的。
+                    if (__instance.Source == ContentSource.ModsFolder)
+                    {
+                        if (authorField == null)
+                        {
+                            authorField = AccessTools.Field(typeof(WorkshopItemHook), "steamAuthor");
+                        }
+                        if (authorField != null)
+                        {
+                            // 用反射去问 Steamworks「当前登录的是谁」，而不是直接调
+                            // SteamUser.GetSteamID()。原因是那样得给本工程再加一个
+                            // com.rlabrecque.steamworks.net 程序集引用 —— 为了一个调用
+                            // 多担一份「缺库就整个补丁加载失败」的风险并不划算。
+                            //
+                            // 反射拿不到就什么都不填（保持 Nil）：后果只是回到「不能上传」
+                            // 的老样子，绝不会因此让补丁本身出问题。
+                            object steamId = null;
+                            try
+                            {
+                                Type steamUserType = AccessTools.TypeByName("Steamworks.SteamUser");
+                                MethodInfo getSteamId = steamUserType != null
+                                    ? AccessTools.Method(steamUserType, "GetSteamID")
+                                    : null;
+                                if (getSteamId != null)
+                                {
+                                    steamId = getSteamId.Invoke(null, null);
+                                }
+                            }
+                            catch (Exception ex2)
+                            {
+                                Log.Warning("[GNH LocalFixes] Could not read the local Steam user id: " + ex2.Message);
+                            }
+                            if (steamId != null)
+                            {
+                                authorField.SetValue(hook, steamId);
+                            }
+                        }
+                    }
+
                     cacheField.SetValue(__instance, hook);
                 }
 
