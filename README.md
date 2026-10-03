@@ -1,7 +1,9 @@
-﻿# GNH 本地修复补丁（GNH.LocalFixes）
+# GNH 本地修复补丁（GNH.LocalFixes）
+
+> **📦 下载**：[最新版本（Release）](https://github.com/1579486875/GNH-LocalFixes/releases/latest) —— 下载 zip，解压后放进 `Mods\` 目录即可（内含编译好的 dll，需要 Harmony）。
 
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
-部署位置：`D:\steam\steamapps\common\RimWorld\Mods\GNH-本地修复补丁\`
+部署目录名：`GNH-本地修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
 - 模组版本：**1.3.7**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
