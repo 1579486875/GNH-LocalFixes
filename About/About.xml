@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>本地修复补丁</name>
+  <author>大赢经直插白皮赢道</author>
+  <packageId>gnh.cn.cys.localfixes</packageId>
+  <modVersion IgnoreIfNoMatchingField="True">1.3.7</modVersion>
+  <supportedVersions>
+    <li>1.6</li>
+  </supportedVersions>
+  <description>针对本机模组组合的八个修复合集（原「TAML 修复合集」的两项已并入）。八项互相独立，均为最小侵入，可整体或逐项停用：
+
+【1】ElToro 人兽杂交「观看」任务补全
+ElToro_BAddon.dll 中缺少 JobDriver_BestialityInvite_Watching 类，而 Defs/JobDefs/Jobs_Bestiality_Invite.xml 的 JobDef 引用了它，导致日志报 Could not find a type named ...。本补丁按作者自带源码原样在 ElToro_BAddon 命名空间下重新声明该类，使该 JobDef 恢复正常加载。若将来作者自己补上该类，游戏取程序集列表中的首个匹配且本模组声明了 loadAfter，故优先使用作者版本。
+
+【2】CeleTech「智能切换武器」空引用防护
+原版 Verse.VerbProperties.AdjustedRange 未对 attacker 做空检查。CeleTech 的 CompAppWeaTransferAppPart 会对收在背包容器里、没有持有者的武器取 EffectiveRange（此时 attacker 为 null），导致该小人每 15 tick 抛一次 NullReferenceException 并中断 Pawn.Tick。本补丁加此前缀守卫：attacker 为 null 时返回基础射程，其余情况行为完全不变。
+
+【3】VFE Empire 爵位层级空引用（Patches/VFEE_RoyalTitleExtFix.xml）
+WorldComponent_Hierarchy.MakePawnFor 取到 RoyalTitleDefExtension 后直接读 kindForHierarchy，两步之间没有 null 检查，任何未挂该扩展（或该字段为空）的爵位都会抛 NullReferenceException 并中断世界组件初始化。该字段类型为 PawnKindDef（已用反编译核对签名）。
+VFE Empire 自身的补丁只给 8 个爵位挂了该扩展（Freeholder / Yeoman / Acolyte / Knight / Praetor / Baron / Count / Emperor，其中 Freeholder 的值还是空的），而原版 Royalty 共有 11 个爵位 —— Consul / Duke / Stellarch 这三个它完全没有覆盖。
+本补丁分两步：先给这三个爵位写入各自正确的 PawnKindDef（Empire_Royal_Consul / Empire_Royal_Duke / Empire_Royal_Stellarch，均为原版真实存在的定义，已逐一核对）；再遍历全部 RoyalTitleDef 兜底，给其它模组新增、VFE 不认识的爵位补一个非空值 Empire_Royal_Yeoman，避免取到 null。第一步不会与 VFE 冲突：AddModExtension 是追加语义而 GetModExtension 只取第一个匹配项，VFE 因 loadAfter 先执行，其扩展始终优先。
+整个操作由 PatchOperationFindMod 包裹，仅在检测到 VFE Empire 时执行（PatchOperation 基类没有 MayRequire 字段，只能用 FindMod 包裹）。
+
+【4】Vehicle Framework 开发者面板刷屏
+Vehicles.Patch_Debug.DebugHideVehiclesFromPawnSpawner 把「显示名{defName}」整串当作 defName 传给 DefDatabase 的 PawnKindDef 查询（errorOnFail 为 true），1241 个节点全部失败。本补丁先从花括号中解析出真正的 defName 再静默查询，功能保留且不再报错。
+
+【5】VFE Empire「乐器空间」房间需求静态构造崩溃
+RoomRequirement_InstrumentSpace 的静态构造里对 BuildableDef.placeWorkers 直接调用 Contains，而该字段在 Def 未声明 placeWorkers 时是 null 而非空列表，于是遍历到第一个此类 ThingDef 即抛 NullReferenceException，类型随后被 CLR 标记为初始化失败。本补丁在 Verse.LoadedModManager.CreateModClasses（Def 尚未解析、所有静态构造尚未执行）时安装，优先只替换那句不安全的判断（保留作者原初始化流程），找不到该编译器生成方法时再接管整个初始化。
+
+【6】打开「模组配置」页面即崩溃的修复（brrainz CrossPromotion）
+打开模组配置页面、显示任一模组详情时会终止整个进程。四次崩溃转储的调用链完全一致：Page_ModsConfig.DoWindowContents -> Brrainz.CrossPromotion.Page_ModsConfig_DoModInfo_Prefix -> Verse.ModMetaData.GetWorkshopItemHook() -> Verse.Steam.WorkshopItemHook..ctor -> SendSteamDetailsQuery() -> Steamworks.SteamUGC.RequestUGCDetails(...)。
+RequestUGCDetails 是 Valve 早已废弃的接口，当前 steam_api64.dll（6.91.21.57）调用它会触发结构化异常（KERNELBASE!RaiseException），被 RimWorld 的崩溃处理程序拦截后进程即终止；与内存占用无关。
+其中 CrossPromotion 是内嵌在 Visual Exceptions / Achtung! / Camera+ 内部、运行时以 Assembly.Load 加载的共享组件，因此磁盘上的 CrossPromotion.dll 里并没有这个方法。
+关键结论（实测得出）：在链路下层打补丁无效。Harmony 替换的是方法的本机代码，而 Mono 的 JIT 内联读取的是 IL，整条链被逐层内联后，对 SendSteamDetailsQuery、WorkshopItemHook..ctor、GetWorkshopItemHook 的任何补丁都拦不住它——补丁表显示已安装，崩溃却分毫不变。
+因此本补丁改为把这个前缀本身从 DoModInfo 的补丁链上摘除（Harmony.Unpatch），Harmony 随即重建包装器，那段会崩的调用在新生成代码里根本不存在。这也是侵入性最小的做法：DoModInfo 是 212 行的方法，负责绘制预览图、名称、作者、版本以及「上传到创意工坊」按钮，因此不能禁用或替换它；摘掉这一个前缀的唯一代价是失去 brrainz 自带的交叉推广面板。
+CrossPromotion 另外三个前缀（PostClose、WorkshopItems_Notify_Subscribed、ModLister_RebuildModList）不涉及该调用链，保持原样。
+注意：CrossPromotion.dll 不能删除 —— VisualExceptions.HarmonyMain 与 AchtungMod.AchtungLoader 都以类型方式引用它，删掉会使这两个模组抛 TypeLoadException。
+
+【7】RJW 动物动画的悬空引用（Patches/ElToroAnimsRottiRefFix.xml）
+NewRatkinPlus 1.6 删掉了 Rotti（罗蒂）这个动物，但 ElToros Bestiality Animations 的动画定义里仍列着它。该条目所在字段是 Rimworld_Animations.PawnTest_Race.races，类型为 List&lt;ThingDef&gt;（已用反编译确认签名）；RimWorld 解析 List&lt;ThingDef&gt; 时会按名查找 Def，找不到就报红字，而同一条目上的 MayRequire 只检查「模组是否启用」，挡不住「模组还在、Def 却没了」这种情况。
+真正会加载的只有 1.6 目录下的两个文件（该模组 LoadFolders 为 v1.6 = ["/", "1.6"]，Common/ 与 1.5/ 均不加载）。本补丁用一条精确 xpath 摘掉那两处悬空条目，已实测命中 2 处，且不会触动同一列表里的 RK_KingHamster 等有效项。
+整个操作由 PatchOperationFindMod 包裹并全程 success=Always：未装该动画模组、或将来作者自己修好了这一行时，本补丁都安静地什么都不做，不会反而制造新的红字。
+
+依赖：Harmony。
+排序要求：需排在 ElToro.BAddon、TOT.CeleTech.MKIII、VFE Empire、Vehicle Framework 与 brrainz 系列之后加载（已在 loadAfter 中声明）。
+【8】修好被「禁用房间要求」连累跳过的功能
+
+「disabledroomRequirements」这个模组会把所有帝国爵位的卧室 / 王座厅要求清空。
+这本身没问题，但它的做法是把整个节点替换掉，于是另外几个模组「往这些节点里追加
+内容」的补丁就会失败 —— 而 RimWorld 的补丁序列一旦某一步失败，后面的步骤就全部
+不再执行。
+
+受影响最大的是 Vanilla Furniture Expanded：它本来要让立式钢琴改用皇权的音乐系统
+（贵族弹琴、进而获得音乐心情），还要给营火加火焰冥想焦点、给石棺加动物安葬链接。
+这些跟房间要求毫无关系，却被前面的失败连累，一直没有生效。本补丁把这几项补做回来，
+房间要求相关的部分仍然不动，保持那个模组禁用它的效果。本补丁是幂等的：
+即使将来删掉 disabledroomRequirements，也不会出现重复添加。
+
+</description>
+  <modDependencies>
+    <li>
+      <packageId>brrainz.harmony</packageId>
+      <displayName>Harmony</displayName>
+      <steamWorkshopUrl>https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077</steamWorkshopUrl>
+    </li>
+  </modDependencies>
+  <loadAfter>
+    <li>brrainz.harmony</li>
+    <li>ElToro.BAddon</li>
+    <li>TOT.CeleTech.MKIII</li>
+    <li>oskarpotocki.vfe.empire</li>
+    <li>gugustar.snowrabbitracebeta</li>
+    <li>ariandel.miliraimperium</li>
+    <li>smashphil.vehicleframework</li>
+    <li>brrainz.visualexceptions</li>
+    <li>brrainz.achtung</li>
+    <li>brrainz.cameraplus</li>
+  </loadAfter>
+</ModMetaData>

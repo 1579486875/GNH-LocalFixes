@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+
+  <!--
+    VFE Empire 爵位层级空引用修复
+
+    ── 病根 ──
+
+    来自 VFEEmpire.dll / WorldComponent_Hierarchy.MakePawnFor：
+
+        PawnKindDef kindForHierarchy =
+            ((Def)title).GetModExtension<RoyalTitleDefExtension>().kindForHierarchy;
+
+    两步之间没有 null 检查（已用反编译逐字核对）。所以只要某个爵位
+    「没挂这个扩展」或「扩展里该字段为空」，这一句就会抛 NullReferenceException，
+    并中断世界组件初始化。字段类型是 PawnKindDef（签名已核对）。
+
+    背景：VFE Empire 自己的 Patches/RoyalTitlesPatches.xml 只给 8 个爵位挂了该扩展
+    （Freeholder / Yeoman / Acolyte / Knight / Praetor / Baron / Count / Emperor，
+      其中 Freeholder 的值还是空的）；而原版 Royalty 共 11 个爵位，
+    Consul / Duke / Stellarch 这三个 VFE 完全没有覆盖。
+
+    ── 本补丁做什么 ──
+
+    先给 VFE 漏掉的三个爵位写上各自正确的 PawnKindDef（三者均为原版真实存在的定义，
+    已逐一核对）；再遍历全部 RoyalTitleDef 兜底，给「其它模组新增、VFE 不认识」的
+    爵位补一个非空值，避免取到 null。
+
+    为什么第 4 块不会污染 VFE 已处理的那 8 个爵位：
+      PatchOperationAddModExtension 是「追加」语义，而 GetModExtension<T>() 只取
+      列表里第一个匹配项；VFE 自己那份 patch 因本模组声明了 loadAfter 而先执行，
+      它的扩展排在前面，因此始终优先生效。前三个爵位 VFE 根本没挂扩展，
+      所以本补丁写进去的值是唯一来源。
+
+    ── 为什么拆成四个独立的块，而不是串成一个 Sequence ──
+
+      RimWorld 的 PatchOperationSequence 只要有一条失败，就立刻中止、
+      后面的一条都不再执行。如果把它们串成一个序列，那么万一将来某个模组
+      删掉了 Consul，后面「Duke / Stellarch / 兜底」这三条就会跟着一起不执行 ——
+      兜底防护静默失效，而它正是用来防崩溃的，失效了也不会有任何提示。
+
+      拆成四个独立块之后，任何一块失败都不影响其它三块：
+        前三个爵位是关键修复，万一目标爵位不存在，就让它照常报错提醒你；
+        第 4 块兜底带 success="Always"，即使一个爵位都没匹配到也安静跳过，
+        不会反过来制造新的红字。
+
+    ── 两个容易踩的坑 ──
+
+    1. PatchOperation 基类并没有 MayRequire 字段（它只有 sourceFile /
+       neverSucceeded / success 这几个字段），所以「没装 VFE 时不要执行」
+       只能用 PatchOperationFindMod 包起来。
+    2. PatchOperationFindMod 的 <mods><li> 比对的是 ModMetaData.Name（显示名），
+       不是 packageId。已核对：该模组 About.xml 里的 <name> 正是这一串，逐字一致。
+       另外已用反编译确认：FindMod 在「模组没找到」时返回 true，不会报错，
+       所以本补丁在没装 VFE Empire 的环境里是完全安静的。
+  -->
+
+  <!-- ① Consul：VFE 完全没有覆盖的三个爵位之一 -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <xpath>Defs/RoyalTitleDef[defName="Consul"]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <kindForHierarchy>Empire_Royal_Consul</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+
+  <!-- ② Duke -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <xpath>Defs/RoyalTitleDef[defName="Duke"]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <kindForHierarchy>Empire_Royal_Duke</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+
+  <!-- ③ Stellarch -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <xpath>Defs/RoyalTitleDef[defName="Stellarch"]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <kindForHierarchy>Empire_Royal_Stellarch</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+
+  <!-- ④ 兜底：给「其它模组新增、VFE 不认识」的爵位补一个非空值。
+       success="Always" 让它即使一个都没匹配到也安静跳过 ——
+       这一条的目的是「防止崩溃」，不是「必须改到东西」，
+       所以不该因为它没找到目标而报错。 -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <kindForHierarchy>Empire_Royal_Yeoman</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+
+</Patch>

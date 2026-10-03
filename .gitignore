@@ -1,0 +1,13 @@
+# 编译中间产物
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.pdb
+*.log
+
+# ⚠️ 游戏与第三方模组程序集 —— 版权不属于本项目，绝不提交
+# Assembly-CSharp / UnityEngine*（游戏本体）、0Harmony、RJW、ElToro_BAddon（第三方模组）
+refs/

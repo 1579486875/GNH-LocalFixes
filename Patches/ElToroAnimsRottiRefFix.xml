@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+
+  <!--
+    摘除 ElToro.Anims 里指向已不存在 Def 的悬空引用。
+
+    背景：NewRatkinPlus 1.6 删掉了 Rotti（罗蒂）这个动物，但 ElToros Bestiality
+    Animations 的动画定义里仍然列着它：
+        <li MayRequire="solaris.ratkinracemod">Rotti</li>
+    MayRequire 只检查「模组是否启用」，不去核对「Def 是否存在」，所以这条在鼠族
+    启用时会变成悬空引用。而它所在的字段是
+        Rimworld_Animations.PawnTest_Race.races : List<ThingDef>
+    （已用反编译确认签名），RimWorld 解析 List<ThingDef> 时会按名查 Def，
+    找不到就报红字，因此必须摘掉。
+
+    影响范围：只有 1.6 目录下的两个文件会真正加载
+        （该模组的 LoadFolders 为 v1.6 = ["/", "1.6"]，Common/ 与 1.5/ 都不加载）
+        Defs/GroupAnimationDefs/Female/Consensual/EltBeastFemaleChicken/EltBeastFemaleChicken.xml
+        Defs/GroupAnimationDefs/Female/Consensual/EltBeastFemaleChicken/EltBeastFemaleChickenOral.xml
+    两个文件结构一致，各自有一个含 Rotti 的 races 列表，这条 xpath 恰好命中那两处。
+
+    两个要点：
+      1. 用 PatchOperationFindMod 包裹 —— 没装该动画模组时 xpath 会匹配不到，
+         而 PatchOperation 基类并没有 MayRequire 字段，只能靠 FindMod 兜住；
+         FindMod 的 mods/li 比对的是 ModMetaData.Name（显示名），不是 packageId。
+      2. 全程 success=Always —— 万一将来作者自己删掉了这行，或 xpath 结构变化，
+         本补丁会安静地什么都不做，而不是反过来制造一条新的红字。
+  -->
+
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>ElToros Bestiality Animations</li>
+    </mods>
+    <match Class="PatchOperationSequence">
+      <success>Always</success>
+      <operations>
+        <li Class="PatchOperationRemove">
+          <xpath>Defs/Rimworld_Animations.GroupAnimationDef/contexts/li/whitelist/li/tests/li/races/li[normalize-space(text())="Rotti"]</xpath>
+          <success>Always</success>
+        </li>
+      </operations>
+    </match>
+  </Operation>
+
+</Patch>
