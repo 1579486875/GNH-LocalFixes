@@ -80,9 +80,23 @@
 1. 反编译 `Verse.PatchOperationFindMod.ApplyWorker` 原文：
    `if (flag) { if (match != null) return match.Apply(xml); } … return true;`
    —— **判定失败时返回 `true`（安静跳过，不报错）**；只有 `<match>` 里的子操作失败，
-   才会把 `false` 抛上来并被打印成「FindMod 失败」。
-2. 所以：**红字出现，恰恰证明 `Royalty` 被找到了。** 出错的是 `<match>` 里那条
-   `PatchOperationAdd` 的 xpath。
+   才会把 `false` 抛上来。
+2. 而红字的打印条件是 `neverSucceeded`，它只在 `Apply` 返回 `false` 时被留下：
+
+   ```csharp
+   // Verse.PatchOperation.Apply
+   bool flag = ApplyWorker(xml);
+   if (success == Success.Always) flag = true; else if (…) …
+   if (flag) neverSucceeded = false;      // ← 成功过一次就清掉标记
+   return flag;
+
+   // Verse.PatchOperation.Complete（红字就是这里打的）
+   if (neverSucceeded)
+       Log.Error($"[{modIdentifier}] Patch operation {this} failed\nfile: {sourceFile}");
+   ```
+
+   —— 所以：**红字出现，恰恰证明 `Royalty` 被找到了**（否则 `ApplyWorker` 会返回 `true`，
+   标记被清掉，一行字都不会有）。出错的是 `<match>` 里那条 `PatchOperationAdd` 的 xpath。
 3. 真正的元凶是 **`disroom.mashiro`**（工坊 `3297881350`，中文名 `disabledroomRequirements`，
    本机加载位次 **470**）：它用
    ```xml

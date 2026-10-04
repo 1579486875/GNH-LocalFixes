@@ -72,9 +72,21 @@ NewRatkinPlus 1.6 删掉了 Rotti（罗蒂）这个动物，但 ElToros Bestiali
 整块 &lt;match&gt; 被静默跳过，什么都没做、也什么都不报；v1.3.12 修好了判定，
 &lt;match&gt; 里的语句终于执行了，这才轮到它们因为节点被清空而报错。
 
-红字标题里的「FindMod(Royalty)」是**误报**：原版 ApplyWorker 找不到模组时是返回 true（安静跳过），
-只有 &lt;match&gt; 里的子操作失败才会把 false 抛上来并打印成「FindMod 失败」。
-既然红字出现了，就说明 Royalty 本来就找到了，出错的是它 &lt;match&gt; 里那条
+红字标题里的「FindMod(Royalty)」是**误报**。证据是原版这两段（反编译原文）：
+
+    // Verse.PatchOperation.Apply
+    bool flag = ApplyWorker(xml);
+    ...
+    if (flag) neverSucceeded = false;      // ← 只要成功过一次，就清掉「从未成功」标记
+    return flag;
+
+    // Verse.PatchOperation.Complete（红字就是这里打的）
+    if (neverSucceeded)
+        Log.Error($"[{modIdentifier}] Patch operation {this} failed\nfile: {sourceFile}");
+
+也就是说：这行红字的**唯一**触发条件是 Apply 返回了 false。
+而 FindMod 的 ApplyWorker 在「没找到模组」时是 return true（安静跳过、不报错）——
+所以**只要红字出现，就证明 Royalty 本来就被找到了**，出错的是它 &lt;match&gt; 里那条
     …/bedroomRequirements/li[@Class="RoomRequirement_ThingAnyOf"]/things
 的 xpath —— 因为 disroom.mashiro 已经把整个 bedroomRequirements 换成了空表。
 
