@@ -46,7 +46,7 @@ namespace GNH.LocalFixes
     // 在 LocalFixesMod 的构造函数里安装。那个时刻 Def 还没解析，
     // 所有静态构造函数也都还没跑，来得及。
     //
-    // 因为那个构造函数在一个进程里可能跑多次（原因见 LocalFixesMod.cs），
+    // 因为首次构造抛异常时，下次模组对象还会被构造一次（原因见 LocalFixesMod.cs），
     // 所以 installed 标记只在「补丁真的装上了」或者「确认不需要装」之后才立起：
     //   * 主动跳过（例如根本没装 VFE Empire）算成功，否则会白重试无数次；
     //   * 抛异常则保持未立起，下次构造时再试一遍。
@@ -122,8 +122,8 @@ namespace GNH.LocalFixes
         // AccessTools.Method 的最后那个参数，是「泛型类型参数」，
         // 而不是「方法的返回类型」。
         //
-        // 如果给一个普通方法传了东西（而不是 null），它会抛异常
-        // 「not a generic method definition」（这不是泛型方法）。
+        // 如果给一个普通方法传了东西（而不是 null），它会抛
+        // InvalidOperationException（大意是「这不是一个泛型方法定义」）。
         // 而如果外面套了 try/catch，这个异常会被悄悄吃掉 ——
         // 补丁看起来装了，其实根本没装，问题依然在。
         //

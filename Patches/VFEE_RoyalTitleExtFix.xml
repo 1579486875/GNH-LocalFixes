@@ -16,9 +16,15 @@
     并中断世界组件初始化。字段类型是 PawnKindDef（签名已核对）。
 
     背景：VFE Empire 自己的 Patches/RoyalTitlesPatches.xml 只给 8 个爵位挂了该扩展
-    （Freeholder / Yeoman / Acolyte / Knight / Praetor / Baron / Count / Emperor，
-      其中 Freeholder 的值还是空的）；而原版 Royalty 共 11 个爵位，
-    Consul / Duke / Stellarch 这三个 VFE 完全没有覆盖。
+    （Freeholder / Yeoman / Acolyte / Knight / Praetor / Baron / Count / Emperor）；
+    而原版 Royalty 共 11 个爵位，Consul / Duke / Stellarch 这三个 VFE 完全没有覆盖。
+
+    为什么偏偏是这三个出事：VFE 生成层级人物时，只遍历「seniority 大于 0 且 tags
+    命中帝国爵位标签」的那批爵位（WorldComponent_Hierarchy 静态构造里那句 LINQ）。
+    这三个的 seniority 分别是 700 / 800 / 900，都在这份名单里，又没有挂扩展，
+    于是 GetModExtension 返回 null、紧接着读它的字段就抛 NullReferenceException。
+    而 Freeholder 虽然 VFE 给它留的层级值是空的，但它的 seniority 是 0，
+    压根不进这份名单，所以不会触发 —— 那个空值是有意为之，不是漏改。
 
     ── 本补丁做什么 ──
 

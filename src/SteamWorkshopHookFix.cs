@@ -43,9 +43,27 @@ namespace GNH.LocalFixes
     //
     // 【代价是什么】
     //
-    // 顶替之后，「Steam 信息」对象里那个「作者」字段会保持默认值（空的）。
-    // 与它相关的判断只有 MayHaveAuthorNotCurrentUser 一处，而它读的是缓存字段、
-    // 不是去问 Steam，所以这里也谈不上有什么副作用（该属性在整个游戏程序集里没有调用点）。
+    // 顶替之后要特别当心「作者」这个字段，它**确实有**调用点，而且后果不小：
+    //   ModMetaData.CanToUploadToWorkshop() 的检查顺序是
+    //     · 官方模组 → 返回 false；
+    //     · Source != ContentSource.ModsFolder（例如工坊订阅来的）→ 返回 false；
+    //     · GetWorkshopItemHook().MayHaveAuthorNotCurrentUser → 返回 false；
+    //   而 MayHaveAuthorNotCurrentUser 读的正是 WorkshopItemHook 里的 steamAuthor 字段。
+    //   空壳对象里它是默认值（CSteamID.Nil）→ 被判成「作者可能不是你」
+    //   → 上传/更新菜单项直接消失，而且不报任何错。
+    //
+    //   这里有个前提必须记住：那个属性的第一行是
+    //  「PublishedFileId == PublishedFileId_t.Invalid 时直接 return false」。
+    //   也就是说，只有模组目录里已经有 PublishedFileId.txt（曾发布过）时，
+    //   Nil 才会被判成「作者可能不是你」；从没发布过的模组 PublishedFileId 是 Invalid，
+    //   那句直接返回 false —— 对它们来说上传项本来就在。
+    //
+    // 所以下面**必须**把这个字段也填上（见 SafeGetWorkshopItemHook），
+    // 否则本修复虽然挡住了崩溃，却顺手弄丢了「上传到创意工坊」。
+    //（填值只在 Source == ContentSource.ModsFolder 时执行；对其它来源，
+    //  CanToUploadToWorkshop 在上面第二道检查就已经返回 false，填不填都一样。）
+    //
+    // 它读的是缓存字段、不是去问 Steam，所以填值本身没有其它副作用。
     //
     // 而其它所有对外属性（名称、描述、标签、目录、预览图、版本）
     // 都是转发给 owner 字段去查的 —— 我们在下面手动把 owner 填好了，
@@ -98,9 +116,9 @@ namespace GNH.LocalFixes
 
             // 注意：下面这两步反射查找也要包在 try 里。
             //
-            // 理由是 AccessTools.Method 在「同名方法有重载、无法唯一确定」时会抛
-            // AmbiguousMatchException（它内部先按名字全量取，遇到歧义再试无参版本，
-            // 仍旧歧义就把异常抛出来）。而本方法是被 LocalFixesMod 的构造函数
+            // 理由是 AccessTools.Method 在「同名方法有重载、无法唯一确定」时：
+            // 它先按名字全量取，遇到歧义会改取**无参重载**；只有连无参重载也取不到，
+            // 才会把 AmbiguousMatchException 抛出来。而本方法是被 LocalFixesMod 的构造函数
             // 挨个调用的：这里一旦把异常抛出去，排在后面的
             // CrossPromotionUnpatch.Install() 就根本不会执行 ——
             // 那正是最要命的「打开模组页面即崩溃」的修复，会被连累着跳过。
@@ -111,9 +129,13 @@ namespace GNH.LocalFixes
 
                 if (details == null || getHook == null)
                 {
-                    Log.Error("[GNH LocalFixes] Steam workshop hook fix: target missing ("
+                    // 用 ErrorOnce：本方法在每次模组对象被构造时都会调用。
+                    // 去重键与下面 SafeGetWorkshopItemHook 里那条「字段缺失」共用 ——
+                    // 两者都属于「目标结构对不上」这一类，一次启动里通常只会命中一条。
+                    Log.ErrorOnce("[GNH LocalFixes] Steam workshop hook fix: target missing ("
                         + DetailsQueryName + "=" + (details != null)
-                        + ", ModMetaData." + GetHookName + "=" + (getHook != null) + ").");
+                        + ", ModMetaData." + GetHookName + "=" + (getHook != null) + ").",
+                        ErrorKeyFieldsNotFound);
                     return;
                 }
 
@@ -129,8 +151,10 @@ namespace GNH.LocalFixes
 
                 installed = true;
 
-                // 装完之后再把补丁表读出来看一眼，确认真的装上了。
-                // 因为 Harmony 有时会「悄悄跳过」而不报错，光看日志说「已执行」不代表装成功。
+                // 装完之后再把补丁表读出来，确认前缀数量确实写进去了。
+                // 这不是因为「Harmony 会悄悄跳过而不报错」—— 装不上它会正常抛错；
+                // 读补丁表是为了留一份可查的证据：万一将来 Harmony 换了实现、
+                // 或者目标方法被整段替换，翻日志就能立刻看出补丁到底有没有落上去。
                 Patches info1 = Harmony.GetPatchInfo(details);
                 Patches info2 = Harmony.GetPatchInfo(getHook);
                 Log.Message("[GNH LocalFixes] Steam workshop hook fix installed. prefixes: "
@@ -204,9 +228,23 @@ namespace GNH.LocalFixes
                     // 「作者可能不是你」，直接禁止上传；表现就是「高级…」菜单里没有上传项，
                     // 而且不报任何错，极难查。
                     //
-                    // 这里把它填成当前登录的 Steam 用户：这些模组本来就放在本机 Mods 目录、
-                    // 由本人发布，填自己才是事实。只对「本机 Mods 文件夹里的模组」这么做；
-                    // 工坊订阅来的模组保持原样（Nil），免得把别人的作品误判成自己的。
+                    // 前提：只有模组目录里已经有 PublishedFileId.txt（曾发布过）时，
+                    // Nil 才会被判成「作者可能不是你」；从没发布过的模组 PublishedFileId 是
+                    // Invalid，MayHaveAuthorNotCurrentUser 第一行就返回 false，上传项本来就在。
+                    //
+                    // 这里把它填成当前登录的 Steam 用户，等于告诉游戏「这个条目是我的」。
+                    //
+                    // 前提是**假定**这些模组由本人发布 —— 本机 Mods 目录里的模组绝大多数
+                    // 是自己做的，但也可能是从别处手工拷进来、还带着原作者
+                    // PublishedFileId.txt 的。对后者，这道填值会让「上传到创意工坊」
+                    // 重新出现并指向别人的条目。真要点下去，Steam 那边会因为
+                    // 「你不是创建者」而拒绝，所以更可能是报个错、而不是覆盖别人的作品；
+                    // 但游戏原本是用这道检查来防这个的，这里相当于把它让开了。
+                    //
+                    // 取舍：不放开的后果是**自己的模组也传不上去**（这正是本次要修的问题），
+                    // 两害相权，选择放开，并把这件事写进 About.xml 让玩家知道。
+                    // 只对「本机 Mods 文件夹里的模组」这么做；工坊订阅来的模组
+                    // （Source 是 SteamWorkshop）保持原样，不会被误判。
                     if (__instance.Source == ContentSource.ModsFolder)
                     {
                         if (authorField == null)
@@ -238,9 +276,18 @@ namespace GNH.LocalFixes
                             {
                                 Log.Warning("[GNH LocalFixes] Could not read the local Steam user id: " + ex2.Message);
                             }
-                            if (steamId != null)
+                            // 这一步也必须包在自己的 try 里：万一将来 Steamworks 或游戏
+                            // 把字段类型改了，这里会抛异常 —— 而外层那个 catch 是
+                            // 「交还给游戏原方法」（return true），那等于把玩家直接送回
+                            // SendSteamDetailsQuery 那条崩溃路径上。
+                            try
                             {
                                 authorField.SetValue(hook, steamId);
+                            }
+                            catch (Exception ex3)
+                            {
+                                Log.Warning("[GNH LocalFixes] Could not set steamAuthor on the workshop hook: "
+                                    + ex3.Message);
                             }
                         }
                     }

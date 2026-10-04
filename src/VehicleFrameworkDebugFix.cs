@@ -8,33 +8,47 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 这个补丁解决的是：一打开开发者面板，日志就被刷屏（每次约 1241 条报错）。
+    // 这个补丁要顶替的是 Vehicle Framework 的调试菜单补丁：
+    // Vehicles.Patch_Debug.DebugHideVehiclesFromPawnSpawner
+    //（它是挂在 Verse.DebugToolsSpawning.SpawnPawn 上的 postfix）。
+    // 我们把它那句「查不到就报错」换成「查不到就静默跳过」。
     // ==========================================================================
     //
     // 【问题出在哪】
     //
-    // Vehicle Framework 在生成调试菜单时，把每一项的名称存成了
-    // 「显示名{真正的defName}」这种拼接格式（大括号里才是真名字）。
+    // Vehicle Framework 在生成调试菜单之后做了一次后置处理，逻辑等价于：
     //
-    // 然后它把这个「整串」拿去问游戏：「有没有叫这个名字的东西？」
-    // 而且用的是「找不到就报错」的版本。结果 1241 个节点，报 1241 次错。
+    //     foreach (列表里的每个节点 node)
+    //         if (DefDatabase<PawnKindDef>.GetNamed(node.label, true)?.race is VehicleDef)
+    //             删掉这个节点；
+    //
+    // 关键在 GetNamed 的第二个参数是 true —— 「找不到就把错误写进日志」。
+    // 所以只要某个节点的 label 不是现存 PawnKindDef 的 defName，
+    // 打开一次开发者面板就会按节点数量刷出成片的红字。
     //
     // 【我们怎么修】
     //
     // 在它执行之前插一段代码：
-    //   1. 把大括号里的真正名字抠出来；
-    //   2. 把车辆相关的项从菜单里删掉；
-    //   3. 剩下的正常处理。
+    //   1. 先按原版方式，把 label 当 defName 查；
+    //   2. 查不到再从花括号里解析（防御将来 label 变成「显示名{defName}」这类格式）；
+    //   3. 仍然查不到就静默跳过 —— 不再把失败写进日志；
+    //   4. 判定为车辆的节点照旧从菜单里删掉。
     //
-    // 这里要说明白：这个补丁不只是「消掉红字」，它同时**修好了一个功能缺陷**。
+    // 也就是说：本补丁真正的价值是**兜住「找不到就报错」这条刷屏路径** ——
+    // 先按原版方式查，查不到再尝试从花括号里解析（防御未来格式变化），
+    // 最后静默失败而不是报错。功能与原方法一致。
     //
-    // 原方法用 DefDatabase<PawnKindDef>.GetNamed(label) 去找这个节点（errorOnFail 为 true），
-    // 而它手里的 label 是「显示名{defName}」这种带花括号的串 —— 这样查必然失败、
-    // 拿到 null，于是后面那句 null?.race is VehicleDef 永远为假，**一个车辆节点都删不掉**。
-    // 「隐藏车辆」这个功能本来就是坏的。
+    // 【核实记录（2026-10-03，反编译）】
     //
-    // 我们先把花括号里的真名抠出来、再改用 GetNamedSilentFail 静默查询，
-    // 于是要删的节点真的被删掉了。也就是说：不再刷屏 + 功能恢复，两者都是这个补丁带来的。
+    // 旧版注释写过「label 是『显示名{defName}』拼接格式」「原方法必然失败、
+    // 一个节点都删不掉」「一次报 1241 条错」—— 这三条都与事实不符，已删除。实际的核实结果是：
+    //   · Verse.DebugToolsSpawning.SpawnPawn() 传的是 localKindDef.defName（纯 defName）；
+    //   · LudeonTK.DebugActionNode 的构造函数只做 this.label = label，全类没有花括号拼接；
+    //   · Vehicles.dll（工坊 3014915404 / 1.6）里检索不到任何含「{」的字符串字面量。
+    // 所以在那几个版本上，这条报错路径并没有被触发，原方法本来也能正常工作
+    //（label 是 defName 时 GetNamed 必然成功，车辆节点的 race 确实是 VehicleDef，会被删掉）。
+    // 保留下面的花括号解析纯粹是防御：万一将来某个版本、或别的模组把 label 换成
+    // 非 defName 的格式，这里只会静默跳过，而不是每个节点写一条错误。
     //
     // 【两点说明】
     //
@@ -81,7 +95,12 @@ namespace GNH.LocalFixes
         }
 
         // 注意：下面这个参数名 "__0" 不能改。
-        // Harmony 是按「第几个参数」来注入的，改成别的名字就注入不进去了。
+        // Harmony 是按「第几个参数」来注入的（__0 = 目标方法的第 0 个参数），
+        // 改成别的名字就注入不进去了。
+        // 尤其不能写成 "__result"：那是 Harmony「原方法返回值」的专用名，
+        // 而目标方法 DebugHideVehiclesFromPawnSpawner 返回 void。
+        // Harmony 2.4.1 在生成补丁时对这种情况会直接抛
+        //「Cannot get result from void method ...」，补丁根本装不上。
         public static bool Prefix(List<DebugActionNode> __0)
         {
             try
@@ -106,10 +125,12 @@ namespace GNH.LocalFixes
             return false;
         }
 
-        // 菜单项的文本长这样：  显示名称{真正的defName}
-        // 我们优先使用大括号里的真名字。
-        // 如果这一项根本没有大括号（说明它不是车辆相关的项），
-        // 就按原文处理，行为跟以前完全一样。
+        // 正常情况下，node.label 就是 PawnKindDef 的 defName。
+        // 这里仍然保留「先从大括号里取」的写法，只是防御将来 label 变成
+        //「显示名{defName}」这类拼接格式：有花括号就优先用里面的真名，
+        // 没有就按原文（defName）处理。
+        // 两条路都查不到时静默返回 null，不会写日志 ——
+        // 这一点正是与原来那句 GetNamed(label, true) 的区别，也是本补丁的兜底价值所在。
         private static PawnKindDef ResolvePawnKind(string label)
         {
             if (GenText.NullOrEmpty(label))

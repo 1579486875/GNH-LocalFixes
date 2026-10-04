@@ -21,15 +21,22 @@ namespace GNH.LocalFixes
     // 【为什么要防重复】
     //
     // 先说清楚实际机制（已用反编译核对过，以免后来人照着错的印象改代码）：
-    // 游戏在一局里确实会多次调用 LoadedModManager.LoadAllActiveMods
-    //（打开游戏内的「模组」页面等操作都会触发），但其中的 CreateModClasses()
-    // 有一句 if (!runningModClasses.ContainsKey(type)) 去重 —— runningModClasses
-    // 是个静态字典、只在类型静态构造里写入一次、之后从不清空。
+    // 游戏在一局里确实会多次调用 LoadedModManager.LoadAllActiveMods —— 触发它的是
+    // 开发者工具的热重载（PlayDataLoader.HotReloadDefs）和切换语言
+    //（LanguageDatabase.SelectLanguage → PlayDataLoader.LoadAllPlayData），
+    // **不含**打开游戏内的「模组」页面（反编译查证：LoadAllActiveMods 的调用点只有
+    // PlayDataLoader.DoPlayLoad，以及 HotReloadDefs 里那个委托）。
+    // 但其中的 CreateModClasses() 有一句 if (!runningModClasses.ContainsKey(type)) 去重 ——
+    // runningModClasses 是个静态字段（在 LoadedModManager 的静态构造里创建）、
+    // 条目由 CreateModClasses 逐类型写入，之后从不清空。
     // 所以正常路径下，同一个模组类的构造函数在一个进程里**只跑一次**。
     //
-    // 那为什么还要立这个标记？因为它挡的是两条罕见但真实的路径：
-    //   1. 首次构造时抛异常，字典里没能写下这一项，于是下次还会被构造一次；
-    //   2. 程序集被重新加载（更换 Type 对象），去重表认不出来是「同一个」。
+    // 那为什么还要立这个标记？它挡的是：
+    //   首次构造时抛异常，运行库的去重表里没能写下这一项（见
+    //   LoadedModManager.CreateModClasses 里的 runningModClasses），于是下次还会被构造一次。
+    //
+    // 要说明白的是：**程序集被重新加载这种情况它挡不住** —— 那样一来所有静态状态
+    // 都是全新的，标记必然从 false 开始。真要防那一条得靠卸载旧补丁，不是靠这个标记。
     //
     // 而 Harmony 装补丁的方式是「叠加」而不是「替换」：
     // 同一个方法上装十次，就会有十层代码依次执行，越玩越卡直到卡死。
@@ -37,17 +44,20 @@ namespace GNH.LocalFixes
     //
     // 标记是在 PatchAll 返回之后才立起来的。
     //
-    // 有一件事要说清楚（已用反编译核对）：PatchAll 内部是「一个补丁类一个补丁类地装」，
-    // 而单个补丁类装失败时，Harmony 会自己捕获、只记日志、**不往外抛异常**。
-    // 所以「某个补丁类没装上」这种情况，下面这个 catch 是拦不到的，标记照样会立起来 ——
-    // 也就是说，本文件并不具备「个别补丁失败就自动重试」的能力。
+    // 关于「PatchAll 失败时会怎样」（已用反编译逐条核对 Harmony 2.4.1）：
+    //   PatchAll 内部是「一个补丁类一个补丁类地装」，而任何一类装失败时，
+    //   Harmony 都会把它包成 HarmonyException **往外抛**，整个 PatchAll 就此中止。
+    //   所以下面这个 catch 是**拦得到**的 —— 单类失败同样不会把标记立起来。
     //
-    // 那这层 try/catch 还防什么？防的是 PatchAll **整体**抛异常
-    //（例如 Harmony 版本不兼容）。那种情况下标记会保持 false，下次构造模组对象时还会再试一遍，
-    // 不至于因为一次偶然的整体失败，就把整个补丁包永久地、悄无声息地关掉。
+    // 但有两件事必须知道：
+    //   1. 抛出点之后的那些补丁类，这一次就不会安装了；
+    //   2. 重试是从第一个补丁类重新装一遍，而 Harmony **不做去重** ——
+    //      所以「装了一半 + 重试」会让已经装上的补丁再叠一层。
+    //   好在 PatchAll 的失败窗口很窄（要么整体通过，要么在第一处就中止），
+    //   而且我们的补丁类只有寥寥几个，实际风险很低。
     //
-    // 如果将来确实需要「个别补丁类失败也能重试」，得改成用 Harmony.GetPatchInfo
-    // 逐个目标去校验补丁在不在，而不是指望这里的返回值。
+    // 如果将来需要更细的控制（某个补丁类失败只补装它自己），
+    // 得改成用 Harmony.GetPatchInfo 逐个目标校验，而不是依赖这里的返回值。
     public class LocalFixesMod : Mod
     {
         public const string HarmonyId = "gnh.cn.cys.localfixes";
@@ -63,10 +73,14 @@ namespace GNH.LocalFixes
                 try
                 {
                     HarmonyInstance.PatchAll(Assembly.GetExecutingAssembly());
-                    // 先打日志、再立标记：万一 Log.Message 自己抛了异常，
-                    // 标记就不会被立起来，日志里那句 "will be retried" 才名副其实。
-                    Log.Message("[GNH LocalFixes] Harmony patches applied (id=" + HarmonyId + ").");
+                    // 顺序是「先立标记、再打日志」，不能反过来。
+                    //
+                    // 理由：万一 Log.Message 自己抛了异常，标记就不会被立起来，
+                    // 下次构造模组对象时又会全量 PatchAll 一遍 —— 而 Harmony 没有去重，
+                    // 已经装好的补丁会被叠上第二层，正是我们最怕的那种「越玩越卡」。
+                    // 少打一条日志只是少了条线索，补丁叠层才是真麻烦。
                     patchesApplied = true;
+                    Log.Message("[GNH LocalFixes] Harmony patches applied (id=" + HarmonyId + ").");
                 }
                 catch (Exception ex)
                 {
@@ -74,9 +88,36 @@ namespace GNH.LocalFixes
                 }
             }
 
-            VFEEInstrumentSpaceFix.Install();
-            SteamWorkshopHookFix.Install();
-            CrossPromotionUnpatch.Install();
+            // 下面三步各自隔离：任何一步失败都不许把整个构造函数掀翻。
+            //
+            // 为什么这么要紧（2026-10-02 事故的机制）：
+            //   LoadedModManager.CreateModClasses() 里写的是
+            //       runningModClasses[type] = (Mod)Activator.CreateInstance(type, modContentPack);
+            //   —— **先构造、后登记**。构造函数一旦抛异常，去重表里就留不下这个类型，
+            //   于是下次 CreateModClasses()（游戏内每次打开模组管理器都会跑一次）会再构造一遍，
+            //   而 Harmony 补丁是叠加的 → 越玩越卡直到卡死。
+            //   宁可某一步没装上，也不能让它带塌整个构造函数。
+            //
+            // 同时 catch 里**必须**打 Log.Error：那场事故的另一半教训是
+            //   「异常被静默吞掉、补丁其实从没生效，却没人知道」。
+            //   日志是排查者唯一能看出「这一步没装上」的线索。
+            TryInstall("VFEEInstrumentSpaceFix", VFEEInstrumentSpaceFix.Install);
+            TryInstall("SteamWorkshopHookFix", SteamWorkshopHookFix.Install);
+            TryInstall("CrossPromotionUnpatch", CrossPromotionUnpatch.Install);
+        }
+
+        // 把「装一步补丁」包起来：失败只记日志，绝不往外抛。
+        // 理由见构造函数里那段注释（构造函数抛异常会破坏 mod 类的去重登记）。
+        private static void TryInstall(string name, Action install)
+        {
+            try
+            {
+                install();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[GNH LocalFixes] " + name + ".Install() failed; that fix is NOT active this session: " + ex);
+            }
         }
     }
 }

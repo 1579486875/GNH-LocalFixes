@@ -40,14 +40,50 @@
        本补丁会安静地什么都不做，而不是反过来制造新的红字。
   -->
 
+  <!--
+    ⚠ 判断「Royalty 在不在」用的是 PatchOperationConditional + xpath，
+    **不能**用嵌套的 PatchOperationFindMod 查 "Royalty"。
+
+    ── 为什么 FindMod 查不到 Royalty ──
+
+    PatchOperationFindMod 比对的是 ModMetaData.Name。而对官方 DLC 来说，
+    这个属性的值是 ExpansionDef.label —— 一个**会被语言包翻译**的显示名。
+    本机是简体中文，Core 语言包里写着 Royalty.label = 皇权，
+    所以「皇权」==「Royalty」恒为 false → 内层 FindMod 永远不命中 →
+    整块钢琴修复静默空转（不报错，但也什么都不做）。
+
+    而 Vanilla Furniture Expanded 这类普通模组走的是 About.xml 的 name 字段，
+    不参与翻译，所以外层那个 FindMod 是可靠的（三个模组名已逐一核对过）。
+
+    ── Conditional 的语义正好合用 ──
+
+    反编译 Verse.PatchOperationConditional.ApplyWorker：
+      xpath 命中且带了 match  → 执行 match；
+      xpath 未命中且没有 nomatch → 直接返回 true（安静跳过，不报错）。
+    这里用来判断的 Play_MusicalInstrument 是 Royalty 的 JoyGiverDef，
+    也正是这一组操作最后要改的那个节点 —— 它不在，就不该往下走。
+
+    ── 为什么仍需要这个 AND ──
+
+    这一组操作同时牵扯**两个**模组的 Def：
+
+        Joy_Piano            → 是 Vanilla Furniture Expanded 的
+        Piano_Play（音效）    → 是 Royalty 的
+        Play_Piano（要删的）   → 是 Vanilla Furniture Expanded 的
+        Play_MusicalInstrument→ 是 Royalty 的
+
+    只装其中一个就执行的话，会写出指向不存在 Def 的引用，直接红字。
+    外层查 VFE、内层用 xpath 查 Royalty 的标志 Def，两个都命中才会往下走。
+  -->
   <Operation Class="PatchOperationFindMod">
     <mods>
-      <li>Royalty</li>
       <li>Vanilla Furniture Expanded</li>
     </mods>
-    <match Class="PatchOperationSequence">
-      <success>Always</success>
-      <operations>
+    <match Class="PatchOperationConditional">
+      <xpath>Defs/JoyGiverDef[defName="Play_MusicalInstrument"]</xpath>
+      <match Class="PatchOperationSequence">
+        <success>Always</success>
+        <operations>
 
         <!-- ① 钢琴改用皇权的乐器基类 MusicalInstrumentBase -->
         <li Class="PatchOperationAttributeSet">
@@ -95,6 +131,26 @@
             <li>Joy_Piano</li>
           </value>
         </li>
+
+        </operations>
+      </match>
+    </match>
+  </Operation>
+
+  <!--
+    第 2 组：只需要 Vanilla Furniture Expanded，与 Royalty 无关。
+
+    这一组改的是**原版**的营火/火把/棺材（把 VFE 的两个 Def 登记进它们的冥想焦点名单），
+    而登记进去的 Stone_Campfire、VFE_AnimalSarcophagus 都是 VFE 自己的东西 ——
+    全程不牵扯 Royalty 的任何 Def，所以外层只查 VFE 一个就够了。
+  -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Furniture Expanded</li>
+    </mods>
+    <match Class="PatchOperationSequence">
+      <success>Always</success>
+      <operations>
 
         <!-- ⑦ 营火 / 火把也能当火焰冥想的焦点 -->
         <li Class="PatchOperationAdd">

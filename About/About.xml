@@ -3,7 +3,7 @@
   <name>本地修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
-  <modVersion IgnoreIfNoMatchingField="True">1.3.8</modVersion>
+  <modVersion IgnoreIfNoMatchingField="True">1.3.9</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
@@ -17,12 +17,16 @@ ElToro_BAddon.dll 中缺少 JobDriver_BestialityInvite_Watching 类，而 Defs/J
 
 【3】VFE Empire 爵位层级空引用（Patches/VFEE_RoyalTitleExtFix.xml）
 WorldComponent_Hierarchy.MakePawnFor 取到 RoyalTitleDefExtension 后直接读 kindForHierarchy，两步之间没有 null 检查，任何未挂该扩展（或该字段为空）的爵位都会抛 NullReferenceException 并中断世界组件初始化。该字段类型为 PawnKindDef（已用反编译核对签名）。
-VFE Empire 自身的补丁只给 8 个爵位挂了该扩展（Freeholder / Yeoman / Acolyte / Knight / Praetor / Baron / Count / Emperor，其中 Freeholder 的值还是空的），而原版 Royalty 共有 11 个爵位 —— Consul / Duke / Stellarch 这三个它完全没有覆盖。
+VFE Empire 自身的补丁只给 8 个爵位挂了该扩展（Freeholder / Yeoman / Acolyte / Knight / Praetor / Baron / Count / Emperor），而原版 Royalty 共有 11 个爵位 —— Consul / Duke / Stellarch 这三个它完全没有覆盖。
+（它给 Freeholder 留的层级值是空的，但那是有意的：Freeholder 的 seniority 是 0，而 VFE 只挑 seniority 大于 0 的爵位去生成层级人物，所以它根本走不到会崩的那一行。Duke / Consul / Stellarch 的 seniority 分别是 700 / 800 / 900，确实在名单里，才会出事。）
 本补丁分两步：先给这三个爵位写入各自正确的 PawnKindDef（Empire_Royal_Consul / Empire_Royal_Duke / Empire_Royal_Stellarch，均为原版真实存在的定义，已逐一核对）；再遍历全部 RoyalTitleDef 兜底，给其它模组新增、VFE 不认识的爵位补一个非空值 Empire_Royal_Yeoman，避免取到 null。第一步不会与 VFE 冲突：AddModExtension 是追加语义而 GetModExtension 只取第一个匹配项，VFE 因 loadAfter 先执行，其扩展始终优先。
 整个操作由 PatchOperationFindMod 包裹，仅在检测到 VFE Empire 时执行（PatchOperation 基类没有 MayRequire 字段，只能用 FindMod 包裹）。
 
-【4】Vehicle Framework 开发者面板刷屏
-Vehicles.Patch_Debug.DebugHideVehiclesFromPawnSpawner 把「显示名{defName}」整串当作 defName 传给 DefDatabase 的 PawnKindDef 查询（errorOnFail 为 true），1241 个节点全部失败。本补丁先从花括号中解析出真正的 defName 再静默查询，功能保留且不再报错。
+【4】Vehicle Framework 开发者面板的「查不到就报错」兜底
+Vehicles.Patch_Debug.DebugHideVehiclesFromPawnSpawner 会用每个菜单节点的 label 去 PawnKindDef 数据库里查，而且用的是「查不到就报错」的那个重载（errorOnFail 为 true）。
+日志里抓到过它报错：Failed to find Verse.PawnKindDef named 悠兰族星主巫女{Yuran_Stellarch_Miko} —— 当时节点的 label 是「显示名{defName}」这种拼接格式，整串拿去查必然失败，于是打开一次开发者面板就按节点数量刷出成片红字。
+本补丁接管这个方法：先从花括号里解析出真正的 defName，再按原文查一次，两条路都查不到就静默跳过、不再写日志；判定为载具的节点照旧从菜单里删掉，功能与原方法一致。
+（2026-10-03 反编译核实补充：当前 RimWorld 1.6 的 SpawnPawn 传给节点的已经是纯 defName，所以那条报错路径在当前版本不会触发，本补丁在此起的是防御作用。旧描述里写的「1241 个节点全部失败」是误读 —— 1241 是那条报错模板里「该类型已加载的总数」。）
 
 【5】VFE Empire「乐器空间」房间需求静态构造崩溃
 RoomRequirement_InstrumentSpace 的静态构造里对 BuildableDef.placeWorkers 直接调用 Contains，而该字段在 Def 未声明 placeWorkers 时是 null 而非空列表，于是遍历到第一个此类 ThingDef 即抛 NullReferenceException，类型随后被 CLR 标记为初始化失败。本补丁在 Verse.LoadedModManager.CreateModClasses（Def 尚未解析、所有静态构造尚未执行）时安装，优先只替换那句不安全的判断（保留作者原初始化流程），找不到该编译器生成方法时再接管整个初始化。
@@ -72,8 +76,12 @@ NewRatkinPlus 1.6 删掉了 Rotti（罗蒂）这个动物，但 ElToros Bestiali
     <li>gugustar.snowrabbitracebeta</li>
     <li>ariandel.miliraimperium</li>
     <li>smashphil.vehicleframework</li>
-    <li>brrainz.visualexceptions</li>
-    <li>brrainz.achtung</li>
-    <li>brrainz.cameraplus</li>
   </loadAfter>
+  <!--
+    排序说明：brrainz 那三个模组（Visual Exceptions / Achtung! / Camera+）的 About.xml 里
+    packageId 都写着 brrainz.harmony —— 作者整个系列共用一个 ID。
+    所以上面只需要一个 brrainz.harmony，就同时覆盖了它们四个的加载顺序。
+    早先这里分别写过 brrainz.visualexceptions / brrainz.achtung / brrainz.cameraplus，
+    但那三个 ID 在本机 1361 个模组里根本不存在，等于白写（已删除）。
+  -->
 </ModMetaData>

@@ -58,6 +58,8 @@ namespace ElToro_BAddon
             // 停步那一步就没了 —— 表现是小人一边「等待」一边继续沿着原来的路线走。
             // 而传了 face 参数之后，框架会自己把 handlingFacing 打开，
             // 并在 tickIntervalAction 里让小人转头面向目标，正好就是要的效果。
+            // 400 tick ≈ 6.7 秒（游戏里 60 tick = 1 秒）。
+            // 作为对照：同类任务 JobDriver_BestialityInvite_InviteToWatch 的等待用的是 130 tick。
             var waitMating = Toils_General.Wait(400, TargetIndex.A);
             waitMating.socialMode = RandomSocialMode.Off;
             yield return waitMating;
@@ -80,8 +82,14 @@ namespace ElToro_BAddon
                     if (Settings.DebugMode)
                         ModLog.Message($"[Bestiality Milestone] Milestone reached for pawn {pawn.NameShortColored}: Witnessed Consensual Bestiality.");
                 }
-                // 0.025 = 每看一次涨 2.5% 好感，幅度刻意很小：
-                // 这个行为是「看着别人做事」，不该比亲自参与涨得还快。
+                // 0.025 是交给 ApplyAnimalOpinion 的原始增量，不是「每次涨 2.5% 好感」——
+                // 反编译 ElToro_BAddon.CompBestialityMemory.ApplyAnimalOpinion 可见：
+                //   isPermanent 为 true  → 直接累加到 baseOpinion（永久好感）；
+                //   isPermanent 为 false → 先乘 MilestoneUtility.GetIdeoModifier(...) 的系数，
+                //                          再累加到 activeOpinion（临时好感）。
+                // 这里传的是 false，所以它只进临时好感、而且实际数值不是固定的：
+                // 只有装了 rjw.sexperience.ideology 且该小人有 Ideo 时，系数才会取
+                // 0.7 / 1.3（取决于信条与动物关系），否则恒为 1.0。
                 memory.ApplyAnimalOpinion(animal, 0.025f, isPermanent: false);
 
                 float resistance = memory.GetCalculatedResistance();

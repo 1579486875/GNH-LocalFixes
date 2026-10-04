@@ -24,8 +24,9 @@ namespace GNH.LocalFixes
     // 当前没有主人的武器去询问射程。这时「攻击者」自然是空的，
     // 上面那两行就会抛空引用异常。
     //
-    // 而这个计算是在小人的每帧更新里被调用的，所以异常会不断出现，
-    // 每次都会把那个小人当帧的所有行为打断。
+    // 而这个检查每 15 tick 跑一次（CeleTech 的 CompAppWeaTransferAppPart.CompTick
+    // 里 smartSwapCheckCounter 递减到 0 才做检查，随后把它重设为 15），
+    // 所以大约每 0.25 秒就会抛一次；异常会中断该小人当 tick 的剩余更新。
     //
     // 【我们怎么修】
     //

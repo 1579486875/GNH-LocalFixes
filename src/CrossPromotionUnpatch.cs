@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using RimWorld;
@@ -73,23 +74,77 @@ namespace GNH.LocalFixes
         private static bool neutralized;
         private static bool uiHookInstalled;
 
-        // 是否已经「安装」过（本方法可能被重复调用，比如模组类被重新构造时）。
-        private static bool installCalled;
+        /// <summary>
+        /// TryNeutralize 已经试过几次了。
+        ///
+        /// 为什么必须设上限：下面的 UI 兜底钩子会一直尝试，而每次尝试都要遍历
+        /// AppDomain 里全部已加载程序集。万一目标一直不出现（游戏版本变了、
+        /// DoModInfo 改了名……），无限重试就是白白掉帧。
+        ///
+        /// 注意计数的粒度：UI 钩子是每帧调 UiRetryPostfix 的，但它每
+        /// UiRetryIntervalFrames 帧才真正转调一次 TryNeutralize，
+        /// 所以这个 60 对应的实际窗口是 60 × 30 帧 ≈ 30 秒 ——
+        /// 够 CrossPromotion 那份运行时 Assembly.Load 出来的程序集从容挂上前缀。
+        /// 试满这个次数就停手，只留一条说明。
+        /// </summary>
+        private static int neutralizeAttempts;
+
+        /// <summary>重试上限。正常情况下一两次就成功了，这个数是给「一直失败」兜底的。</summary>
+        private const int MaxNeutralizeAttempts = 60;
+
+        /// <summary>
+        /// UI 兜底钩子每隔多少帧才真正试一次。
+        ///
+        /// 为什么要隔：TryNeutralize 里那步「找 CrossPromotion」要遍历 AppDomain 里
+        /// 全部已加载程序集、逐个 GetType，是重活，每帧都做会白白掉帧。
+        /// 而可用的重试窗口又必须足够长（见 MaxNeutralizeAttempts），
+        /// 所以改成「低频 + 多次」：30 帧一次 ≈ 0.5 秒一次。
+        /// </summary>
+        private const int UiRetryIntervalFrames = 30;
+
+        /// <summary>UI 钩子的帧计数器（跨 UIRoot_Entry / UIRoot_Play 共用）。</summary>
+        private static int uiRetryFrames;
+
+        /// <summary>「已放弃」这件事只记一次，免得每帧都写。</summary>
+        private static bool gaveUp;
+
+        /// <summary>Log.ErrorOnce 的去重键：目标方法找不到。</summary>
+        private const int ErrorKeyTargetMissing = 0x4C464301;
+
+        /// <summary>Log.ErrorOnce 的去重键：摘除过程抛异常。</summary>
+        private const int ErrorKeyUnpatchFailed = 0x4C464302;
+
+        /// <summary>
+        /// 是否已经「安排妥当」。
+        ///
+        /// 注意它不等于「已经发起过尝试」—— 只有「成功中立化」或者
+        /// 「UI 兜底钩子确实装上了」之后才置位。否则首次尝试一旦恰好失败，
+        /// 后面的重入路径就会被这个标记堵死，修复永久失效。
+        /// （InstallUiRetryHook 内部自带 uiHookInstalled 守卫，重复调用本就幂等。）
+        /// </summary>
+        private static bool installDone;
 
         internal static void Install()
         {
-            if (installCalled)
+            if (installDone)
             {
-                // 已经安排过了，不用再来一遍 —— 否则会重复往 LongEventHandler 里排队。
+                // 已经安排妥当了，不用再来一遍 —— 否则会重复扫描程序集
+                //（TryNeutralize 要遍历 AppDomain 里全部已加载程序集）、重复 Patch UI 钩子；
+                // 若此刻正有长事件在跑，还会再往 LongEventHandler 里排一次队。
                 return;
             }
-            installCalled = true;
 
             TryNeutralize("startup");
 
             if (!neutralized)
             {
                 // 那个内嵌的小程序集此刻可能还没被加载出来，所以等游戏初始化流程跑完后再试一次。
+                //
+                // 注意：ExecuteWhenFinished 在没有长事件排队时是**同步立即执行**的
+                //（它把委托塞进待执行列表后，若 currentEvent == null 就当场跑完）。
+                // 所以这一次「重试」有可能立刻就执行结束了 —— 真正可靠的兜底是下面的 UI 钩子：
+                // 它会在玩家点开模组页面之前，再给 TryNeutralize 一次机会。
+                //
                 // 外面套 try/catch 是必需的：如果这里抛出的异常漏了出去，
                 // 会把整个修复补丁包的初始化一起搞挂。
                 try
@@ -106,6 +161,13 @@ namespace GNH.LocalFixes
             {
                 InstallUiRetryHook();
             }
+
+            // 只有「确实有了出路」才算安排妥当：
+            //   · 已经中立化（补丁摘掉了），或者
+            //   · UI 兜底钩子装上了（它每帧都会给 TryNeutralize 一次机会）。
+            // 两样都没成的话就把标记留着，下次重入时再安排一遍 ——
+            // 这正是相比旧写法（一进来就置位）多出来的那点韧性。
+            installDone = neutralized || uiHookInstalled;
         }
 
         internal static void TryNeutralize(string stage)
@@ -115,10 +177,31 @@ namespace GNH.LocalFixes
                 return;
             }
 
+            // 试太多次还不行就停手（原因见 neutralizeAttempts 的说明）。
+            // 这里用「先判断、后自增」，所以恰好允许试 MaxNeutralizeAttempts 次。
+            if (neutralizeAttempts >= MaxNeutralizeAttempts)
+            {
+                if (!gaveUp)
+                {
+                    gaveUp = true;
+                    Log.Error("[GNH LocalFixes] Gave up neutralizing the CrossPromotion prefix after "
+                        + MaxNeutralizeAttempts + " attempts; the mods page may still crash. "
+                        + "See the earlier log lines for the reason.");
+                }
+                return;
+            }
+            // 探针没找到（程序集还没解出来）也算一次尝试 —— 这没关系：
+            // UI 侧已经是 30 帧一次的低频，不会像原来那样每帧烧掉一次机会。
+            // 但**不要**把这行挪到探针之后：那样「程序集一直不出现」就会无限重试，
+            // 正是要防的那个场景。
+            neutralizeAttempts++;
+
             try
             {
-                MethodInfo prefix = FindPrefixMethod();
-                if (prefix == null)
+                // 先用探针确认「那份内嵌的 CrossPromotion 已经被解出来」。
+                // 返回 null 表示还没出来 —— 这时补丁表里当然也是空的，
+                // 绝不能因此就判「已摘干净」，否则我们会提前收工、它稍后挂上就没人摘了。
+                if (FindPrefixMethod() == null)
                 {
                     return; // 内嵌程序集还没加载出来，留着等下一次机会
                 }
@@ -126,50 +209,77 @@ namespace GNH.LocalFixes
                 MethodBase target = AccessTools.Method(typeof(Page_ModsConfig), "DoModInfo");
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] Page_ModsConfig.DoModInfo not found; cannot remove the CrossPromotion prefix.");
+                    // 用 ErrorOnce：本方法可能被 UI 钩子每帧调用，普通 Error 会变成每秒几十条红字。
+                    Log.ErrorOnce("[GNH LocalFixes] Page_ModsConfig.DoModInfo not found; "
+                        + "cannot remove the CrossPromotion prefix.", ErrorKeyTargetMissing);
                     return;
                 }
 
-                LocalFixesMod.HarmonyInstance.Unpatch(target, prefix);
-
-                // 这一版 Harmony 的 Unpatch 返回 void，问不出「到底摘掉没有」。
-                // 那就自己查：把目标方法上的补丁表读出来，看还剩几个前缀。
-                // 还剩着就说明没摘干净，保持 neutralized = false 继续重试；
-                // 一个都不剩才算真的办妥了。
-                // 判定「摘干净了没有」，只能盯住**我们要摘的那一个补丁方法**，
-                // 绝不能看 DoModInfo 上的前缀总数 —— 别的模组也可能给同一个方法挂前缀，
-                // 那样总数永远不为 0，就会一直判定「没摘干净」：UI 钩子常驻下来，
-                // 每帧遍历一次全部程序集、每帧写一条日志，白白掉帧还刷屏。
-                Patches info = Harmony.GetPatchInfo(target);
-                bool stillThere = false;
-                if (info != null && info.Prefixes != null)
+                // 反复「找 → 摘」，直到补丁表里再也数不到 CrossPromotion 的前缀为止。
+                //
+                // 为什么要循环：内存里可能同时存在多份 Brrainz.CrossPromotion
+                //（Visual Exceptions / Achtung! / Camera+ 各自内嵌一份，运行时才 Assembly.Load 出来），
+                // 每份都可能给 DoModInfo 装了前缀。只摘一个就判定成功的话，剩下的那个仍会让
+                // 模组页面崩溃，而日志却显示「已摘除」—— 那比不修还糟。
+                // 8 轮上限纯粹是防死循环。
+                //
+                // removed 记的是**实测差值**：每次摘之前、摘之后各数一遍补丁表，累加 before - after。
+                // Harmony.Unpatch 不返回任何结果（内部就是 PatchInfo.RemovePatch，
+                // 对不存在的补丁是静默 no-op），所以「这次到底摘掉几个」只能靠前后对比得出。
+                // 早先写成 int removed = 1（凭假设 +1）会让日志虚高。
+                int removed = 0;
+                for (int round = 0; round < 8; round++)
                 {
-                    for (int i = 0; i < info.Prefixes.Count; i++)
+                    List<MethodInfo> victims = FindCrossPromotionPrefixes(target);
+                    if (victims.Count == 0)
                     {
-                        if (info.Prefixes[i].PatchMethod == prefix)
-                        {
-                            stillThere = true;
-                            break;
-                        }
+                        break; // 表里已经没有它了：摘干净了
                     }
-                }
-                neutralized = !stillThere;
-                Log.Message("[GNH LocalFixes] Removed CrossPromotion's DoModInfo prefix (stage=" + stage + ")."
-                    + " Still present: " + stillThere + ".");
 
-                UninstallUiRetryHook();
+                    int before = victims.Count;
+                    for (int i = 0; i < victims.Count; i++)
+                    {
+                        LocalFixesMod.HarmonyInstance.Unpatch(target, victims[i]);
+                    }
+                    removed += before - FindCrossPromotionPrefixes(target).Count;
+                }
+
+                // 判定成功要同时满足两条，缺一不可：
+                //   1. 这一次**真的摘掉过**至少一个（removed > 0）——
+                //      否则可能是「程序集已加载、但它还没来得及给 DoModInfo 挂前缀」，
+                //      此时表里本来就是空的，直接判成功会让我们提前收工，
+                //      等它稍后挂上来就没人摘了。这种时候宁可保持 false，留到下次机会。
+                //   2. 现在表里确实一个都不剩。
+                neutralized = removed > 0 && FindCrossPromotionPrefixes(target).Count == 0;
+                Log.Message("[GNH LocalFixes] Removed CrossPromotion's DoModInfo prefix (stage=" + stage
+                    + "). Removed: " + removed + "; still present: " + (!neutralized) + ".");
+
+                // 只在**真的成功**之后才撤钩。
+                // 没摘到东西（上面的 removed == 0）时，这个钩子是唯一的重试机会，
+                // 撤掉等于自断退路 —— 要等下一次 Mod 被重新构造才会再装上。
+                if (neutralized)
+                {
+                    UninstallUiRetryHook();
+                }
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] Failed to remove the CrossPromotion prefix (will retry): " + ex);
+                // 同样用 ErrorOnce：这是可能被每帧调用的路径。
+                Log.ErrorOnce("[GNH LocalFixes] Failed to remove the CrossPromotion prefix (will retry): " + ex,
+                    ErrorKeyUnpatchFailed);
             }
         }
 
-        // 遍历当前已加载的所有程序集，找出那个真正带着补丁的类型。
+        // 探针：内存里到底有没有「被解出来的那份」CrossPromotion。
         //
-        // 为什么要挨个找：Visual Exceptions、Achtung!、Camera+ 各自都打包了一份
-        // 同名的 CrossPromotion，而只有「运行时从资源里解出来」的那一份，
-        // 才带有我们要找的那个方法。
+        // Visual Exceptions / Achtung! / Camera+ 各自内嵌一份 CrossPromotion.dll，
+        // 真正的代码压在里面当资源，要等运行时 Assembly.Load 才存在 ——
+        // 在那之前，任何程序集里都找不到 Brrainz.CrossPromotion 这个类型。
+        // 所以「返回 null」的含义是「还没出来」，**不是**「补丁已经摘干净了」，
+        // 绝不能拿它当成功判据（判据见 FindCrossPromotionPrefixes）。
+        // 它只返回第一个命中的类型，因此也不能用来枚举「一共有几份」。
+        //
+        // 下面遍历所有已加载程序集、按类型全名找，就是为了回答这一个问题。
         private static MethodInfo FindPrefixMethod()
         {
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
@@ -201,6 +311,45 @@ namespace GNH.LocalFixes
             }
 
             return null;
+        }
+
+        // 从 DoModInfo 的 Harmony 补丁表里，挑出**所有**「CrossPromotion 装上来的前缀」。
+        //
+        // 为什么不复用 FindPrefixMethod()：那个只会返回**第一份**同名类型的方法。
+        // 内存里可能同时存在多份 Brrainz.CrossPromotion（Visual Exceptions / Achtung! /
+        // Camera+ 各自内嵌一份，运行时才 Assembly.Load 出来），而 Unpatch 是按
+        // PatchMethod 相等来删的 —— 拿第一份的方法去摘，第二份纹丝不动，
+        // 判据却会认为「已经干净」，模组页面照样崩。
+        //
+        // 所以「到底还有几个」这件事，唯一可靠的真值来源就是补丁表本身：
+        // 谁挂在 DoModInfo 上写得清清楚楚，按声明类型全名 + 方法名精确匹配即可。
+        // 用 FullName 而不是 Name，避免误伤别的同名类型。
+        private static List<MethodInfo> FindCrossPromotionPrefixes(MethodBase target)
+        {
+            List<MethodInfo> found = new List<MethodInfo>();
+            Patches info = Harmony.GetPatchInfo(target);
+            if (info == null || info.Prefixes == null)
+            {
+                return found;
+            }
+
+            for (int i = 0; i < info.Prefixes.Count; i++)
+            {
+                Patch patch = info.Prefixes[i];
+                MethodInfo method = patch?.PatchMethod;
+                if (method == null)
+                {
+                    continue;
+                }
+
+                Type declaring = method.DeclaringType;
+                if (declaring != null && declaring.FullName == TypeName && method.Name == PrefixName)
+                {
+                    found.Add(method);
+                }
+            }
+
+            return found;
         }
 
         // 最后一道保险。
@@ -292,6 +441,17 @@ namespace GNH.LocalFixes
 
         private static void UiRetryPostfix()
         {
+            if (neutralized)
+            {
+                return;
+            }
+
+            uiRetryFrames++;
+            if (uiRetryFrames < UiRetryIntervalFrames)
+            {
+                return;
+            }
+            uiRetryFrames = 0;
             TryNeutralize("ui");
         }
     }
