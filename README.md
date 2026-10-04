@@ -5,7 +5,7 @@
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`GNH-本地修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.13**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.3.14**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
 ## 构建与部署
 
@@ -30,7 +30,7 @@
 | 7 | RJW 动物动画对 Rotti 的悬空引用 | `Patches/ElToroAnimsRottiRefFix.xml` |
 | 8 | 被「禁用房间要求」连累跳过的 VFE 功能 | `Patches/VFEPianoFirepitRestore.xml` |
 | 9 | CCOE 月经结算的 `TargetException`（`?.` 保护错了对象） | `src/CcoeReflectionFix.cs` |
-| 10 | 原版植入体生成的「0 权重」空引用崩溃 | `src/TechHediffsZeroBudgetFix.cs` |
+| 10 | 原版植入体生成的「0 权重」空引用崩溃（**两层**：前缀预判 + 收尾器兜底） | `src/TechHediffsZeroBudgetFix.cs` |
 | 11 | **每帧 `InvalidCastException`**：非乐器混进「乐器」分组（游戏被拖到约 2fps）；同时拦下「挂着配方却不是工作台」的脏对象 | `src/MusicManagerFadeoutFix.cs` |
 | 12 | **中文环境下 `<li>Royalty</li>` 永远匹配不上（原版路径）** —— 官方 DLC 的显示名会被语言包翻译，导致多个模组的补丁整块静默失效 | `src/FindModLanguageFix.cs` |
 | 13 | 天鹰溪谷联邦往炮塔 Def 塞入 VFE Security 1.6 已删除的类型，导致整个 Def 加载失败、一批炮塔消失 | `Patches/FixTY2ValleyLongRangeArtillery.xml` |
@@ -121,6 +121,55 @@
 挪到那批家具模组（工坊 `3491176484` / `1718190143` / `3221850511` / `2028381079`）之后。
 它们先正常追加、`disroom.mashiro` 最后再统一清空，**最终游戏效果完全一样，红字不再出现**。
 
+
+### 第 10 项：为什么最终必须再加一个收尾器（2026-10-04 19:12 实机日志）
+
+起初这一项只有一个前缀，判断「预算上限 ≤ 0、没有必装植入体、原版确实会进入抽取循环」。
+但 19:12 的日志证明**不够** —— 前缀被调用了、却放行了，原版照样崩：
+
+```
+ERROR: RandomElementByWeight with totalWeight=0 - use TryRandomElementByWeight.
+ERROR: Error while generating pawn. Rethrowing. Exception: System.NullReferenceException
+at RimWorld.PawnTechHediffsGenerator.GenerateTechHediffsFor (...) [0x001ac]
+  - TRANSPILER ZuoYao.RavenRace.Harmony: ...Patch_FusangFluidImplantPreference:Transpiler
+  - PREFIX     gnh.cn.cys.localfixes: GNH.LocalFixes.TechHediffsZeroBudgetFix:Prefix   ← 我们被调用了
+```
+
+于是把前缀改成「在候选里找一个**真正抽得中**的（市值 > 0、标签命中、未 disallow、
+非暴力件而小人又禁暴力）」，找不到才跳过。**结果还是不够** —— 反编译原方法后原因很清楚：
+
+```csharp
+float partsMoney = pawn.kindDef.techHediffsMoney.RandomInRange;   // ← 每只 Pawn 随机抽一次
+...
+IEnumerable<ThingDef> source = DefDatabase<ThingDef>.AllDefs.Where(x =>
+    x.isTechHediff
+    && !tmpGeneratedTechHediffsList.Contains(x)      // ← 同一只小人装过的不要再挑
+    && x.BaseMarketValue <= partsMoney               // ← 用**抽到的**值做门槛
+    && ...);
+if (source.Any()) {
+    ThingDef thingDef = source.RandomElementByWeight(w => w.BaseMarketValue);
+    partsMoney -= thingDef.BaseMarketValue;           // ← 崩在这里
+    InstallPart(pawn, thingDef);                      // ← 还没执行到
+}
+```
+
+前缀能看到的是 `techHediffsMoney` 的**范围**，看不到这一只 Pawn 抽到了多少；
+而且 `tmpGeneratedTechHediffsList` 会把 `MaxAmount > 1` 时的第二轮候选掏空。
+这两件事都**无法在前缀里可靠预测**（替它抽签会改变后面所有随机数，代价更大）。
+
+**所以第二层做成收尾器（Finalizer）**：只在真的抛 `NullReferenceException` 时接管，
+记一条写明 PawnKind 的 `Warning`（不静默），然后安静结束这次调用；其它异常原样抛出。
+
+这样做之所以安全，是因为**崩溃点与「改坏东西」之间还隔着一步**：
+NRE 发生在 `partsMoney -= thingDef.BaseMarketValue`（`thingDef` 为 null），
+此时 `partsMoney` 没动、`InstallPart` 还没执行 —— **没有装到一半的残留**。
+被兜住的结果与原版真正想要的语义（它自己的报错信息就在教人改用
+`TryRandomElementByWeight`）完全一致：这次抽不中，不装这一个。
+
+> 顺带说明：堆栈里那行 `TRANSPILER ZuoYao.RavenRace …` 不是它的锅。
+> RavenRace 只是把同一个调用点换成了自己的 `ChooseImplant`，
+> 而 `ChooseImplant` 最后一行 fallback 仍是原版那句 `source.RandomElementByWeight(weight)` ——
+> 原版的边界缺陷被完整保留了下来。
 
 ### 第 11 项与第 8 项的关联（2026-10-04 实测案例，值得一读）
 

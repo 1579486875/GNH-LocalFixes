@@ -132,11 +132,14 @@ namespace GNH.LocalFixes
                     new HarmonyMethod(AccessTools.Method(typeof(TechHediffsZeroBudgetFix), nameof(Prefix), null, null)),
                     null,
                     null,
-                    null);
+                    // 收尾器：前缀没拦住的（预算随机抽签、同一只 Pawn 的第二轮挑选），
+                    // 由它把空引用异常吞掉，绝不让它掀翻整条 Pawn 生成流程。
+                    new HarmonyMethod(AccessTools.Method(typeof(TechHediffsZeroBudgetFix), nameof(Finalizer), null, null)));
 
                 installed = true;
                 Log.Message("[GNH LocalFixes] Patched " + GeneratorTypeName + "." + TargetMethodName
-                    + " (zero-budget pawn kinds no longer hit the totalWeight=0 NullReferenceException).");
+                    + " (zero-budget pawn kinds no longer hit the totalWeight=0 NullReferenceException;"
+                    + " a finalizer catches the random-budget leftovers).");
             }
             catch (Exception ex)
             {
@@ -232,6 +235,120 @@ namespace GNH.LocalFixes
             }
         }
 
+        // ==================================================================
+        // 收尾器（Finalizer）：把前缀没拦住的空引用异常吞掉
+        // ==================================================================
+        //
+        // 【为什么光有前缀还不够 —— 2026-10-04 19:12 的实机日志给的答案】
+        //
+        // 那次日志长这样（三条连在一起，是一条完整的因果链）：
+        //
+        //     ERROR: RandomElementByWeight with totalWeight=0 - use TryRandomElementByWeight.
+        //     ERROR: Error while generating pawn. Rethrowing. Exception: NullReferenceException
+        //     at RimWorld.PawnTechHediffsGenerator.GenerateTechHediffsFor (...) [0x001ac]
+        //       - PREFIX gnh.cn.cys.localfixes: TechHediffsZeroBudgetFix:Prefix   ← 我们被调用了
+        //
+        // 我们**被调用了**却放行了，说明 `HasViableCandidate` 判断「有能用的候选」，
+        // 可原版那一趟的实际结果仍然是「总权重 0」。反编译原方法后原因很清楚：
+        //
+        //     float partsMoney = pawn.kindDef.techHediffsMoney.RandomInRange;   // ← 随机抽一次！
+        //     ...
+        //     x.BaseMarketValue <= partsMoney                                   // ← 用抽到的值做门槛
+        //
+        // 而前缀里用的是 `kind.techHediffsMoney.max`，也就是**可能抽到的最大值**。
+        // 只要实际抽到的小于「最便宜的那个正市值候选」，候选里就只剩市值为 0 的项，
+        // 权重和 0 → RandomElementByWeight 返回 null → 下一行解引用崩溃。
+        //
+        // 还有第二个漏洞：原版的筛选条件里有一句
+        //     !tmpGeneratedTechHediffsList.Contains(x)
+        // 「同一只 Pawn 已经装过的不要再挑」。所以哪怕第一轮挑到了好东西，
+        // 第二轮（techHediffsMaxAmount > 1 时）候选可能已经被掏空成只剩 0 权重项。
+        // 前缀那份清单不知道这件事。
+        //
+        // 这两件事都**没法在前缀里可靠预测**：预算要抽签才知道，而抽签会用掉 Rand 状态
+        // （我们不能替它抽，那会改变后面所有随机数 —— 代价远大于这个 bug 本身）。
+        //
+        // 【所以改成「不预测，兜底」】
+        //
+        // 反编译原文里，从 null 到崩溃只隔一行：
+        //
+        //     ThingDef thingDef = source.RandomElementByWeight((ThingDef w) => w.BaseMarketValue);
+        //     partsMoney -= thingDef.BaseMarketValue;      // ← 崩在这里
+        //     InstallPart(pawn, thingDef);                 // ← 还没执行到
+        //
+        // 也就是说：崩溃发生时**什么都没被改坏** —— partsMoney 没动、植入体没装。
+        // 原版真正想要的语义本来就是「这次抽不中就不装」（它自己的报错信息都在教人用
+        // TryRandomElementByWeight）。所以我们在这里吞掉异常，
+        // 得到的结果与「原版用对了 API」完全一致，只是少装了这一个植入体。
+        //
+        // 【安全边界】
+        //
+        //   · 只吞 NullReferenceException；其它任何异常原样抛出，绝不掩盖别的问题。
+        //   · 正常路径（__exception == null）一行代码都不走，零开销。
+        //   · 每吞一次都会记一条 Warning，并写明是什么 PawnKind —— 不静默。
+        //     （只对前若干个不同的 PawnKind 记，免得刷屏。）
+        //   · Harmony 约定：Finalizer 返回 null 表示「已处理，按默认值返回」；
+        //     该方法返回 void，所以就是「安静地结束这次调用」。
+        public static Exception Finalizer(Exception __exception, Pawn pawn)
+        {
+            if (__exception == null)
+            {
+                return null;      // 正常路径：什么都不做
+            }
+
+            if (__exception is NullReferenceException)
+            {
+                ReportSwallowed(pawn);
+                return null;      // 吞掉，不让它掀翻整条 Pawn 生成流程
+            }
+
+            return __exception;   // 其它异常照旧往上报
+        }
+
+        // 已经报过的 PawnKind 名字，以及已经报过几个了。
+        private static readonly HashSet<string> reportedKinds = new HashSet<string>();
+        private static int swallowedCount;
+
+        // 报一条 Warning，说明「这里本来会崩，被我们兜住了」。
+        // 同一个 PawnKind 只报一次；最多报 8 个不同的 PawnKind，之后只记数不刷屏。
+        private static void ReportSwallowed(Pawn pawn)
+        {
+            try
+            {
+                swallowedCount++;
+
+                string kindName = "(未知)";
+                try
+                {
+                    if (pawn != null && pawn.kindDef != null)
+                    {
+                        kindName = pawn.kindDef.defName;
+                    }
+                }
+                catch (Exception)
+                {
+                    // 连 kindDef 都读不到就保持 "(未知)"，绝不能在收尾器里再抛一次。
+                }
+
+                if (reportedKinds.Contains(kindName) || reportedKinds.Count >= 8)
+                {
+                    return;   // 报过了 / 报够了，只记数
+                }
+                reportedKinds.Add(kindName);
+
+                Log.Warning("[GNH LocalFixes] 已兜住 PawnTechHediffsGenerator 的「总权重 0」空引用"
+                    + "（PawnKind=" + kindName + "）。"
+                    + "这是原版用 RandomElementByWeight 抽 0 权重候选拿到 null 的边界缺陷；"
+                    + "被兜住的结果 == 原版本来的语义「这次抽不中，不装这个植入体」，"
+                    + "没有装到一半的残留（崩溃点在 InstallPart 之前）。"
+                    + "累计已兜住 " + swallowedCount + " 次。");
+            }
+            catch (Exception)
+            {
+                // 收尾器里绝不能因为「记日志」再抛异常。
+            }
+        }
+
         /// <summary>
         /// 缓存下来的「有正市值的 tech hediff」清单。
         ///
@@ -242,7 +359,6 @@ namespace GNH.LocalFixes
         ///   不会造成新的错误，所以不额外做失效检测。）
         /// </summary>
         private static List<ThingDef> viableTechHediffs;
-
         /// <summary>
         /// 判断给定 PawnKindDef 有没有「能真正抽中」的 tech hediff 候选。
         ///

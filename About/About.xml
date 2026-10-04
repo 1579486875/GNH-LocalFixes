@@ -3,7 +3,7 @@
   <name>本地修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
-  <modVersion IgnoreIfNoMatchingField="True">1.3.13</modVersion>
+  <modVersion IgnoreIfNoMatchingField="True">1.3.14</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
@@ -131,9 +131,35 @@ Anomaly 的肉兽（例如硬棘兽 Toughspike）两边都不沾，于是每次�
 触发条件是「预算恰为 0，且候选里存在 BaseMarketValue 为 0 的植入体」。
 这条堆栈里会带 RavenRace 的 TRANSPILER 字样，但它只是把同一个调用点换成了自己的
 ChooseImplant，而 ChooseImplant 最后一行 fallback 仍是原版那句，所以这是原版的边界缺陷，
-不是它的锅。本补丁只在那一种必定会崩的配置下提前放行（预算上限 &lt;= 0、没有必装植入体、
-且原版确实会进入抽取循环），其余情况一律交给原版处理。跳过不损失任何功能：
-预算恒为非正数时本来就只有零价值植入体能过门槛，而它们恰恰是崩溃的那一批。
+不是它的锅。
+
+⚠ 2026-10-04 19:12 实机日志证明「只拦一种配置」**不够**，本项因此做成两层：
+
+第一层 · 前缀（能预判的就别让它跑）
+在候选清单里找一遍「真正抽得中的」项（市值大于 0、标签命中、未被 disallow、
+非暴力植入体而该小人又禁暴力）。找到一个就放行原版，一个都没有才跳过。
+跳过不损失功能：那种配置下原版的结果本来就是崩溃，我们跳过等价于「这次不装」。
+
+第二层 · 收尾器（预判不了的就兜住）
+前缀仍有预测不到的两件事：
+  · 预算 `partsMoney` 是 `techHediffsMoney.RandomInRange` **随机抽出来的**，
+    而前缀只能看范围上限 —— 抽小了就可能落到「只剩 0 权重候选」；
+  · 原版筛选里有一句 `!tmpGeneratedTechHediffsList.Contains(x)`
+    （同一只小人装过的不要再挑），所以 `techHediffsMaxAmount > 1` 时
+    第二轮候选可能已被掏空。
+这两件事都没法在前缀里可靠预测（替它抽签会改变后面所有随机数，代价更大）。
+所以在方法上加一个收尾器：**只在真的抛空引用异常时**接管，记一条 Warning（写明
+是哪个 PawnKind，不静默），然后安静结束这次调用。其它异常一律原样抛出。
+
+这样做是安全的，因为反编译原文里崩溃点与「改坏东西」之间还隔着一步：
+
+    ThingDef thingDef = source.RandomElementByWeight(w =&gt; w.BaseMarketValue);
+    partsMoney -= thingDef.BaseMarketValue;      // ← 崩在这里（thingDef 是 null）
+    InstallPart(pawn, thingDef);                 // ← 还没执行到
+
+也就是说崩的那一刻 partsMoney 没动、植入体没装，**没有装到一半的残留**。
+被兜住的结果与原版真正想要的语义（它自己的报错信息就在教人改用
+TryRandomElementByWeight）完全一致：这次抽不中，不装这一个。
 
 【11】每帧 InvalidCastException：非乐器混进「乐器」分组（游戏被拖到约 2fps）
 Verse.ThingListGroupHelper.Includes 判断一个东西是不是「乐器」时**只看 def**，
