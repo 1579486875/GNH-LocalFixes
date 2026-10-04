@@ -5,7 +5,7 @@
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`GNH-本地修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.12**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.3.13**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
 ## 构建与部署
 
@@ -15,9 +15,9 @@
 `refs\` 下的引用 DLL 不会进入产物（所有 `<Reference>` 都有 `<Private>false</Private>`）；
 `EnableDefaultNoneItems=false` 用于防止把 refs 误打包进模组。
 
-## 十三项修复
+## 十四项修复
 
-十三项互相独立，均为最小侵入，可整体或逐项停用。
+十四项互相独立，均为最小侵入，可整体或逐项停用。
 
 | # | 内容 | 承载 |
 | --- | --- | --- |
@@ -32,8 +32,81 @@
 | 9 | CCOE 月经结算的 `TargetException`（`?.` 保护错了对象） | `src/CcoeReflectionFix.cs` |
 | 10 | 原版植入体生成的「0 权重」空引用崩溃 | `src/TechHediffsZeroBudgetFix.cs` |
 | 11 | **每帧 `InvalidCastException`**：非乐器混进「乐器」分组（游戏被拖到约 2fps）；同时拦下「挂着配方却不是工作台」的脏对象 | `src/MusicManagerFadeoutFix.cs` |
-| 12 | **中文环境下 `<li>Royalty</li>` 永远匹配不上** —— 官方 DLC 的显示名会被语言包翻译，导致多个模组的补丁整块静默失效 | `src/FindModLanguageFix.cs` |
+| 12 | **中文环境下 `<li>Royalty</li>` 永远匹配不上（原版路径）** —— 官方 DLC 的显示名会被语言包翻译，导致多个模组的补丁整块静默失效 | `src/FindModLanguageFix.cs` |
 | 13 | 天鹰溪谷联邦往炮塔 Def 塞入 VFE Security 1.6 已删除的类型，导致整个 Def 加载失败、一批炮塔消失 | `Patches/FixTY2ValleyLongRangeArtillery.xml` |
+| 14 | **XmlExtensions 的 `FindMod` 同样败给翻译**（另一条独立路径）：它自己遍历 `RunningMods` 比名字，中文下判定 DLC 恒为 false，而且**连一句红字都不留** | `src/XmlExtensionsFindModFix.cs` |
+
+### 第 12 项与第 14 项：同一个病，两条独立的路径
+
+「找不到模组」这件事在游戏里有**两套互不相干的判定代码**，必须分别修：
+
+| | 路径 | 判定依据 | 修在哪 |
+| --- | --- | --- | --- |
+| ① | `Verse.PatchOperationFindMod.ApplyWorker` → `ModLister.HasActiveModWithName` | `ModMetaData.Name`（DLC 取自 `ExpansionDef.label`，**会被翻译**） | 第 12 项 |
+| ② | `XmlExtensions.FindMod.Patch` / `Boolean.FindMod.Evaluation` → 自己遍历 `LoadedModManager.RunningMods` | `ModContentPack.Name`（同样会被翻译） | 第 14 项 |
+
+两者都比 `m.Name.ToLower() == mod.ToLower()`，而简体中文下 `Royalty` 的实际名字是「皇权」。
+
+区别在于**失败时的表现**：路径 ① 会留下一行
+`Patch operation Verse.PatchOperationFindMod(Royalty) failed`；
+路径 ② 的布尔版本（`Boolean.FindMod.Evaluation`）只是把结果写进 `ref bool`，
+**从不报错** —— 补丁整块不生效，日志里却一条痕迹都没有。
+
+第 14 项的修法刻意「不绕过原逻辑」：只在**原本注定失败**时，把作者写的 DLC 短名
+**临时替换**成它的实际显示名，让原代码自己跑完（`caseTrue` / `caseFalse` / `logic` /
+`foundMod` 全部原样执行），判定结束后原地还原。
+安全边界收得很紧：**只认 `Ludeon.RimWorld` 前缀**的官方模组 —— 否则「以 `.Core` 结尾的模组」
+会让所有 `<li>Core</li>` 突然命中，那比原 bug 更糟。
+
+> ⚠️ **副作用要说清楚**：第 14 项生效后，那些按「名字」判定 DLC 的第三方补丁会**真正开始执行**。
+> 它们本来就该执行，但若年久失修，可能会冒出新的红字。权衡下来仍然选择修：
+> 静默不生效比报错更难排查，玩家只会觉得「这个模组的内容怎么缺了一块」。
+> （本机实测：112 处 `XmlExtensions.FindMod` 调用全部写了 `<packageId>true</packageId>`，
+> 走的是不会被翻译的 packageId，所以目前**零处受影响**。）
+
+### 第 8 项与第 12 项的「红字」是怎么回事（2026-10-04 查清，容易被误判）
+
+装上第 12 项之后，日志里会**多出**四行：
+
+```
+[Blue Archive Furniture]                      Patch operation Verse.PatchOperationFindMod(Royalty) failed
+[Vanilla Furniture Expanded]                  Patch operation Verse.PatchOperationFindMod(Royalty) failed
+[华夏扩展 Chinese Comprehensive Expansion]     Patch operation Verse.PatchOperationFindMod(Royalty) failed
+[Vanilla Furniture Expanded - Spacer Module]  Patch operation Verse.PatchOperationFindMod(Royalty) failed
+```
+
+**这不是新增的损坏，而是老问题第一次被如实报出来。** 完整因果链：
+
+1. 反编译 `Verse.PatchOperationFindMod.ApplyWorker` 原文：
+   `if (flag) { if (match != null) return match.Apply(xml); } … return true;`
+   —— **判定失败时返回 `true`（安静跳过，不报错）**；只有 `<match>` 里的子操作失败，
+   才会把 `false` 抛上来并被打印成「FindMod 失败」。
+2. 所以：**红字出现，恰恰证明 `Royalty` 被找到了。** 出错的是 `<match>` 里那条
+   `PatchOperationAdd` 的 xpath。
+3. 真正的元凶是 **`disroom.mashiro`**（工坊 `3297881350`，中文名 `disabledroomRequirements`，
+   本机加载位次 **470**）：它用
+   ```xml
+   <Operation Class="PatchOperationReplace">
+     <xpath>Defs/RoyalTitleDef[@ParentName = "BaseEmpireTitle"]/bedroomRequirements</xpath>
+     <value><bedroomRequirements Inherit="False" /></value>
+   </Operation>
+   ```
+   把所有帝国爵位的「卧室要求」整个换成空表。而报错的那批家具模组位次在 **687~722**，
+   排在它后面，想往
+   `…/bedroomRequirements/li[@Class="RoomRequirement_ThingAnyOf"]/things`
+   里加床时，节点已经不存在了。
+4. 在 v1.3.11 及更早，第 12 项还不存在 → `FindMod(Royalty)` 判定为 false → 整块 `<match>`
+   被静默跳过 → **什么都没做，也什么都不报**。v1.3.12 修好判定后，`<match>` 终于执行，
+   这才轮到它因为节点被清空而报错。
+
+**这几行红字无害**：它们只想给「贵族卧室」多登记几张床，而卧室要求已被整个删掉，
+登记与否都不影响游戏。真正有价值的连带损失（VFE 的钢琴 / 营火 / 石棺那 8 条）
+已由第 8 项补做回来。
+
+**想彻底消掉这四行红字**，最干净的办法是**调整加载顺序**：把 `disroom.mashiro`
+挪到那批家具模组（工坊 `3491176484` / `1718190143` / `3221850511` / `2028381079`）之后。
+它们先正常追加、`disroom.mashiro` 最后再统一清空，**最终游戏效果完全一样，红字不再出现**。
+
 
 ### 第 11 项与第 8 项的关联（2026-10-04 实测案例，值得一读）
 

@@ -96,6 +96,20 @@ namespace GNH.LocalFixes
             // 详见 MusicManagerFadeoutFix.cs 的文件头注释（含原版源码与 IL 证据）。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
             TryInstall("MusicManagerFadeoutFix", MusicManagerFadeoutFix.Install);
+
+            // 2026-10-04 新增：修 XmlExtensions 自己的 <FindMod> 判定。
+            //
+            // 这是和 FindModLanguageFix **不同的另一条代码路径**：
+            //   · 原版 Verse.PatchOperationFindMod → ModLister.HasActiveModWithName → FindModLanguageFix 管
+            //   · XmlExtensions 的 FindMod          → 直接遍历 LoadedModManager.RunningMods → 本步管
+            // v1.3.12 只修了前者，所以日志里「Patch operation FindMod(Royalty) failed」
+            // 那 4 条依旧存在（一次启动 4 个模组的整块补丁失败）。
+            //
+            // 根因：官方 DLC 的显示名会被语言包翻译（Royalty → 皇权），
+            // 而模组作者写的是英文短名，字符串比对必然失败。
+            // 详见 XmlExtensionsFindModFix.cs 的文件头注释（含反编译证据与安全设计）。
+            // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
+            TryInstall("XmlExtensionsFindModFix", XmlExtensionsFindModFix.Install);
         }
 
         // ======================================================================

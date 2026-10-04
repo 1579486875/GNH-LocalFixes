@@ -3,11 +3,11 @@
   <name>本地修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
-  <modVersion IgnoreIfNoMatchingField="True">1.3.12</modVersion>
+  <modVersion IgnoreIfNoMatchingField="True">1.3.13</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
-  <description>针对本机模组组合的十个修复合集（原「TAML 修复合集」的两项已并入）。十项互相独立，均为最小侵入，可整体或逐项停用：
+  <description>针对本机模组组合的十四个修复合集（原「TAML 修复合集」的两项已并入）。十四项互相独立，均为最小侵入，可整体或逐项停用：
 
 【1】ElToro 人兽杂交「观看」任务补全
 ElToro_BAddon.dll 中缺少 JobDriver_BestialityInvite_Watching 类，而 Defs/JobDefs/Jobs_Bestiality_Invite.xml 的 JobDef 引用了它，导致日志报 Could not find a type named ...。本补丁在 ElToro_BAddon 命名空间下**重写**了这个类（作者并没有发布过它的源码，所以是照同类任务 JobDriver_BestialityInvite_InviteToWatch 的结构重写；判定互动用的 API 也与同类不同），使该 JobDef 恢复正常加载。若将来作者自己补上该类，游戏取程序集列表中的首个匹配且本模组声明了 loadAfter，故优先使用作者版本。
@@ -60,6 +60,32 @@ NewRatkinPlus 1.6 删掉了 Rotti（罗蒂）这个动物，但 ElToros Bestiali
 房间要求相关的部分仍然不动，保持那个模组禁用它的效果。本补丁是幂等的：
 即使将来删掉 disabledroomRequirements，也不会出现重复添加。
 
+⚠ 2026-10-04 补充说明（v1.3.13 时查清，很重要）：
+从 v1.3.12 起，日志里会多出四行
+    [Blue Archive Furniture]        Patch operation Verse.PatchOperationFindMod(Royalty) failed
+    [Vanilla Furniture Expanded]    Patch operation Verse.PatchOperationFindMod(Royalty) failed
+    [华夏扩展 …]                     Patch operation Verse.PatchOperationFindMod(Royalty) failed
+    [Vanilla Furniture Expanded - Spacer Module]  Patch operation Verse.PatchOperationFindMod(Royalty) failed
+
+这**不是**新出现的损坏，而是本补丁包里的 FindModLanguageFix 让老问题**第一次被如实报出来**：
+在 v1.3.11 及更早，FindMod(Royalty) 判定为 false（DLC 显示名被翻译成「皇权」），
+整块 &lt;match&gt; 被静默跳过，什么都没做、也什么都不报；v1.3.12 修好了判定，
+&lt;match&gt; 里的语句终于执行了，这才轮到它们因为节点被清空而报错。
+
+红字标题里的「FindMod(Royalty)」是**误报**：原版 ApplyWorker 找不到模组时是返回 true（安静跳过），
+只有 &lt;match&gt; 里的子操作失败才会把 false 抛上来并打印成「FindMod 失败」。
+既然红字出现了，就说明 Royalty 本来就找到了，出错的是它 &lt;match&gt; 里那条
+    …/bedroomRequirements/li[@Class="RoomRequirement_ThingAnyOf"]/things
+的 xpath —— 因为 disroom.mashiro 已经把整个 bedroomRequirements 换成了空表。
+
+这几行红字**无害**：它们只想给「贵族卧室」多登记几张床，而卧室要求已被整个删掉，
+登记与否都不影响游戏。真正有价值的连带损失（VFE 的钢琴 / 营火 / 石棺那 8 条）
+已由本补丁包补做回来。
+
+想彻底消掉这四行红字，最干净的办法是**调整加载顺序**：把 disroom.mashiro
+（本机位次 470）挪到那批家具模组之后（本机位次 687~722）。
+它们先正常追加，disroom.mashiro 最后再统一清空，最终游戏效果完全一样，红字不再出现。
+
 【9】CCOE 月经结算的空引用（反射读错了目标）
 CCOE（RJW_补丁_CCOE，packageId keahuy.rjw.ccoe）在 CumOut 的前缀里这样读封堵状态：
 
@@ -96,6 +122,71 @@ ChooseImplant，而 ChooseImplant 最后一行 fallback 仍是原版那句，所
 不是它的锅。本补丁只在那一种必定会崩的配置下提前放行（预算上限 &lt;= 0、没有必装植入体、
 且原版确实会进入抽取循环），其余情况一律交给原版处理。跳过不损失任何功能：
 预算恒为非正数时本来就只有零价值植入体能过门槛，而它们恰恰是崩溃的那一批。
+
+【11】每帧 InvalidCastException：非乐器混进「乐器」分组（游戏被拖到约 2fps）
+Verse.ThingListGroupHelper.Includes 判断一个东西是不是「乐器」时**只看 def**，
+而 MusicManagerPlay.UpdateMusicFadeout 会把分组里的东西**强行转成** Building_MusicalInstrument。
+只要分组里混进一个「def 说是乐器、对象却不是乐器」的脏对象（说明见第 8 项），
+它每帧都会抛 InvalidCastException；每次异常都要抓堆栈并写日志，实测把游戏拖到每秒约 2 帧。
+
+本补丁在「登记进分组」的那一刻就拦下来：给 ListerThings.Add 挂收尾器，
+发现对象的真实类型与 def 对不上就从分组里摘掉，从源头不让它进组；
+另外在 MusicManagerPlay.UpdateMusicFadeout 上挂收尾器兜底。
+两条路径都会在日志里报出它的 def、真实类型、来源模组、地图与坐标，方便排查。
+
+顺带还拦下同源的另一种脏对象：「挂着配方却不是工作台」（ThingRequestGroup.PotentialBillGiver 里
+真实类型不实现 IBillGiver 的东西）—— 它是原版 BillUtility 那串警告的来源。
+
+【12】中文环境下 &lt;li&gt;Royalty&lt;/li&gt; 永远匹配不上
+模组作者写 &lt;PatchOperationFindMod&gt; 判定 DLC 时，原版 ApplyWorker 走的是
+ModLister.HasActiveModWithName(名字)，而它比的是 ModMetaData.Name；
+对官方 DLC 来说这个值取自 ExpansionDef.label —— **一个会被语言包翻译的显示名**。
+简体中文下 Royalty 的 label 就是「皇权」，于是「皇权」==「Royalty」恒为 false，
+整块补丁被静默跳过：什么都不做，也什么都不报。
+
+本补丁给 HasActiveModWithName 挂收尾器，只在本判定为失败时，用官方 DLC 的 packageId 末段
+再补一次判断（Royalty → Ludeon.RimWorld.Royalty），并确认该 DLC 当前确实启用。
+安全边界收得很紧：只认 Ludeon.RimWorld 前缀，其余一概不处理。
+
+⚠ 装上它之后日志里会**多出**几行 Patch operation FindMod(Royalty) failed ——
+那不是新增的损坏，而是老问题第一次被如实报出来，详见第 8 项里的补充说明。
+
+（注：这是「原版那条路径」，与第 14 项修的 XmlExtensions 那条路径是两回事。）
+
+【13】天鹰溪谷联邦往炮塔 Def 塞入已删除的类型
+[天鹰2.0]溪谷联邦（tyll.valley）会给 TY_A_Heavy_double_fired_mortar 挂上
+VFESecurity.CompProperties_LongRangeArtillery，而 VFE Security 1.6 已经删掉了这个类型。
+类型找不到会让整个 Def 加载失败，连带一批炮塔消失。
+本补丁把这个节点移除（success="Always"，将来作者自己修好就安静跳过）。
+它由 loadAfter 排在 tyll.valley 之后，确保顺序正确。
+
+【14】XmlExtensions 的 FindMod 在中文环境下会「静默」跳过 DLC 补丁
+「找不到模组」这件事，游戏里有**两条互不相干的判定路径**，各修各的：
+
+    ① 原版：Verse.PatchOperationFindMod.ApplyWorker
+            → 调 ModLister.HasActiveModWithName(名字)
+            → 已由本补丁包的 FindModLanguageFix（v1.3.12）修好
+
+    ② XmlExtensions：XmlExtensions.FindMod.Patch 与 Boolean.FindMod.Evaluation
+            → 自己遍历 LoadedModManager.RunningMods 比字符串
+            → 由本项负责
+
+两处的病根一样：没写 &lt;packageId&gt;true&lt;/packageId&gt; 时比的是模组「显示名」，而官方 DLC 的显示名
+取自 ExpansionDef.label —— 一个会被语言包翻译的字段（简体中文下 Royalty 就是「皇权」），
+所以作者写的 &lt;li&gt;Royalty&lt;/li&gt; 永远匹配不上。
+
+② 比 ① 更隐蔽：Boolean.FindMod.Evaluation 只把结果写进 ref bool，**从不报错**，
+所以失败时日志里一条痕迹都没有，玩家只会觉得「这个模组的内容怎么缺了一块」。
+
+修法（最小侵入）：只给那两个判定点加前置检查 —— 先按原逻辑预判，
+**只有原本注定失败时**才把作者写的 DLC 短名临时换成它的实际显示名（Royalty → 皇权），
+让原代码自己跑完（caseTrue / caseFalse / logic / foundMod 全部原样），判定结束后原地还原。
+安全边界收得很紧：只认 Ludeon.RimWorld 前缀的官方模组，其余一概不处理 ——
+否则「以 .Core 结尾的模组」会让所有 &lt;li&gt;Core&lt;/li&gt; 突然命中，那比原 bug 更糟。
+
+本机实测：112 处 XmlExtensions FindMod 调用全部写了 packageId，暂时不受影响；
+这一项是为「将来某个模组按名字写」准备的保险，属于与本包 FindModLanguageFix 配套的半个补丁。
+XmlExtensions 没装时自动跳过，不构成依赖。
 
 </description>
   <modDependencies>
