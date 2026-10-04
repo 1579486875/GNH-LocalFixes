@@ -413,6 +413,15 @@ namespace GNH.LocalFixes
                 return;
             }
 
+            // 只有**真的摘掉了**才允许把标记清掉。
+            //
+            // 为什么不能用 finally 无条件清（这是 2026-10-04 查出的一处隐患）：
+            // 万一 Unpatch 抛异常，钩子其实还留在方法上，但标记已经被清成 false，
+            // 于是下一次 InstallUiRetryHook 会**再装一个** postfix ——
+            // Harmony 是叠加的，同一个方法上就变成了两层、三层，
+            // 每次界面刷新都要多跑几遍。宁可标记一直留着（代价只是每帧一次
+            // bool 判断），也不能让补丁层层叠加。
+            bool removed = true;
             try
             {
                 MethodInfo postfix = AccessTools.Method(typeof(CrossPromotionUnpatch), nameof(UiRetryPostfix));
@@ -431,11 +440,16 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] Could not remove the UI retry hook: " + ex);
+                removed = false;
+                Log.Error("[GNH LocalFixes] Could not remove the UI retry hook; "
+                    + "keeping the installed flag so we never stack a second one: " + ex);
             }
             finally
             {
-                uiHookInstalled = false;
+                if (removed)
+                {
+                    uiHookInstalled = false;
+                }
             }
         }
 

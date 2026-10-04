@@ -107,7 +107,12 @@ namespace GNH.LocalFixes
             {
                 if (__0 == null)
                 {
-                    return false;
+                    // 拿不到目标列表（多半是原版改了 SpawnPawn 的调用形式）时**必须放行原方法**。
+                    //
+                    // 这里原来写的是 return false —— 那是「永久跳过原方法」，后果是
+                    // 「隐藏载具」这个功能悄悄消失，而且日志里一个字都没有。
+                    // 宁可让原方法自己去跑、去报它自己的错，也不要静默丢功能。
+                    return true;
                 }
                 for (int i = __0.Count - 1; i >= 0; i--)
                 {

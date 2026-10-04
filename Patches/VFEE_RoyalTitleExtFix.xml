@@ -32,11 +32,19 @@
     已逐一核对）；再遍历全部 RoyalTitleDef 兜底，给「其它模组新增、VFE 不认识」的
     爵位补一个非空值，避免取到 null。
 
-    为什么第 4 块不会污染 VFE 已处理的那 8 个爵位：
-      PatchOperationAddModExtension 是「追加」语义，而 GetModExtension<T>() 只取
-      列表里第一个匹配项；VFE 自己那份 patch 因本模组声明了 loadAfter 而先执行，
-      它的扩展排在前面，因此始终优先生效。前三个爵位 VFE 根本没挂扩展，
-      所以本补丁写进去的值是唯一来源。
+    为什么第 4 块必须带 not(...) 谓词（2026-10-05 更正）：
+      这里原先写的是「VFE 自己那份 patch 因本模组声明了 loadAfter 而先执行，
+      它的扩展排在前面，因此始终优先生效」—— **这个论断是错的，实测恰好相反**。
+
+      运行时看到的顺序是 VFE 的值被排在后面：
+        Emperor → [Yeoman, Yeoman, VFEE_Empire_Royal_Emperor, Yeoman]
+      而 GetModExtension<T>() 只取第一项，于是取到的是我们写进去的兜底值，
+      VFE 真正想要的「皇帝」永远读不到。
+
+      加上 not(...) 之后，本补丁只补「还没有该扩展」的爵位 ——
+      VFE 处理过的原样不动。优先级之争就此消失，不再依赖任何加载顺序。
+      （这也说明「靠 loadAfter 保证谁先挂」这种思路本身就不可靠：
+        ModExtension 列表的顺序是由运行时行为决定的，不是你以为的那样。）
 
     ── 为什么拆成四个独立的块，而不是串成一个 Sequence ──
 
@@ -109,14 +117,32 @@
   <!-- ④ 兜底：给「其它模组新增、VFE 不认识」的爵位补一个非空值。
        success="Always" 让它即使一个都没匹配到也安静跳过 ——
        这一条的目的是「防止崩溃」，不是「必须改到东西」，
-       所以不该因为它没找到目标而报错。 -->
+       所以不该因为它没找到目标而报错。
+
+       ⚠ 那个 not(...) 谓词**绝不能省**（2026-10-05 复审查出的严重缺陷）。
+
+       早先这里的 xpath 是光秃秃的 Defs/RoyalTitleDef，会给**每一个**爵位都追加一份
+       kindForHierarchy=Empire_Royal_Yeoman —— 包括 VFE 自己已经处理好的那些。
+       而 GetModExtension&lt;T&gt;() 只取列表里的**第一项**，于是 VFE 写进去的正确值
+       被挤到后面去了，永远取不到。运行时实测到的顺序：
+
+         Emperor  → [Yeoman, Yeoman, VFEE_Empire_Royal_Emperor, Yeoman]
+                    「皇帝」排在第三位，取到的是「修士」
+         Consul / Duke / Stellarch → 干脆只剩我们这一项
+
+       后果是帝国层级人物全部退化成同一等级 —— 不崩，但是明确的功能倒退，
+       而且很难被发现（看起来只是「名字都差不多」）。
+
+       加上 not(...) 之后，本补丁只补「**还没有**该扩展」的爵位：
+       VFE 处理过的一律原样不动，它漏掉的才由我们兜住。
+       这样「谁优先」这个问题从根上消失，不再依赖任何加载顺序。 -->
   <Operation Class="PatchOperationFindMod">
     <mods>
       <li>Vanilla Factions Expanded - Empire</li>
     </mods>
     <match Class="PatchOperationAddModExtension">
       <success>Always</success>
-      <xpath>Defs/RoyalTitleDef</xpath>
+      <xpath>Defs/RoyalTitleDef[not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
       <value>
         <li Class="VFEEmpire.RoyalTitleDefExtension">
           <kindForHierarchy>Empire_Royal_Yeoman</kindForHierarchy>

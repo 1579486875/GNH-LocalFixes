@@ -38,6 +38,31 @@
     2. 每条语句都带 success="Always"。
        将来 VFE 作者自己修好了这些问题、或者改了 Def 结构，
        本补丁会安静地什么都不做，而不是反过来制造新的红字。
+
+    ── ⚠ 第 ① 条的已知副作用（2026-10-04 实测，务必先读这一段）──
+
+    第 ① 条把 Joy_Piano 的 ParentName 改成 MusicalInstrumentBase，
+    这会让这个 def 的 thingClass 变成 RimWorld.Building_MusicalInstrument。
+
+    问题在于：改 def 只影响**以后新造**的钢琴。
+    存档里在改动之前就已经摆在地图上的旧钢琴，它的对象类型仍然是 Verse.Building，
+    而对象的真实类型是改不掉的。这种「def 说是乐器、对象却不是乐器」的建筑，
+    会被误判进「乐器」分组（分组判断只看 def），
+    导致 MusicManagerPlay.UpdateMusicFadeout 每帧抛 InvalidCastException。
+    每次异常都要抓堆栈并写日志，实测把游戏拖到每秒只有约 2 帧。
+
+    实测案例：地图 0 的 (305, 228) 有一架这样的旧钢琴。
+
+    处理方式（已实现，无需手动操作）：
+    GNH-LocalFixes 程序集里的 MusicManagerFadeoutFix.cs 会
+      * 读档进入地图时主动把这类对象从分组里摘出去（一次 Tick 的开销）；
+      * 万一还有新的漏网之鱼，再由崩溃收尾器兜底；
+      * 两条路径都会在日志里报出它的 def、真实类型、来源模组、地图与坐标。
+    想彻底干净的话，按日志里的坐标把那架旧钢琴拆掉、原地重建一个即可
+    （新造的会是正确类型，能正常弹，也就是 VFE 原本想要的效果）。
+
+    如果你希望**完全避免**这个副作用，可以把下面第 ① 条 operation 删掉，
+    代价是钢琴不再使用皇权的音乐系统 —— 也就是 VFE 作者的本意无法实现。
   -->
 
   <!--
@@ -138,11 +163,16 @@
   </Operation>
 
   <!--
-    第 2 组：只需要 Vanilla Furniture Expanded，与 Royalty 无关。
+    第 2 组：外层只查 Vanilla Furniture Expanded。
+
+    ⚠ 更正（2026-10-04）：早先这里写「与 Royalty 无关」，**不准确** ——
+    xpath 里的 CompProperties_MeditationFocus 与 FocusStrengthOffset_BuildingDefsLit
+    都是 Royalty 的内容。这一组之所以仍然只查 VFE 一个，是因为每条语句都带
+    success="Always"：没装 Royalty 时那几条 xpath 匹配不到，补丁会安静地什么都不做，
+    而不是报红字。也就是说：不是「不需要 Royalty」，而是「缺了它也只是静默跳过」。
 
     这一组改的是**原版**的营火/火把/棺材（把 VFE 的两个 Def 登记进它们的冥想焦点名单），
-    而登记进去的 Stone_Campfire、VFE_AnimalSarcophagus 都是 VFE 自己的东西 ——
-    全程不牵扯 Royalty 的任何 Def，所以外层只查 VFE 一个就够了。
+    而登记进去的 Stone_Campfire、VFE_AnimalSarcophagus 都是 VFE 自己的东西。
   -->
   <Operation Class="PatchOperationFindMod">
     <mods>

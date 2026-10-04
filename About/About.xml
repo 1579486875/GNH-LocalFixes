@@ -3,14 +3,14 @@
   <name>本地修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
-  <modVersion IgnoreIfNoMatchingField="True">1.3.9</modVersion>
+  <modVersion IgnoreIfNoMatchingField="True">1.3.11</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
-  <description>针对本机模组组合的八个修复合集（原「TAML 修复合集」的两项已并入）。八项互相独立，均为最小侵入，可整体或逐项停用：
+  <description>针对本机模组组合的十个修复合集（原「TAML 修复合集」的两项已并入）。十项互相独立，均为最小侵入，可整体或逐项停用：
 
 【1】ElToro 人兽杂交「观看」任务补全
-ElToro_BAddon.dll 中缺少 JobDriver_BestialityInvite_Watching 类，而 Defs/JobDefs/Jobs_Bestiality_Invite.xml 的 JobDef 引用了它，导致日志报 Could not find a type named ...。本补丁按作者自带源码原样在 ElToro_BAddon 命名空间下重新声明该类，使该 JobDef 恢复正常加载。若将来作者自己补上该类，游戏取程序集列表中的首个匹配且本模组声明了 loadAfter，故优先使用作者版本。
+ElToro_BAddon.dll 中缺少 JobDriver_BestialityInvite_Watching 类，而 Defs/JobDefs/Jobs_Bestiality_Invite.xml 的 JobDef 引用了它，导致日志报 Could not find a type named ...。本补丁在 ElToro_BAddon 命名空间下**重写**了这个类（作者并没有发布过它的源码，所以是照同类任务 JobDriver_BestialityInvite_InviteToWatch 的结构重写；判定互动用的 API 也与同类不同），使该 JobDef 恢复正常加载。若将来作者自己补上该类，游戏取程序集列表中的首个匹配且本模组声明了 loadAfter，故优先使用作者版本。
 
 【2】CeleTech「智能切换武器」空引用防护
 原版 Verse.VerbProperties.AdjustedRange 未对 attacker 做空检查。CeleTech 的 CompAppWeaTransferAppPart 会对收在背包容器里、没有持有者的武器取 EffectiveRange（此时 attacker 为 null），导致该小人每 15 tick 抛一次 NullReferenceException 并中断 Pawn.Tick。本补丁加此前缀守卫：attacker 为 null 时返回基础射程，其余情况行为完全不变。
@@ -60,6 +60,43 @@ NewRatkinPlus 1.6 删掉了 Rotti（罗蒂）这个动物，但 ElToros Bestiali
 房间要求相关的部分仍然不动，保持那个模组禁用它的效果。本补丁是幂等的：
 即使将来删掉 disabledroomRequirements，也不会出现重复添加。
 
+【9】CCOE 月经结算的空引用（反射读错了目标）
+CCOE（RJW_补丁_CCOE，packageId keahuy.rjw.ccoe）在 CumOut 的前缀里这样读封堵状态：
+
+    bool isSealed = (bool)(typeof(Comp_SealCum).GetField("cumSealed", AccessTools.all)
+        ?.GetValue(__instance.Pawn.GetComp&lt;Comp_SealCum&gt;()) ?? false);
+
+那个 ?. 保护错了对象：GetField 只要字段名对就永远不返回 null，所以 ?. 形同虚设；
+真正可能为空的是 GetValue 的参数 —— Pawn 身上没有 Comp_SealCum 时
+GetComp&lt;Comp_SealCum&gt;() 返回 null，而 FieldInfo.GetValue(null) 去读实例字段会抛
+TargetException: Non-static field requires a target（?? false 也救不了，因为抛出的是异常而不是 null）。
+Comp_SealCum 只由两处提供：Cumpilation 通过 XML 给常规种族挂，CCOE 自己给机械体挂；
+Anomaly 的肉兽（例如硬棘兽 Toughspike）两边都不沾，于是每次月经结算都刷一条红字。
+实测：Error processing womb of Toughspike1986: System.Reflection.TargetException ...
+本补丁给该前缀挂 Finalizer，只在真的抛出 TargetException 时接管，并返回 true
+（没有封堵组件 => 视为未封堵 => 放行原方法），与作者 ?? false 的本意完全一致；
+正常路径一行代码都不经过。CCOE 没装时自动跳过，不构成依赖。
+
+【10】原版植入体生成的「0 权重」崩溃
+原版 PawnTechHediffsGenerator.GenerateTechHediffsFor 拿预算当筛选门槛：
+
+    var source = DefDatabase&lt;ThingDef&gt;.AllDefs.Where(x =&gt; x.isTechHediff
+        &amp;&amp; x.BaseMarketValue &lt;= partsMoney &amp;&amp; ...);
+    if (source.Any()) {
+        ThingDef thingDef = source.RandomElementByWeight(w =&gt; w.BaseMarketValue);
+        partsMoney -= thingDef.BaseMarketValue;      // ← 崩溃点
+    }
+
+而 RandomElementByWeight 在总权重不大于 0 时不抽签，只打一条
+「RandomElementByWeight with totalWeight=0」然后返回 default(T) —— 对引用类型就是 null，
+下一行解引用即空引用异常，整个 pawn 生成失败（Error while generating pawn. Rethrowing.）。
+触发条件是「预算恰为 0，且候选里存在 BaseMarketValue 为 0 的植入体」。
+这条堆栈里会带 RavenRace 的 TRANSPILER 字样，但它只是把同一个调用点换成了自己的
+ChooseImplant，而 ChooseImplant 最后一行 fallback 仍是原版那句，所以这是原版的边界缺陷，
+不是它的锅。本补丁只在那一种必定会崩的配置下提前放行（预算上限 &lt;= 0、没有必装植入体、
+且原版确实会进入抽取循环），其余情况一律交给原版处理。跳过不损失任何功能：
+预算恒为非正数时本来就只有零价值植入体能过门槛，而它们恰恰是崩溃的那一批。
+
 </description>
   <modDependencies>
     <li>
@@ -70,18 +107,33 @@ NewRatkinPlus 1.6 删掉了 Rotti（罗蒂）这个动物，但 ElToros Bestiali
   </modDependencies>
   <loadAfter>
     <li>brrainz.harmony</li>
+    <!-- brrainz 系列其余三家：它们是 CrossPromotion 的宿主。
+         我们那套「摘除 CrossPromotion 前缀」的修复必须排在它们之后加载，
+         否则「我们摘 / 它们挂」的先后没有约束（详见 CrossPromotionUnpatch 的说明）。 -->
+    <li>brrainz.visualexceptions</li>
+    <li>brrainz.achtung</li>
+    <li>brrainz.cameraplus</li>
     <li>ElToro.BAddon</li>
     <li>TOT.CeleTech.MKIII</li>
     <li>oskarpotocki.vfe.empire</li>
     <li>gugustar.snowrabbitracebeta</li>
     <li>ariandel.miliraimperium</li>
     <li>smashphil.vehicleframework</li>
+    <!-- CCOE：我们要给它自己的 Patch_CumOut 挂 Finalizer，
+         得保证它先加载、目标方法先就位。 -->
+    <li>keahuy.rjw.ccoe</li>
   </loadAfter>
   <!--
-    排序说明：brrainz 那三个模组（Visual Exceptions / Achtung! / Camera+）的 About.xml 里
-    packageId 都写着 brrainz.harmony —— 作者整个系列共用一个 ID。
-    所以上面只需要一个 brrainz.harmony，就同时覆盖了它们四个的加载顺序。
-    早先这里分别写过 brrainz.visualexceptions / brrainz.achtung / brrainz.cameraplus，
-    但那三个 ID 在本机 1361 个模组里根本不存在，等于白写（已删除）。
+    排序说明（2026-10-04 更正）：
+
+    这里原先写着「brrainz 那三个模组的 packageId 都写着 brrainz.harmony，
+    作者整个系列共用一个 ID」，并据此把三个 ID 删掉了 —— **这个判断是错的**。
+    用 RimCrow 元数据核对：Achtung! = brrainz.achtung（工坊 730936602）、
+    Camera+ = brrainz.cameraplus（工坊 867467808）、
+    Visual Exceptions = brrainz.visualexceptions（工坊 2538411704），
+    三家各有独立 packageId，而且本机都已启用。
+    当初误判的原因很具体：只在本机 Mods\ 目录里搜过 About.xml，
+    而这三家装在工坊目录（workshop\content\294100\）下，自然搜不到。
+    现在三个 ID 都已写回。
   -->
 </ModMetaData>
