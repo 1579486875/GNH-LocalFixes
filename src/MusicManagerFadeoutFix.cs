@@ -548,7 +548,11 @@ namespace GNH.LocalFixes
         // 详细日志只写前几次：万一某个模组批量制造这种对象，也不能让日志被刷爆。
         private const int MaxDetailedLogs = 3;
         private static int detailedLogsWritten;
-        private static int rejectedTotal;
+        // 累计拦下的「标签写错的乐器」数量（仅用于日志统计）。
+        private static int badInstrumentCount;
+
+        // 累计拦下的「挂着配方、但不是工作台」的数量（仅用于日志统计）。
+        private static int badBillGiverCount;
 
         // 本补丁自己出错时的去重日志 key（Log.ErrorOnce 需要）。
         private const int PatchErrorLogKey = 0x4D4D4645; // "MMFE"
@@ -567,7 +571,7 @@ namespace GNH.LocalFixes
                     return;
                 }
 
-                // ① 第 1~2 步：最廉价的排除。不是建筑的东西不可能进「乐器」分组。
+                // ① 最廉价的排除。不是建筑的东西，下面两个分组都不可能涉及。
                 if (t == null)
                 {
                     return;
@@ -578,45 +582,33 @@ namespace GNH.LocalFixes
                     return;
                 }
 
-                // ② 第 3 步：正常的乐器，什么都不用做。
-                if (t is Building_MusicalInstrument)
+                // ② 乐器方向：def 说自己是乐器，对象本身却不是。
+                //
+                //    后果：MusicManagerPlay.UpdateMusicFadeout 每帧把它强转成
+                //    Building_MusicalInstrument 并失败，每次异常都要抓堆栈并写日志
+                //    （实测把游戏拖到每秒约 2 帧）。
+                if (!(t is Building_MusicalInstrument)
+                    && InstrumentThingClass.IsAssignableFrom(def.thingClass))
                 {
+                    RemoveFromGroup(__instance, ThingRequestGroup.MusicalInstrument, t);
+                    ReportBadInstrument(t);
                     return;
                 }
 
-                // ③ 第 4 步：只有「def 里写着 thingClass 是乐器类」的才有问题。
-                //    能走到这里的对象极少，这一次反射判断完全承受得起。
-                if (!InstrumentThingClass.IsAssignableFrom(def.thingClass))
+                // ③ 工作台方向：def 挂着配方（于是被算作「可能的工作台」），对象却不是 IBillGiver。
+                //
+                //    后果：原版 BillUtility.MapBillGivers 每次遍历这一组都会撞上它，
+                //    打印「Found non-bill-giver tagged as PotentialBillGiver」。
+                //    典型成因同样是「模组作者给这类建筑写了配方，后来模组的类没了、
+                //    存档里的旧实例降级成了 Verse.Building」。
+                //
+                //    性能说明：def.AllRecipes 的结果是带缓存的，而且游戏自己在这一步之前
+                //    （分组判定 Includes 里那句 !def.AllRecipes.NullOrEmpty()）就已经访问过它，
+                //    所以这里读到的是现成缓存，不会触发重复计算。
+                if (!(t is IBillGiver) && !def.AllRecipes.NullOrEmpty())
                 {
-                    return;
-                }
-
-                // ---- 确认是「def 说是乐器、实际不是乐器」的脏对象 ----
-                // 它刚刚被 Add 加进「乐器」名单，我们立刻把它摘回来。
-                // 游戏返回的就是内部那张名单本身（不是拷贝），所以 Remove 会真正生效。
-                List<Thing> list = __instance.ThingsInGroup(ThingRequestGroup.MusicalInstrument);
-                if (list != null)
-                {
-                    list.Remove(t);
-                }
-
-                rejectedTotal++;
-
-                if (detailedLogsWritten < MaxDetailedLogs)
-                {
-                    detailedLogsWritten++;
-                    Log.Warning("[GNH LocalFixes] 拦下一个「标签写错」的乐器：它的 def 说自己是乐器，"
-                        + "但对象本身不是 —— 如果放它进「乐器」分组，游戏会每帧抛 InvalidCastException。"
-                        + MusicManagerFadeoutFix.Describe(t, -1, "乐器分组")
-                        + "\n  常见原因：某个模组或补丁把这个 def 改成了乐器类，"
-                        + "但存档里那个旧实例仍然是原来的普通建筑（对象的真实类型是改不掉的）。"
-                        + "\n  建议：按上面的坐标把它拆掉、在原地重新建一个，新建的会是正确类型。"
-                        + "\n  不做也完全没问题：本补丁会持续拦住它，游戏不会因此出错。");
-                }
-                else
-                {
-                    Log.Warning("[GNH LocalFixes] 又拦下 1 个「标签写错」的乐器"
-                        + "（累计 " + rejectedTotal + " 个）。详细报告不再重复打印。");
+                    RemoveFromGroup(__instance, ThingRequestGroup.PotentialBillGiver, t);
+                    ReportBadBillGiver(t);
                 }
             }
             catch (Exception ex)
@@ -625,6 +617,68 @@ namespace GNH.LocalFixes
                 Log.ErrorOnce("[GNH LocalFixes] Patch_ListerThings_Add_RejectMislabeledInstrument 出错"
                     + "（已忽略，不影响游戏；音乐淡出的收尾器仍会兜底）：" + ex, PatchErrorLogKey);
             }
+        }
+
+        // ----------------------------------------------------------------------
+        // 把一个对象从指定的分组名单里摘掉。
+        // 游戏返回的就是内部那张名单本身（不是拷贝），所以 Remove 会真正生效。
+        // ----------------------------------------------------------------------
+        private static void RemoveFromGroup(ListerThings lister, ThingRequestGroup group, Thing t)
+        {
+            List<Thing> list = lister.ThingsInGroup(group);
+            if (list != null)
+            {
+                list.Remove(t);
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // 报告「标签写错的乐器」，前几次详细、之后只计数。
+        // ----------------------------------------------------------------------
+        private static void ReportBadInstrument(Thing t)
+        {
+            badInstrumentCount++;
+
+            if (detailedLogsWritten >= MaxDetailedLogs)
+            {
+                Log.Warning("[GNH LocalFixes] 又拦下 1 个「标签写错」的乐器"
+                    + "（累计 " + badInstrumentCount + " 个）。详细报告不再重复打印。");
+                return;
+            }
+
+            detailedLogsWritten++;
+            Log.Warning("[GNH LocalFixes] 拦下一个「标签写错」的乐器：它的 def 说自己是乐器，"
+                + "但对象本身不是 —— 如果放它进「乐器」分组，游戏会每帧抛 InvalidCastException。"
+                + MusicManagerFadeoutFix.Describe(t, -1, "乐器分组")
+                + "\n  常见原因：某个模组或补丁把这个 def 改成了乐器类，"
+                + "但存档里那个旧实例仍然是原来的普通建筑（对象的真实类型是改不掉的）。"
+                + "\n  建议：按上面的坐标把它拆掉、在原地重新建一个，新建的会是正确类型。"
+                + "\n  不做也完全没问题：本补丁会持续拦住它，游戏不会因此出错。");
+        }
+
+        // ----------------------------------------------------------------------
+        // 报告「挂着配方却不是工作台」的对象。
+        // 这类对象原本会让原版每遍历一次就打印一条红字（虽然 ErrorOnce 只出现一条，
+        // 但它在日志里看起来像是个错误，且会让那条分组每次都被无谓扫描）。
+        // ----------------------------------------------------------------------
+        private static void ReportBadBillGiver(Thing t)
+        {
+            badBillGiverCount++;
+
+            if (detailedLogsWritten >= MaxDetailedLogs)
+            {
+                Log.Warning("[GNH LocalFixes] 又拦下 1 个「挂着配方但不是工作台」的对象"
+                    + "（累计 " + badBillGiverCount + " 个）。详细报告不再重复打印。");
+                return;
+            }
+
+            detailedLogsWritten++;
+            Log.Warning("[GNH LocalFixes] 拦下一个「挂着配方但不是工作台」的对象：它的 def 有配方，"
+                + "所以会被算进「可能的工作台」分组，但它本身并不是 IBillGiver。"
+                + MusicManagerFadeoutFix.Describe(t, -1, "可能的工作台分组")
+                + "\n  这原本会让原版打印「Found non-bill-giver tagged as PotentialBillGiver」。"
+                + "\n  常见原因：提供这个建筑类的模组已被卸载，存档里的旧实例降级成了普通建筑。"
+                + "\n  建议：按上面的坐标把它拆掉即可；不拆也没关系，本补丁会一直拦住它。");
         }
     }
 }

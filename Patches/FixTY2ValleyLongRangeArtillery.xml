@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+
+  <!--
+    修复：[天鹰2.0]溪谷联邦 往炮塔 Def 里塞了一个 VFE Security 已删除的类型
+
+    ── 现象（2026-10-04 实测）──
+
+    游戏日志里出现：
+
+        Exception loading def from file BuildingsXG_PaoTa_Turrets.xml:
+        System.ArgumentException: Could not find type named
+        VFESecurity.CompProperties_LongRangeArtillery from node
+        <li Class="VFESecurity.CompProperties_LongRangeArtillery">...
+
+    后果不是「少一个功能」，而是**整个 Def 加载失败** ——
+    那个 Def 文件里定义了的一批炮塔会全部消失。
+
+    ── 根因 ──
+
+    [天鹰2.0]溪谷联邦（packageId: tyll.valley，工坊 3280990469）在
+    1.6\Patches\TY_A_Building.xml 里有这么一段：
+
+        <Operation Class="PatchOperationFindMod">
+          <mods><li>Vanilla Furniture Expanded - Security</li></mods>
+          <match Class="PatchOperationAdd">
+            <xpath>Defs/ThingDef[defName = "TY_A_Heavy_double_fired_mortar"]/comps</xpath>
+            <value>
+              <li Class="VFESecurity.CompProperties_LongRangeArtillery">   ← 就是这个
+                <worldTileRange>120</worldTileRange>
+                <maxForcedMissRadiusFactor>1.9</maxForcedMissRadiusFactor>
+                <gizmoIconTexPath>...</gizmoIconTexPath>
+              </li>
+            </value>
+          </match>
+        </Operation>
+
+    它的 FindMod 判定本身是**成功**的（写的是模组英文名，不受语言影响），
+    于是它确实往炮塔的 comps 里塞进了这个节点。
+
+    但 VFE Security 在 1.6 版本里**已经把 CompProperties_LongRangeArtillery 删掉了**。
+    实测：该类只存在于工坊 1845154007 的 1.4 / 1.5 程序集里，
+    1.6\Assemblies\VFESecurity.dll 中已无此类型（那里现在提供的是
+    CompProperties_WorldArtillery 等一系列新名字）。
+
+    也就是说：这是**模组作者没有跟上 VFE Security 1.6 的 API 变更**，
+    与本机环境无关，属于「等作者更新」类问题。
+
+    ── 本补丁做什么 ──
+
+    把那个已经失效的 comp 节点删掉。
+
+    它的执行时机**晚于**天鹰的补丁（About.xml 的 loadAfter 里排了 tyll.valley），
+    所以是「它先塞进去、我们再拿掉」，Def 加载时就不会再撞上那个不存在的类型。
+
+    代价：那座迫击炮**失去「远程火炮」这个附加能力**，
+    但炮塔本身、以及它其余的全部组件都正常。
+    两害相权，比整个 Def 加载失败、一批炮塔全部消失要好得多。
+
+    （若你希望保留远程火炮能力：VFE Security 1.6 提供的是
+      CompProperties_WorldArtillery，但它的字段与原类型并不一致，
+      直接替换需要先逐个核对字段名，属于「改别人模组的功能」范畴，
+      本补丁不做这件事，只做安全的清理。）
+
+    ── 两条安全设计 ──
+
+    1. success="Always"：这个补丁会失败的唯一情形是「天鹰自己已经修好了」，
+       那时节点不存在、xpath 匹配不到 —— 有了 success="Always" 就安静跳过，
+       不会反过来制造新的红字。将来作者修好之后，本补丁自动变成无害的空操作。
+
+    2. 只删这一个精确的 xpath（Def 名 + Class 名都对上），
+       不碰任何其它节点，也不会影响别的模组。
+  -->
+
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[defName="TY_A_Heavy_double_fired_mortar"]/comps/li[@Class="VFESecurity.CompProperties_LongRangeArtillery"]</xpath>
+  </Operation>
+
+</Patch>

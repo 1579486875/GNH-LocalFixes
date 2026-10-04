@@ -3,7 +3,7 @@
   <name>本地修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
-  <modVersion IgnoreIfNoMatchingField="True">1.3.11</modVersion>
+  <modVersion IgnoreIfNoMatchingField="True">1.3.12</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
@@ -122,6 +122,11 @@ ChooseImplant，而 ChooseImplant 最后一行 fallback 仍是原版那句，所
     <!-- CCOE：我们要给它自己的 Patch_CumOut 挂 Finalizer，
          得保证它先加载、目标方法先就位。 -->
     <li>keahuy.rjw.ccoe</li>
+    <!-- [天鹰2.0]溪谷联邦（tyll.valley）：它会往炮塔 Def 里塞一个
+         VFE Security 1.6 已删除的类型，导致整个 Def 加载失败。
+         我们的清理补丁（Patches/FixTY2ValleyLongRangeArtillery.xml）
+         必须排在它之后，才能把那个节点拿掉。 -->
+    <li>tyll.valley</li>
   </loadAfter>
   <!--
     排序说明（2026-10-04 更正）：

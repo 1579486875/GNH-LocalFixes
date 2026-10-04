@@ -5,7 +5,7 @@
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`GNH-本地修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.11**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.3.12**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
 ## 构建与部署
 
@@ -15,9 +15,9 @@
 `refs\` 下的引用 DLL 不会进入产物（所有 `<Reference>` 都有 `<Private>false</Private>`）；
 `EnableDefaultNoneItems=false` 用于防止把 refs 误打包进模组。
 
-## 十一项修复
+## 十三项修复
 
-十一项互相独立，均为最小侵入，可整体或逐项停用。
+十三项互相独立，均为最小侵入，可整体或逐项停用。
 
 | # | 内容 | 承载 |
 | --- | --- | --- |
@@ -31,7 +31,9 @@
 | 8 | 被「禁用房间要求」连累跳过的 VFE 功能 | `Patches/VFEPianoFirepitRestore.xml` |
 | 9 | CCOE 月经结算的 `TargetException`（`?.` 保护错了对象） | `src/CcoeReflectionFix.cs` |
 | 10 | 原版植入体生成的「0 权重」空引用崩溃 | `src/TechHediffsZeroBudgetFix.cs` |
-| 11 | **每帧 `InvalidCastException`**：非乐器混进「乐器」分组（游戏被拖到约 2fps） | `src/MusicManagerFadeoutFix.cs` |
+| 11 | **每帧 `InvalidCastException`**：非乐器混进「乐器」分组（游戏被拖到约 2fps）；同时拦下「挂着配方却不是工作台」的脏对象 | `src/MusicManagerFadeoutFix.cs` |
+| 12 | **中文环境下 `<li>Royalty</li>` 永远匹配不上** —— 官方 DLC 的显示名会被语言包翻译，导致多个模组的补丁整块静默失效 | `src/FindModLanguageFix.cs` |
+| 13 | 天鹰溪谷联邦往炮塔 Def 塞入 VFE Security 1.6 已删除的类型，导致整个 Def 加载失败、一批炮塔消失 | `Patches/FixTY2ValleyLongRangeArtillery.xml` |
 
 ### 第 11 项与第 8 项的关联（2026-10-04 实测案例，值得一读）
 
