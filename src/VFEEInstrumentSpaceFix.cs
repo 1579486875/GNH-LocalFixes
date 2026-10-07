@@ -30,8 +30,12 @@ namespace GNH.LocalFixes
     // 「初始化失败」，之后再想用它会直接报错。
     //
     // 最终结果：「乐器空间」这个房间需求用不了，
-    // 而 VFE Empire 自己的两个爵位正好都用到了它
-    //（Defs\RoyalTitles\RoyalTitles_Empire.xml 的第 263 行和第 556 行）。
+    // 而 VFE Empire 自己的**九个**爵位全都用到了它
+    //（Defs\RoyalTitles\RoyalTitles_Empire.xml 的第 263 / 556 / 842 / 1159 / 1478 /
+    //  1819 / 2186 / 2553 / 2946 行，依次属于 Archcount、Marquess ×2、Archduke ×2、
+    //  Magister、Despot ×2、HighStellarch）。
+    // 【2026-10-06 审计更正】此处原先写「两个爵位…第 263 行和第 556 行」——
+    //  那两个行号本身没错，但只数了两处，实际是九处。
     //
     // 【我们的做法（按「尽量保留原作者逻辑」的优先级排序）】
     //

@@ -7,9 +7,18 @@ namespace GNH.LocalFixes
 {
     // ==========================================================================
     // 这个补丁解决的是：CCOE（RJW_补丁_CCOE，packageId keahuy.rjw.ccoe）
-    // 的 CumOut 前缀在「目标 Pawn 没有 Comp_SealCum」时抛
-    // TargetException: Non-static field requires a target，
-    // 导致每次月经结算都失败并刷一条红字。
+    // 有**三个** Harmony 前缀方法各自写了同一个有缺陷的表达式，在「目标 Pawn
+    // 没有 Comp_SealCum」时抛 System.Reflection.TargetException:
+    // Non-static field requires a target，导致月经结算相关流程失败并刷红字。
+    //
+    // ★ 2026-10-06 审计补齐。此前本补丁只修了第一个，另外两个照旧刷红字 ——
+    //   实测日志（2026-10-06 12:49）里，本补丁自述「fix is working」的同一秒，
+    //   紧接着就是一条来自 Patch_BeforeCumOut 的 TargetException。
+    //
+    // 三个方法（方法体各不相同，但开头取 cumSealed 那一句逐字相同，所以崩法一样）：
+    //   * CCOE.Patch.ArchotechVaginaEnhance.Patch_CumOut
+    //   * CCOE.Patch.MenstruationCycleNotSealedA.Patch_BeforeCumOut
+    //   * CCOE.Patch.MenstruationCycleNotSealedC.Patch_AfterCumOut
     // ==========================================================================
     //
     // 【问题出在哪】
@@ -78,15 +87,40 @@ namespace GNH.LocalFixes
     //
     // 【安装时机与探测】
     //
-    // 在 LocalFixesMod 构造函数里通过 TryInstall 安装。
+    // ⚠ 本补丁**不在** LocalFixesMod 的构造函数里安装。
+    //   （2026-10-07 订正：这里原先写着「在 LocalFixesMod 构造函数里通过 TryInstall 安装」，
+    //     那是 2026-10-06 之前的旧路径，已经废弃。）
+    //
+    //   现在由本文件末尾的 CcoeReflectionFixLateInstaller 安装 —— 它带
+    //   [StaticConstructorOnStartup]，执行时机是「所有 Def 加载完毕之后」。
+    //
+    //   为什么非挪不可：Harmony 打补丁这个动作会触发目标类型的静态构造，而这三个目标
+    //   引用的 RJW_Menstruation.VariousDefOf 是个 [DefOf] 类，它的静态构造要查 Def 数据库。
+    //   在「模组加载」阶段装（那时 Def 还没建好）会抛 NullReferenceException，
+    //   实测 2026-10-06 14:22 的 TypeInitializationException 就是这么来的。
+    //   完整推导见本文件末尾那段。
+    //   （LocalFixesMod.cs 里也留了一处同样的说明，两处口径一致。）
+    //
     // 没装 CCOE 时（AccessTools.TypeByName 返回 null）直接置位跳过，
     // 只留一条日志，不会报错、也不会反复重试 —— 不构成硬依赖。
     internal static class CcoeReflectionFix
     {
-        private const string PatchTypeName = "CCOE.Patch.ArchotechVaginaEnhance";
-        private const string TargetMethodName = "Patch_CumOut";
+        // 三个目标的「类型全名 + 方法名」。
+        private static readonly (string TypeName, string MethodName)[] Targets = new[]
+        {
+            ("CCOE.Patch.ArchotechVaginaEnhance", "Patch_CumOut"),
+            ("CCOE.Patch.MenstruationCycleNotSealedA", "Patch_BeforeCumOut"),
+            ("CCOE.Patch.MenstruationCycleNotSealedC", "Patch_AfterCumOut"),
+        };
 
         private static bool installed;
+
+        // 逐个目标记录「已经装好了」。
+        //
+        // 为什么不用一个总的 installed 就算完：CCOE 升级后可能只有个别方法改了名，
+        // 那时我们希望「装好的不重装、没装上的下次再试」。Harmony 的补丁是**叠加**的，
+        // 同一个方法装两次就会跑两遍 Finalizer —— 所以必须精确到单个目标。
+        private static readonly bool[] targetDone = new bool[3];
 
         internal static void Install()
         {
@@ -97,36 +131,104 @@ namespace GNH.LocalFixes
 
             try
             {
-                Type type = AccessTools.TypeByName(PatchTypeName);
-                if (type == null)
+                MethodInfo finalizer = AccessTools.Method(typeof(CcoeReflectionFix), nameof(Finalizer), null, null);
+                if (finalizer == null)
                 {
-                    // 没装 CCOE：这是正常情况，标记为「已处理」以免每次构造都重试。
+                    Log.Error("[GNH LocalFixes] CCOE fix: could not find our own Finalizer method; skipped.");
+                    return;
+                }
+
+                int typesFound = 0;
+                int justPatched = 0;
+                int missingMethods = 0;
+                int failedTargets = 0;
+
+                for (int i = 0; i < Targets.Length; i++)
+                {
+                    if (targetDone[i])
+                    {
+                        continue;                       // 这个目标上一轮就装好了，别重复装
+                    }
+
+                    Type type = AccessTools.TypeByName(Targets[i].TypeName);
+                    if (type == null)
+                    {
+                        continue;                       // 整个类型都不在 -> CCOE 没装或版本不同
+                    }
+                    typesFound++;
+
+                    MethodInfo target = AccessTools.Method(type, Targets[i].MethodName, null, null);
+                    if (target == null)
+                    {
+                        // 类型在、方法却没了：多半是 CCOE 升级改了名。
+                        // 不置 targetDone，留给下次重试；并且必须留 Error，绝不静默失败。
+                        missingMethods++;
+                        Log.Error("[GNH LocalFixes] CCOE was found but " + Targets[i].TypeName + "."
+                            + Targets[i].MethodName + " is missing (mod updated?); that one is deferred and will retry.");
+                        continue;
+                    }
+
+                    // ★ 每个目标各自 try/catch。
+                    //
+                    // 实测（2026-10-06 14:22，v1.3.17 上线当次）：给 Patch_BeforeCumOut 打补丁时，
+                    // Harmony 会抛
+                    //     TypeInitializationException: The type initializer for
+                    //     'RJW_Menstruation.VariousDefOf' threw an exception.
+                    //         ---> NullReferenceException  at RJW_Menstruation.VariousDefOf..cctor()
+                    //         at HarmonyLib.PatchFunctions.UpdateWrapper
+                    //         at HarmonyLib.Harmony.Patch
+                    //         at GNH.LocalFixes.CcoeReflectionFix.Install
+                    // 也就是说：**打补丁这个动作本身，会触发目标方法所在程序集里其它类型的静态构造**。
+                    // VariousDefOf 是个 [DefOf] 类，它的 .cctor 要查 Def 数据库；
+                    // 而当时还在「模组加载」阶段，Def 根本没建好，于是抛 NRE。
+                    //
+                    // 修法有两层，这里是第一层：**一个目标炸了不能连累其它目标** ——
+                    // 尤其不能连累 Patch_CumOut（它本来一直装得好好的）。
+                    // 第二层是安装时机，见文件末尾 CcoeReflectionFixLateInstaller。
+                    try
+                    {
+                        LocalFixesMod.HarmonyInstance.Patch(
+                            target,
+                            null,
+                            null,
+                            null,
+                            new HarmonyMethod(finalizer));
+
+                        targetDone[i] = true;
+                        justPatched++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedTargets++;
+                        Log.Error("[GNH LocalFixes] CCOE fix: patching " + Targets[i].TypeName + "."
+                            + Targets[i].MethodName + " failed; the other targets are unaffected: " + ex.Message);
+                    }
+                }
+
+                if (typesFound == 0)
+                {
+                    // 一个类型都没找到：CCOE 没装。这是正常情况，
+                    // 标记成「已处理」以免每次构造本模组对象都白找一遍。
                     installed = true;
-                    Log.Message("[GNH LocalFixes] CCOE not detected; its CumOut reflection fix was skipped.");
+                    Log.Message("[GNH LocalFixes] CCOE not detected; its cumSealed reflection fixes were skipped.");
                     return;
                 }
 
-                MethodInfo target = AccessTools.Method(type, TargetMethodName, null, null);
-                if (target == null)
-                {
-                    // 装了 CCOE 但方法名变了：**不置位**，留给下次再试，
-                    // 并打 Error —— 静默失败是我们最不想要的。
-                    Log.Error("[GNH LocalFixes] CCOE was found but "
-                        + PatchTypeName + "." + TargetMethodName
-                        + " is missing (mod updated?); fix deferred and will retry.");
-                    return;
-                }
-
-                LocalFixesMod.HarmonyInstance.Patch(
-                    target,
-                    null,
-                    null,
-                    null,
-                    new HarmonyMethod(AccessTools.Method(typeof(CcoeReflectionFix), nameof(Finalizer), null, null)));
-
+                // 只有三个目标全部就位才算彻底完成；否则下次（热重载/切语言）还会再来补一次。
                 installed = true;
-                Log.Message("[GNH LocalFixes] Patched CCOE " + TargetMethodName
-                    + " (swallows TargetException when the pawn has no Comp_SealCum).");
+                for (int i = 0; i < targetDone.Length; i++)
+                {
+                    if (!targetDone[i]) { installed = false; break; }
+                }
+
+                if (justPatched > 0)
+                {
+                    Log.Message("[GNH LocalFixes] Patched CCOE cumSealed reflection prefixes: "
+                        + justPatched + " newly installed this pass, "
+                        + (installed ? "all 3 targets are now covered. "
+                                    : (missingMethods + " missing, " + failedTargets + " failed. "))
+                        + "(they swallow TargetException when the pawn has no Comp_SealCum).");
+                }
             }
             catch (Exception ex)
             {
@@ -172,6 +274,51 @@ namespace GNH.LocalFixes
                 return null;
             }
             return __exception;
+        }
+    }
+
+    // ==========================================================================
+    // 安装时机：为什么这个补丁**不能**在 LocalFixesMod 的构造函数里装
+    // ==========================================================================
+    //
+    // 实测日志（2026-10-06 14:22，v1.3.17 上线当次启动）：
+    //
+    //     ERROR [GNH LocalFixes] Failed to install the CCOE CumOut fix (will retry):
+    //       System.TypeInitializationException: The type initializer for
+    //       'RJW_Menstruation.VariousDefOf' threw an exception.
+    //       ---> System.NullReferenceException
+    //         at RJW_Menstruation.VariousDefOf..cctor()
+    //         at HarmonyLib.PatchFunctions.UpdateWrapper (...)
+    //         at HarmonyLib.Harmony.Patch (...)
+    //         at GNH.LocalFixes.CcoeReflectionFix.Install ()
+    //
+    // 两个要点：
+    //
+    //   1. **Harmony 打补丁会触发目标程序集里其它类型的静态构造。**
+    //      我们 patch 的是 CCOE 的方法，但被触发的是 RJW_Menstruation 里的 VariousDefOf。
+    //
+    //   2. **VariousDefOf 是个 [DefOf] 类**，它的静态构造函数要查 Def 数据库。
+    //      而 `LocalFixesMod` 的构造函数跑在「模组加载」阶段 —— 那时 Def 还没建好，
+    //      查不到就抛空引用。
+    //
+    // 顺带解释了一个看起来矛盾的现象：同样是 CCOE 的方法，Patch_CumOut 从构造函数里装
+    // 一直没出事。区别在方法体 —— Patch_CumOut 用的是方法内的 DefDatabase 查询，
+    // 而 Patch_BeforeCumOut 的方法体里有一句静态字段访问 `VariousDefOf.Hediff_ASA`。
+    //
+    // 修法：把安装推迟到 [StaticConstructorOnStartup]。
+    // 该特性的执行时机是「所有 Def 加载完毕之后」（`Verse.StaticConstructorOnStartupUtility.CallAll`，
+    // 已反编译确认它只被 PlayDataLoader 调用一次），那时 VariousDefOf 能正常初始化。
+    // 本工程已有先例：VehicleFrameworkDebugFix 也是用这个特性装的。
+    //
+    // 注意：这个特性由 CLR 保证只跑一次，所以本类**不需要**额外守卫；
+    // 而 CcoeReflectionFix.Install() 内部那个 `installed` 标记继续保留，
+    // 是为了万一将来又从别处调它时不至于重复打补丁。
+    [StaticConstructorOnStartup]
+    internal static class CcoeReflectionFixLateInstaller
+    {
+        static CcoeReflectionFixLateInstaller()
+        {
+            CcoeReflectionFix.Install();
         }
     }
 }

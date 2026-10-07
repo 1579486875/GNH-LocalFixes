@@ -111,8 +111,30 @@ namespace GNH.LocalFixes
 
         private static bool installed;
 
+        /// <summary>
+        /// ModMetaData 里那个「只建一次、之后复用」的 hook 缓存字段（原版字段名 workshopHookInt）。
+        /// 拿到它才能把造好的空壳 hook 存回去，让后续调用直接命中缓存。
+        /// </summary>
         private static FieldInfo cacheField;
+
+        /// <summary>
+        /// WorkshopItemHook 里指向 ModMetaData 的 owner 字段；该类型对外的属性全部转发给它。
+        /// 造空壳 hook 时必须先把它填上，否则 hook 不知道自己属于哪个模组。
+        /// </summary>
         private static FieldInfo ownerField;
+
+        /// <summary>
+        /// workshopHookInt 的**强类型读写委托**，用来替掉热路径上的 FieldInfo.GetValue。
+        ///
+        /// 为什么值得单独做一个：GetWorkshopItemHook 在「模组」页面里是
+        /// **每帧 × 每个模组**被调用的（本机约 1146 个模组，即每秒上万次）。
+        /// FieldInfo.GetValue 每次都要走一遍反射的参数检查与装箱/拆箱；
+        /// 而 FieldRefAccess 生成的是强类型委托，调用它跟直接写 `obj.field` 差不多快。
+        ///
+        /// 拿不到时（原版改了字段名或类型）保持 null，下面的代码会自动退回
+        /// FieldInfo 反射路径 —— 慢一点，但功能完全不变。
+        /// </summary>
+        private static AccessTools.FieldRef<ModMetaData, WorkshopItemHook> cacheFieldRef;
 
         /// <summary>
         /// WorkshopItemHook 里那个「作者 SteamID」字段。
@@ -182,6 +204,17 @@ namespace GNH.LocalFixes
                     harmony.Patch(details,
                         new HarmonyMethod(AccessTools.Method(typeof(SteamWorkshopHookFix), nameof(SkipDetailsQuery))),
                         null, null, null);
+
+                    // ⚠ 装上一道就**立刻**立标记，而不是等两道都做完再统一置位。
+                    //
+                    //   原因（2026-10-07 复核查出的一处真实风险）：
+                    //   下面那两个 else 分支里的 Log 调用是会抛异常的（日志子系统故障时），
+                    //   而异常会跳到方法末尾的 catch。若此时标记还没立起来，
+                    //   下次模组对象被重建时就会对**同一个方法再 Patch 一遍** ——
+                    //   Harmony 是叠加的，那就是「越玩越卡」。
+                    //   换句话说：**「已经 Patch 成功」这件事必须当场记下来**，
+                    //   不能让它取决于后面那句日志成不成功。
+                    installed = true;
                 }
                 else
                 {
@@ -195,6 +228,8 @@ namespace GNH.LocalFixes
                     harmony.Patch(getHook,
                         new HarmonyMethod(AccessTools.Method(typeof(SteamWorkshopHookFix), nameof(SafeGetWorkshopItemHook))),
                         null, null, null);
+
+                    installed = true;   // 同上：装上了就当场记下来
                 }
                 else
                 {
@@ -203,8 +238,6 @@ namespace GNH.LocalFixes
                         + " not found; the mods-page crash guard is NOT installed.");
                 }
 
-                // 装上任意一道就算这一趟成功了 —— 免得每次构造模组对象都白重试一遍。
-                installed = details != null || getHook != null;
                 if (!installed)
                 {
                     // 两道都没找到（多半是原版大改）：不置位，留着下次再试。
@@ -318,6 +351,17 @@ namespace GNH.LocalFixes
                     hookFieldsResolved = true;
                     cacheField = AccessTools.Field(typeof(ModMetaData), "workshopHookInt");
                     ownerField = AccessTools.Field(typeof(WorkshopItemHook), "owner");
+
+                    // 顺手生成一个更快的读法（强类型委托）。做不成也没关系 ——
+                    // 下面两处读写都会自动退回 FieldInfo，功能不受影响。
+                    try
+                    {
+                        cacheFieldRef = AccessTools.FieldRefAccess<ModMetaData, WorkshopItemHook>("workshopHookInt");
+                    }
+                    catch (Exception)
+                    {
+                        cacheFieldRef = null;
+                    }
                 }
 
                 if (cacheField == null || ownerField == null)
@@ -332,7 +376,10 @@ namespace GNH.LocalFixes
                     return true;
                 }
 
-                WorkshopItemHook hook = (WorkshopItemHook)cacheField.GetValue(__instance);
+                // 读缓存字段：优先走强类型委托（热路径，每秒上万次），没有就退回反射。
+                WorkshopItemHook hook = (cacheFieldRef != null)
+                    ? cacheFieldRef(__instance)
+                    : (WorkshopItemHook)cacheField.GetValue(__instance);
                 if (hook == null)
                 {
                     hook = (WorkshopItemHook)FormatterServices.GetUninitializedObject(typeof(WorkshopItemHook));
@@ -383,26 +430,43 @@ namespace GNH.LocalFixes
                             // com.rlabrecque.steamworks.net 程序集引用 —— 为了一个调用
                             // 多担一份「缺库就整个补丁加载失败」的风险并不划算。
                             //
-                            // 反射拿不到就什么都不填（保持 Nil）：后果只是回到「不能上传」
-                            // 的老样子，绝不会因此让补丁本身出问题。
+                            // ⚠ 拿不到 Steam ID 时 steamId 会是 null，而 steamAuthor 是个
+                            //    **值类型**字段（CSteamID）。对值类型字段调 SetValue(null)
+                            //    会抛 ArgumentException，然后日志里冒出一条
+                            //    「cannot be converted to type CSteamID」——
+                            //    那条日志会把人引偏，以为「字段类型变了」，真因却只是
+                            //    「没读到 Steam ID」。所以这里必须先判空。
+                            //    读不到就什么都不填（保持 Nil）：后果只是回到「不能上传」
+                            //    的老样子，绝不会因此让补丁本身出问题。
                             object steamId = ResolveLocalSteamId();
-                            // 这一步也必须包在自己的 try 里：万一将来 Steamworks 或游戏
-                            // 把字段类型改了，这里会抛异常 —— 而外层那个 catch 是
-                            // 「交还给游戏原方法」（return true），那等于把玩家直接送回
-                            // SendSteamDetailsQuery 那条崩溃路径上。
-                            try
+                            if (steamId != null)
                             {
-                                authorField.SetValue(hook, steamId);
-                            }
-                            catch (Exception ex3)
-                            {
-                                Log.Warning("[GNH LocalFixes] Could not set steamAuthor on the workshop hook: "
-                                    + ex3.Message);
+                                // 这一步也必须包在自己的 try 里：万一将来 Steamworks 或游戏
+                                // 把字段类型改了，这里会抛异常 —— 而外层那个 catch 是
+                                // 「交还给游戏原方法」（return true），那等于把玩家直接送回
+                                // SendSteamDetailsQuery 那条崩溃路径上。
+                                try
+                                {
+                                    authorField.SetValue(hook, steamId);
+                                }
+                                catch (Exception ex3)
+                                {
+                                    Log.Warning("[GNH LocalFixes] Could not set steamAuthor on the workshop hook: "
+                                        + ex3.Message);
+                                }
                             }
                         }
                     }
 
-                    cacheField.SetValue(__instance, hook);
+                    // 存回缓存字段，同样优先走强类型委托。
+                    if (cacheFieldRef != null)
+                    {
+                        cacheFieldRef(__instance) = hook;
+                    }
+                    else
+                    {
+                        cacheField.SetValue(__instance, hook);
+                    }
                 }
 
                 __result = hook;

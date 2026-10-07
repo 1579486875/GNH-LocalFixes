@@ -71,8 +71,26 @@ namespace GNH.LocalFixes
         private const string TypeName = "Brrainz.CrossPromotion";
         private const string PrefixName = "Page_ModsConfig_DoModInfo_Prefix";
 
+        /// <summary>
+        /// CrossPromotion 装在 DoModInfo 上的那个前缀是否已经摘干净。
+        /// 摘干净之后（neutralized = true）所有重试路径都会立刻返回，不再做任何事。
+        /// </summary>
         private static bool neutralized;
+
+        /// <summary>
+        /// 每帧那道的 UI 兜底钩子是否已经挂上去了。
+        ///
+        /// 它挂在 UIRoot_Entry.UIRootUpdate 与 UIRoot_Play.UIRootUpdate 上，
+        /// 也就是**每帧各跑一次** —— 装重复了就是每帧多跑一遍，所以必须立这个标志。
+        /// </summary>
         private static bool uiHookInstalled;
+
+        /// <summary>
+        /// UiRetryPostfix 出错时的日志去重键（Log.ErrorOnce 需要它）。
+        /// 用它而不是 Log.Error：那里是每帧路径，真出事时不能每帧刷一条。
+        /// 字母含义 "CPUR" = CrossPromotion Ui Retry。
+        /// </summary>
+        private const int UiRetryErrorKey = 0x43505552;
 
         /// <summary>
         /// TryNeutralize 已经试过几次了。
@@ -239,6 +257,14 @@ namespace GNH.LocalFixes
                     int before = victims.Count;
                     for (int i = 0; i < victims.Count; i++)
                     {
+                        // ⚠ 这一句是全项目最反直觉的地方：用**本模组自己的** Harmony 实例，
+                        //    去摘掉**别人（CrossPromotion）**装上去的补丁。
+                        //
+                        //    它是可行的：Harmony 的 Unpatch **不检查补丁归属** —— 内部就是在
+                        //    全局补丁表里按 PatchMethod 相等来删，跟调用者属于哪个 Harmony 实例
+                        //    无关；对不存在的补丁则是静默 no-op。
+                        //    换句话说，「谁装的」不影响我们摘，只要拿得到那个 Prefix 方法对象
+                        //  （上面的 FindCrossPromotionPrefixes 就是从补丁表里把它捞出来的）。
                         LocalFixesMod.HarmonyInstance.Unpatch(target, victims[i]);
                     }
                     removed += before - FindCrossPromotionPrefixes(target).Count;
@@ -453,20 +479,44 @@ namespace GNH.LocalFixes
             }
         }
 
+        /// <summary>
+        /// 每帧的 UI 兜底钩子。
+        ///
+        /// 挂载点：Verse.UIRoot_Entry.UIRootUpdate 与 RimWorld.UIRoot_Play.UIRootUpdate
+        /// —— 也就是说**每帧各执行一次**。
+        ///
+        /// ⚠ 本方法整体包着一层 try/catch，而且是本文件里唯一这么做的补丁入口。
+        ///   原因就是「每帧」这两个字：一旦它抛异常，游戏的 UI 主循环每帧都会吃一条，
+        ///   帧率会被日志直接拖垮 —— 而本补丁存在的意义恰恰是「别让游戏卡」。
+        ///
+        ///   稳定之后（neutralized = true）本方法只剩「读一个 bool 然后返回」，
+        ///   但第一次成功中立化之前它会转调 TryNeutralize（要遍历 AppDomain 里的
+        ///   全部程序集），那段路上任何意外都必须在这里被拦下。
+        /// </summary>
         private static void UiRetryPostfix()
         {
-            if (neutralized)
+            try
             {
-                return;
-            }
+                if (neutralized)
+                {
+                    return;
+                }
 
-            uiRetryFrames++;
-            if (uiRetryFrames < UiRetryIntervalFrames)
-            {
-                return;
+                uiRetryFrames++;
+                if (uiRetryFrames < UiRetryIntervalFrames)
+                {
+                    return;
+                }
+                uiRetryFrames = 0;
+                TryNeutralize("ui");
             }
-            uiRetryFrames = 0;
-            TryNeutralize("ui");
+            catch (Exception ex)
+            {
+                // 吞掉，但绝不静默：用 ErrorOnce 保证「第一次出事」在日志里看得见，
+                // 又不会因为每帧都出错而把日志刷爆。
+                Log.ErrorOnce("[GNH LocalFixes] CrossPromotionUnpatch.UiRetryPostfix 出错"
+                    + "（已忽略；这个方法每帧都会跑，绝不能让它往外抛）：" + ex, UiRetryErrorKey);
+            }
         }
     }
 }

@@ -11,3 +11,9 @@ obj/
 # ⚠️ 游戏与第三方模组程序集 —— 版权不属于本项目，绝不提交
 # Assembly-CSharp / UnityEngine*（游戏本体）、0Harmony、RJW、ElToro_BAddon（第三方模组）
 refs/
+
+# 部署前自动留的旧版本备份（tools\deploy.ps1 生成）
+# 刻意放在工程目录而不是 Mods\ 里：RimWorld 与 RimCrow 会把 Mods\ 下任何带
+# About\About.xml 的子目录当成一个模组，备份留在那儿会凭空多出一个同 packageId
+# 的副本，RimCrow 的「处理重复模组」就会报冲突。
+_backup/

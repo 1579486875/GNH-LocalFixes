@@ -2,147 +2,392 @@
 <Patch>
 
   <!--
-    VFE Empire 爵位层级空引用修复
+    ══════════════════════════════════════════════════════════════════════════
+      VFE Empire 爵位「层级人物」修复（2026-10-07 重写）
+    ══════════════════════════════════════════════════════════════════════════
 
-    ── 病根 ──
+    ── 要修的是什么 ──
 
     来自 VFEEmpire.dll / WorldComponent_Hierarchy.MakePawnFor：
 
         PawnKindDef kindForHierarchy =
-            ((Def)title).GetModExtension<RoyalTitleDefExtension>().kindForHierarchy;
+            title.GetModExtension&lt;RoyalTitleDefExtension&gt;().kindForHierarchy;
 
-    两步之间没有 null 检查（已用反编译逐字核对）。所以只要某个爵位
-    「没挂这个扩展」或「扩展里该字段为空」，这一句就会抛 NullReferenceException，
-    并中断世界组件初始化。字段类型是 PawnKindDef（签名已核对）。
+    两步之间没有 null 检查。所以只要某个爵位「没挂这个扩展」或「扩展里该字段为空」，
+    这一句就会抛 NullReferenceException，并中断整轮世界组件初始化。
 
-    背景：VFE Empire 自己的 Patches/RoyalTitlesPatches.xml 只给 8 个爵位挂了该扩展
-    （Freeholder / Yeoman / Acolyte / Knight / Praetor / Baron / Count / Emperor）；
-    而原版 Royalty 共 11 个爵位，Consul / Duke / Stellarch 这三个 VFE 完全没有覆盖。
+    哪些爵位会被走到？反编译它的静态构造（原文）：
 
-    为什么偏偏是这三个出事：VFE 生成层级人物时，只遍历「seniority 大于 0 且 tags
-    命中帝国爵位标签」的那批爵位（WorldComponent_Hierarchy 静态构造里那句 LINQ）。
-    这三个的 seniority 分别是 700 / 800 / 900，都在这份名单里，又没有挂扩展，
-    于是 GetModExtension 返回 null、紧接着读它的字段就抛 NullReferenceException。
-    而 Freeholder 虽然 VFE 给它留的层级值是空的，但它的 seniority 是 0，
-    压根不进这份名单，所以不会触发 —— 那个空值是有意为之，不是漏改。
+        Titles = DefDatabase&lt;RoyalTitleDef&gt;.AllDefs
+            .Where(def =&gt; def.seniority &gt; 0
+                       &amp;&amp; def.tags.SharesElementWith(FactionDefOf.Empire.royalTitleTags))
+            .OrderBy(def =&gt; def.seniority).ToList();
 
-    ── 本补丁做什么 ──
+    也就是「seniority 大于 0」且「tags 里含 EmpireTitle」（Empire 派系的 royalTitleTags 就这一项）
+    的那批爵位。原版所有爵位的 tags 本身是空的，它们能带上 EmpireTitle，
+    是因为都继承自 BaseEmpireTitle 这个抽象模板。
 
-    先给 VFE 漏掉的三个爵位写上各自正确的 PawnKindDef（三者均为原版真实存在的定义，
-    已逐一核对）；再遍历全部 RoyalTitleDef 兜底，给「其它模组新增、VFE 不认识」的
-    爵位补一个非空值，避免取到 null。
+    ── 真正的病根：disroom.mashiro 把 VFE 写好的扩展抹掉了 ──
 
-    为什么第 4 块必须带 not(...) 谓词（2026-10-05 更正）：
-      这里原先写的是「VFE 自己那份 patch 因本模组声明了 loadAfter 而先执行，
-      它的扩展排在前面，因此始终优先生效」—— **这个论断是错的，实测恰好相反**。
+    本机加载顺序实测：VFE Empire 在第 464 位，disroom.mashiro 在第 1130 位
+    —— 后者在**后面**执行，于是它这条补丁把前者的成果覆盖掉：
 
-      运行时看到的顺序是 VFE 的值被排在后面：
-        Emperor → [Yeoman, Yeoman, VFEE_Empire_Royal_Emperor, Yeoman]
-      而 GetModExtension<T>() 只取第一项，于是取到的是我们写进去的兜底值，
-      VFE 真正想要的「皇帝」永远读不到。
+        &lt;Operation Class="PatchOperationReplace"
+                   xpath="Defs/RoyalTitleDef[@ParentName = 'DukeBase' or @ParentName = 'BaseEmpireTitle'
+                                             or @ParentName = 'ConsulBase' or @ParentName = 'StellarchBase']/modExtensions"&gt;
+          &lt;value&gt;&lt;modExtensions Inherit="False" /&gt;&lt;/value&gt;
+        &lt;/Operation&gt;
 
-      加上 not(...) 之后，本补丁只补「还没有该扩展」的爵位 ——
-      VFE 处理过的原样不动。优先级之争就此消失，不再依赖任何加载顺序。
-      （这也说明「靠 loadAfter 保证谁先挂」这种思路本身就不可靠：
-        ModExtension 列表的顺序是由运行时行为决定的，不是你以为的那样。）
+    关键在于 Inherit="False" 的含义 —— 反编译 Verse.XmlInheritance 逐行核对过：
 
-    ── 为什么拆成四个独立的块，而不是串成一个 Sequence ──
+        // RecursiveNodeCopyOverwriteElements(child, current)
+        attr = child.Attributes["Inherit"];
+        if (attr != null &amp;&amp; attr.Value.ToLower() == "false") {
+            while (current.FirstChild != null) current.RemoveChild(current.FirstChild); // 清空父内容
+            foreach (XmlNode item in child) current.AppendChild(item);                  // 只留自己的
+            return;
+        }
 
-      RimWorld 的 PatchOperationSequence 只要有一条失败，就立刻中止、
-      后面的一条都不再执行。如果把它们串成一个序列，那么万一将来某个模组
-      删掉了 Consul，后面「Duke / Stellarch / 兜底」这三条就会跟着一起不执行 ——
-      兜底防护静默失效，而它正是用来防崩溃的，失效了也不会有任何提示。
+    即「**清空继承来的内容，只保留自己写的**」。而它写的是个**空元素**，
+    所以结果是：这四类爵位的 modExtensions 被彻底清空。
 
-      拆成四个独立块之后，任何一块失败都不影响其它三块：
-        前三个爵位是关键修复，万一目标爵位不存在，就让它照常报错提醒你；
-        第 4 块兜底带 success="Always"，即使一个爵位都没匹配到也安静跳过，
-        不会反过来制造新的红字。
+    受影响的爵位不止三个 —— 凡是 ParentName 落在这四个名字上的都中招，
+    实测包括原版 Yeoman~Count、被 VFE 改成模板的原版 Duke/Consul/Stellarch、
+    以及 VFE 自己新增的 Archcount/Marquess/Archduke/Magister/Despot/HighStellarch。
 
-    ── 两个容易踩的坑 ──
+    ── 旧版补丁为什么没修好 ──
 
-    1. PatchOperation 基类并没有 MayRequire 字段（它只有 sourceFile /
-       neverSucceeded / success 这几个字段），所以「没装 VFE 时不要执行」
-       只能用 PatchOperationFindMod 包起来。
-    2. PatchOperationFindMod 的 <mods><li> 比对的是 ModMetaData.Name（显示名），
-       不是 packageId。已核对：该模组 About.xml 里的 <name> 正是这一串，逐字一致。
-       另外已用反编译确认：FindMod 在「模组没找到」时返回 true，不会报错，
-       所以本补丁在没装 VFE Empire 的环境里是完全安静的。
+    旧版三条 xpath 写的是 Defs/RoyalTitleDef[defName="Consul"] 这种。
+    但 VFE 在做这件事时，是给**原版那三个 def** 加了属性
+    Name="ConsulBase" / Abstract="True" / ParentName="BaseEmpireTitle"
+    —— 它们从此变成抽象模板；真正生效的 def 是 VFE 在
+    Defs/RoyalTitles/RoyalTitles_Empire.xml 里另写的、**没有 defName**、
+    靠 ParentName="ConsulBase" 继承出来的那一批。
+
+    所以旧版写进模板的值，实际 def 根本拿不到；真正落到实际 def 上的
+    只有末尾那条兜底，而兜底的值是 Empire_Royal_Yeoman。
+    净效果 = 帝国所有爵位的层级 PawnKind 统一变成「修士」：不崩，但功能倒退。
+
+    ── 本版怎么做 ──
+
+    ① 按「实际生效的 def」定位：有 defName 的用 defName，没有的用 ParentName；
+    ② 值一律**照抄 VFE 原本写的**（先读 VFE 的 Patches/RoyalTitlesPatches.xml，
+       再读它 Defs 里各 def 自己的 modExtensions），连 iconPath / greyIconPath 一并补回；
+    ③ 用 PatchOperationAddModExtension：节点已有 modExtensions 就往里追加，
+       完全没有就新建 —— 两种情况都成立（disroom 装没装都不会落空）；
+    ④ 每条都带 not(...) 保护：只有**缺**这个扩展时才动手。
+       disroom 没装时 VFE 的原值还在，我们一个字都不改；
+    ⑤ 末尾保留一条兜底，但范围收窄到 disroom 真正会破坏的那四个 ParentName。
+       旧版那条兜底的 xpath 是「全库所有缺该扩展的爵位」，实测会波及
+       20 多个模组的 154 个爵位（美狐 / 雪兔 / 米莉拉 / 天鹰 / OA / 仙路 …），
+       属于越界改写，本版已收窄；
+    ⑥ 每一条独立成块，不串 PatchOperationSequence —— 序列里只要一条失败，
+       后面全部不再执行，兜底会静默失效。
+
+    ── 两个容易踩的坑（保留自旧版） ──
+
+    1. PatchOperation 基类没有 MayRequire 字段，所以「没装 VFE 时不要执行」
+       只能用 PatchOperationFindMod 包起来；
+    2. FindMod 的 &lt;li&gt; 比对的是 ModMetaData.Name（显示名），不是 packageId。
+       已核对：该模组 About.xml 里的 &lt;name&gt; 正是下面这一串，逐字一致。
+       FindMod 在「模组没找到」时返回 true、不报错，所以没装 VFE 时本补丁完全安静。
   -->
 
-  <!-- ① Consul：VFE 完全没有覆盖的三个爵位之一 -->
-  <Operation Class="PatchOperationFindMod">
-    <mods>
-      <li>Vanilla Factions Expanded - Empire</li>
-    </mods>
-    <match Class="PatchOperationAddModExtension">
-      <xpath>Defs/RoyalTitleDef[defName="Consul"]</xpath>
-      <value>
-        <li Class="VFEEmpire.RoyalTitleDefExtension">
-          <kindForHierarchy>Empire_Royal_Consul</kindForHierarchy>
-        </li>
-      </value>
-    </match>
-  </Operation>
-
-  <!-- ② Duke -->
-  <Operation Class="PatchOperationFindMod">
-    <mods>
-      <li>Vanilla Factions Expanded - Empire</li>
-    </mods>
-    <match Class="PatchOperationAddModExtension">
-      <xpath>Defs/RoyalTitleDef[defName="Duke"]</xpath>
-      <value>
-        <li Class="VFEEmpire.RoyalTitleDefExtension">
-          <kindForHierarchy>Empire_Royal_Duke</kindForHierarchy>
-        </li>
-      </value>
-    </match>
-  </Operation>
-
-  <!-- ③ Stellarch -->
-  <Operation Class="PatchOperationFindMod">
-    <mods>
-      <li>Vanilla Factions Expanded - Empire</li>
-    </mods>
-    <match Class="PatchOperationAddModExtension">
-      <xpath>Defs/RoyalTitleDef[defName="Stellarch"]</xpath>
-      <value>
-        <li Class="VFEEmpire.RoyalTitleDefExtension">
-          <kindForHierarchy>Empire_Royal_Stellarch</kindForHierarchy>
-        </li>
-      </value>
-    </match>
-  </Operation>
-
-  <!-- ④ 兜底：给「其它模组新增、VFE 不认识」的爵位补一个非空值。
-       success="Always" 让它即使一个都没匹配到也安静跳过 ——
-       这一条的目的是「防止崩溃」，不是「必须改到东西」，
-       所以不该因为它没找到目标而报错。
-
-       ⚠ 那个 not(...) 谓词**绝不能省**（2026-10-05 复审查出的严重缺陷）。
-
-       早先这里的 xpath 是光秃秃的 Defs/RoyalTitleDef，会给**每一个**爵位都追加一份
-       kindForHierarchy=Empire_Royal_Yeoman —— 包括 VFE 自己已经处理好的那些。
-       而 GetModExtension&lt;T&gt;() 只取列表里的**第一项**，于是 VFE 写进去的正确值
-       被挤到后面去了，永远取不到。运行时实测到的顺序：
-
-         Emperor  → [Yeoman, Yeoman, VFEE_Empire_Royal_Emperor, Yeoman]
-                    「皇帝」排在第三位，取到的是「修士」
-         Consul / Duke / Stellarch → 干脆只剩我们这一项
-
-       后果是帝国层级人物全部退化成同一等级 —— 不崩，但是明确的功能倒退，
-       而且很难被发现（看起来只是「名字都差不多」）。
-
-       加上 not(...) 之后，本补丁只补「**还没有**该扩展」的爵位：
-       VFE 处理过的一律原样不动，它漏掉的才由我们兜住。
-       这样「谁优先」这个问题从根上消失，不再依赖任何加载顺序。 -->
+  <!-- 【01】恢复 Yeoman -->
   <Operation Class="PatchOperationFindMod">
     <mods>
       <li>Vanilla Factions Expanded - Empire</li>
     </mods>
     <match Class="PatchOperationAddModExtension">
       <success>Always</success>
-      <xpath>Defs/RoyalTitleDef[not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <xpath>Defs/RoyalTitleDef[defName="Yeoman"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Yeoman</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Yeoman</greyIconPath>
+          <kindForHierarchy>Empire_Royal_Yeoman</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【02】恢复 Acolyte -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="Acolyte"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Acolyte</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Acolyte</greyIconPath>
+          <kindForHierarchy>Empire_Royal_Acolyte</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【03】恢复 Knight -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="Knight"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Knight</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Knight</greyIconPath>
+          <kindForHierarchy>Empire_Royal_Knight</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【04】恢复 Praetor -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="Praetor"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Praetor</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Praetor</greyIconPath>
+          <kindForHierarchy>Empire_Royal_Praetor</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【05】恢复 Baron -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="Baron"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Baron</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Baron</greyIconPath>
+          <kindForHierarchy>Empire_Royal_Baron</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【06】恢复 Count -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="Count"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Count</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Count</greyIconPath>
+          <kindForHierarchy>Empire_Royal_Count</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【07】恢复 Emperor -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="Emperor"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Emperor</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Emperor</greyIconPath>
+          <kindForHierarchy>VFEE_Empire_Royal_Emperor</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【08】恢复 Duke -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[@ParentName="DukeBase" and not(defName)][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Duke</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Duke</greyIconPath>
+          <kindForHierarchy>Empire_Royal_Duke</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【09】恢复 Consul -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[@ParentName="ConsulBase" and not(defName)][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Consul</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Consul</greyIconPath>
+          <kindForHierarchy>Empire_Royal_Consul</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【10】恢复 Stellarch -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[@ParentName="StellarchBase" and not(defName)][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Stellarch</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Stellarch</greyIconPath>
+          <kindForHierarchy>Empire_Royal_Stellarch</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【11】恢复 VFEE_Archcount -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="VFEE_Archcount"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Archcount</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Archcount</greyIconPath>
+          <kindForHierarchy>VFEE_Empire_Royal_Archcount</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【12】恢复 VFEE_Marquess -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="VFEE_Marquess"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Marquess</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Marquess</greyIconPath>
+          <kindForHierarchy>VFEE_Empire_Royal_Marquess</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【13】恢复 VFEE_Archduke -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="VFEE_Archduke"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Archduke</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Archduke</greyIconPath>
+          <kindForHierarchy>VFEE_Empire_Royal_Archduke</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【14】恢复 VFEE_Magister -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="VFEE_Magister"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Magister</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Magister</greyIconPath>
+          <kindForHierarchy>VFEE_Empire_Royal_Magister</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【15】恢复 VFEE_Despot -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="VFEE_Despot"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_Despot</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_Despot</greyIconPath>
+          <kindForHierarchy>VFEE_Empire_Royal_Despot</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【16】恢复 VFEE_HighStellarch -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[defName="VFEE_HighStellarch"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
+      <value>
+        <li Class="VFEEmpire.RoyalTitleDefExtension">
+          <iconPath>UI/NobleRanks/RoyalTitleIcon_HighStellarch</iconPath>
+          <greyIconPath>UI/GreyTitleIcons/RoyalTitleIcon_HighStellarch</greyIconPath>
+          <kindForHierarchy>VFEE_Empire_Royal_HighStellarch</kindForHierarchy>
+        </li>
+      </value>
+    </match>
+  </Operation>
+  <!-- 【17】兜底：给「继承了这四个模板、但 VFE 没来得及给扩展」的爵位补一个安全值。
+
+       为什么还需要它：上面 16 条覆盖的是我们**已知**的爵位；
+       其它模组也可能写出 ParentName 落在这四个名字上的爵位，
+       它们同样会进 VFE 的 Titles 名单、同样会在 MakePawnFor 里解引用 null。
+
+       ⚠ 范围已收窄（2026-10-07）：旧版写的是
+            Defs/RoyalTitleDef[not(modExtensions/li[@Class="..."])]
+          —— 「全库所有还没挂这个扩展的爵位」。实测那会命中 20 多个模组、
+          154 个爵位（美狐 / 雪兔 / 米莉拉 / 天鹰 / OA / 仙路 …），
+          而它们根本不在 VFE 的 Titles 名单里，纯属越界改写。
+          现在只在 disroom 真正会破坏的那四个 ParentName 上兜底。
+
+       这一段用的是兜底值（修士），不是各爵位的正确值 ——
+       正确值由上面 16 条负责；能走到这里的都是「我们没预料到的」，
+       给它一个非空值只是为了让游戏不崩，而不是说它就该是修士。 -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>Vanilla Factions Expanded - Empire</li>
+    </mods>
+    <match Class="PatchOperationAddModExtension">
+      <success>Always</success>
+      <xpath>Defs/RoyalTitleDef[@ParentName="BaseEmpireTitle" or @ParentName="DukeBase" or @ParentName="ConsulBase" or @ParentName="StellarchBase"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
       <value>
         <li Class="VFEEmpire.RoyalTitleDefExtension">
           <kindForHierarchy>Empire_Royal_Yeoman</kindForHierarchy>

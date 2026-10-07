@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+
+  <!--
+    修复 SnowRabbit Race Beta（packageId: Gugustar.SnowRabbitRaceBeta）
+    的一个「贴图路径大小写」错误。
+
+    ── 症状（2026-10-04 23:17 实测）──
+
+    打开游戏底部的「意识形态」页面时，日志依次出现：
+
+      Could not load Texture2D at
+        'SR_Moonlight/SR_NewMoonlight/Moonlight_HuoShu/NewMoonlight_HuoShu'
+        in any active mod or in base resources.
+      Exception filling window for RimWorld.MainTabWindow_Ideos:
+        System.NullReferenceException
+      GUI Error: You are pushing more GUIClips than you are popping...
+      Mouse position stack is not empty. There were more calls to
+        BeginScrollView than EndScrollView. Fixing.
+
+    后面三条都是第一条的连锁反应，不是三个独立故障：
+    贴图加载失败返回 null，绘制该图标时抛 NullReferenceException，
+    异常直接跳出了窗口的绘制方法，配对的 EndScrollView / GUI.EndClip
+    没有被执行，于是 GUI 栈不平衡 —— 这才是那串 GUI 报错的来源。
+
+    ── 根因 ──
+
+    模组文件 1.6\Defs\SR_MoonlightMarks\SR_MoonlightTattooDef.xml
+    中 defName = SR_HuoShu_Tattoo_Slot1 这一个 def：
+
+      第 134 行  <texPath> .../NewMoonlight_Huoshu   小写 s，正确
+      第 135 行  <iconPath>.../NewMoonlight_HuoShu   大写 S，错误
+
+    磁盘上真实存在的是 NewMoonlight_Huoshu.png（小写 s）。
+    同目录下另有 NewMoonlight_HuoShu_east.png / _north.png（大写 S），
+    但没有任何名为 NewMoonlight_HuoShu（无方向后缀）的文件。
+
+    ⚠ 这一点反直觉，值得记下：
+    Windows 文件系统不区分大小写，但 RimWorld 并不通过文件系统查贴图 ——
+    它在启动时把每个模组 Textures 下的文件枚举进内存字典，
+    查找时对路径做精确字符串匹配（字典 key 就是磁盘上的确切文件名）。
+    所以「Windows 上不该出错」这个推断在此不成立，
+    大小写不一致照样 miss。这也正好解释了为什么同一个 def 里
+    texPath 正常、只有 iconPath 报错。
+
+    ── 本补丁做什么 ──
+
+    只把这一个 iconPath 的大写 S 改成小写 s，与 texPath、实际文件名对齐。
+
+    ── 两个安全设计 ──
+
+    1. 外层 PatchOperationFindMod 只认模组名「SnowRabbit Race Beta」。
+       没装这个模组时整块静默跳过，不产生报错，也不构成硬依赖。
+
+    2. xpath 同时约束 defName 与「当前文本内容」，且 success="Always"。
+       将来作者自己修好大小写、或改了 defName、或删掉这个 def，
+       本补丁都会安静地什么都不做，而不是反过来制造新的红字。本补丁幂等。
+  -->
+
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>SnowRabbit Race Beta</li>
+    </mods>
+    <match Class="PatchOperationSequence">
+      <success>Always</success>
+      <operations>
+
+        <li Class="PatchOperationReplace">
+          <success>Always</success>
+          <xpath>Defs/TattooDef[defName="SR_HuoShu_Tattoo_Slot1"]/iconPath[text()="SR_Moonlight/SR_NewMoonlight/Moonlight_HuoShu/NewMoonlight_HuoShu"]</xpath>
+          <value>
+            <iconPath>SR_Moonlight/SR_NewMoonlight/Moonlight_HuoShu/NewMoonlight_Huoshu</iconPath>
+          </value>
+        </li>
+
+      </operations>
+    </match>
+  </Operation>
+
+</Patch>

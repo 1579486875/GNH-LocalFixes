@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ========================================================================== -->
+<!-- OASFC_TsarXenotypeFix.xml -->
+<!-- 修「某不知名的沙皇」变智人、没耳朵尾巴、脸发黑 -->
+<!-- ========================================================================== -->
+<!--  -->
+<!-- 【现象】（2026-10-07 用户实测） -->
+<!--   [OA]Stepped Flower Cake（金鸢尾兰）的人物模板「某不知名的沙皇」 -->
+<!--   （defName = OASFC_Pawn_Shubing）生成出来： -->
+<!--     · 种族显示「智人」而不是鼠族 -->
+<!--     · 没有鼠耳与尾巴 -->
+<!--     · 脸发黑（用了人类皮肤贴图，没有鼠族肤色） -->
+<!--   而同一批的其它鼠族（内宫族等）外观完全正常。 -->
+<!--  -->
+<!-- 【根因】 -->
+<!--   鼠族外观由 Biotech 的 xenotype（异种人）决定，不是由 PawnKindDef 的 race 决定。 -->
+<!--   OASFC_BasePawn 的 race 确实写着 Ratkin，但**没有 xenotypeSet 字段**， -->
+<!--   于是生成时按 RimWorld 的优先级回退，最终落到默认的 Baseliner（智人）—— -->
+<!--   所以它虽有鼠族的身体贴图规则，却套着人类的异种基因。 -->
+<!--  -->
+<!--   同族的 OA 鼠族为什么正常？因为 OA 框架自己给自己打了补丁： -->
+<!--       [OA]Ratkin Faction: Oberonia aurea -->
+<!--         Mods\Biotech\1.6\Patches\Biotech_Xeno_Patch.xml -->
+<!--   那个补丁只覆盖两个目标： -->
+<!--       /Defs/FactionDef[defName="OA_RK_Faction"] -->
+<!--       /Defs/PawnKindDef[@Name="OA_RK_BasePawn"] -->
+<!--   而金鸢尾兰的沙皇用的是它**自己的** PawnKindDef： -->
+<!--       Defs/PawnKindDef[@Name="OASFC_BasePawn"]   （OASFC_Pawn_Shubing 继承它） -->
+<!--   ——不在那两个目标的覆盖范围里，所以拿不到 Ratkin_OA。 -->
+<!--  -->
+<!--   另：鼠族基因兼容补丁（elainarain.ratkingenepatch.oaframeworkpatch） -->
+<!--   处理的是 NewRatkinPlus 的 RKBasePawnKind 与 Rakinia / Rakinia_Warlord 两个派系， -->
+<!--   同样没有覆盖金鸢尾兰自己的模板。 -->
+<!--  -->
+<!-- 【本补丁做什么】 -->
+<!--   给 OASFC_BasePawn 补一个 xenotypeSet，固定使用 Ratkin_OA（OA 鼠族的基础异种）， -->
+<!--   与 OA 框架给 OA_RK_BasePawn 用的保持一致。 -->
+<!--   沙皇是特定历史人物，所以用 1.0 的确定值，而不是概率表。 -->
+<!--  -->
+<!--   外层套 PatchOperationFindMod（OA 鼠族框架）： -->
+<!--   该模组没装时整个补丁不执行，绝不会留下指向不存在 XenotypeDef 的引用。 -->
+<!--   内层再用 PatchOperationConditional 判 xenotypeSet 是否已存在， -->
+<!--   已存在就原样保留（别人若已修过，以别人的为准）。 -->
+<Patch>
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>[OA]Ratkin Faction: Oberonia aurea</li>
+    </mods>
+    <match Class="PatchOperationConditional">
+      <xpath>Defs/PawnKindDef[@Name="OASFC_BasePawn"]</xpath>
+      <match Class="PatchOperationConditional">
+        <xpath>Defs/PawnKindDef[@Name="OASFC_BasePawn"]/xenotypeSet</xpath>
+        <nomatch Class="PatchOperationAdd">
+          <xpath>Defs/PawnKindDef[@Name="OASFC_BasePawn"]</xpath>
+          <value>
+            <xenotypeSet Inherit="False">
+              <xenotypeChances>
+                <Ratkin_OA>1</Ratkin_OA>
+              </xenotypeChances>
+            </xenotypeSet>
+          </value>
+        </nomatch>
+      </match>
+    </match>
+  </Operation>
+</Patch>

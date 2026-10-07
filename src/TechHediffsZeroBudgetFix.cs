@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using HarmonyLib;
 using Verse;
@@ -64,7 +63,13 @@ namespace GNH.LocalFixes
     //
     // 不重写、不顶替原方法，只在**必定会崩的那一种配置**下提前放行（返回 false 跳过）：
     //
-    //     预算上限 <= 0  且  没有必装植入体  且  原版确实会走进那个循环
+    //     候选里一个「权重为正」的项都没有（也就是原版这一趟必然抽到 null）
+    //
+    //     【2026-10-06 审计更正】这里原先写的是「预算上限 <= 0」，那是**过期说法** ——
+    //     本文件下面「关键判断：原版这一趟到底能不能抽出东西来」那一整段
+    //     记录了「光判预算上限还不够」的那次实机教训。
+    //     真正的判据是「**候选里有没有一个权重为正的项**」——
+    //     预算 > 0 时同样可能一个都没有（见下面第 84 行那条说明）。
     //
     // 为什么跳过不损失任何功能：预算恒为 0 或负数时，本来就只有
     // BaseMarketValue == 0 的植入体能通过门槛，而它们在原版里恰恰是
@@ -77,7 +82,11 @@ namespace GNH.LocalFixes
     //   * techHediffsMaxAmount <= 0 —— 原版那个循环根本不会执行；
     //   * 有必装植入体（techHediffsRequired）—— 会被扣成负数，候选为空，不会崩，
     //     而且**绝不能跳过**，否则连必装件都装不上了；
-    //   * 预算上限 > 0 —— 交给原版正常抽签。
+    //   * 预算上限 > 0 **并且**候选里至少存在一个「权重为正（BaseMarketValue > 0）」的项
+    //     —— 交给原版正常抽签。
+    //     ⚠ 光看「预算 > 0」是不够的：预算为正、候选却全是零价值植入体时，
+    //       原版照样会抽到 null 然后崩 —— 那属于上面「必定会崩」那一类，我们要拦。
+    //       （2026-10-07 订正：本行原先只写「预算上限 > 0」，与代码不符，也和上面那段更正打架。）
     //
     // 唯一可察觉的差异：跳过时原版那句 tmpGeneratedTechHediffsList.Clear() 不会执行。
     // 那是方法内部用来避免重复挑选的临时静态列表，每次进入方法开头都会清一次，
@@ -216,7 +225,10 @@ namespace GNH.LocalFixes
                     return true;
                 }
 
-                // 走到这里：预算恒 <= 0、没有必装件、而原版确实会进入抽取循环。
+                // 走到这里：没有必装件，而候选里一个「权重为正」的项都没有。
+                // 注意此时 budget **可能大于 0**（见上面「关键判断：原版这一趟到底能不能
+                // 抽出东西来」那段教训：预算为正、候选却全是零价值植入体时同样会崩），
+                // 所以别再把它当成「预算 <= 0」的条件分支。
                 // 这正是「总权重 0 → 返回 null → 解引用崩溃」的唯一配置。
                 if (!skipLogged)
                 {
@@ -306,8 +318,16 @@ namespace GNH.LocalFixes
         }
 
         // 已经报过的 PawnKind 名字，以及已经报过几个了。
+        //
+        // 为什么会限流：一次地图生成会批量创建上百个 Pawn，如果每个都打一条详细报告，
+        // 日志会被刷爆。这里「同一个 PawnKind 只报一次」，且总共最多报 MaxReportedKinds 个
+        // 不同的 PawnKind；超过之后只累计次数，不再逐条打印。
         private static readonly HashSet<string> reportedKinds = new HashSet<string>();
         private static int swallowedCount;
+
+        // 最多为多少个「不同的 PawnKind」打详细报告。
+        // 取 8 的理由：足够留下可排查的样本，又不会把日志刷屏。
+        private const int MaxReportedKinds = 8;
 
         // 报一条 Warning，说明「这里本来会崩，被我们兜住了」。
         // 同一个 PawnKind 只报一次；最多报 8 个不同的 PawnKind，之后只记数不刷屏。
@@ -330,7 +350,7 @@ namespace GNH.LocalFixes
                     // 连 kindDef 都读不到就保持 "(未知)"，绝不能在收尾器里再抛一次。
                 }
 
-                if (reportedKinds.Contains(kindName) || reportedKinds.Count >= 8)
+                if (reportedKinds.Contains(kindName) || reportedKinds.Count >= MaxReportedKinds)
                 {
                     return;   // 报过了 / 报够了，只记数
                 }
@@ -355,8 +375,11 @@ namespace GNH.LocalFixes
         /// 为什么要缓存：候选筛选要遍历全部 ThingDef（本机一万多条），
         /// 而下面那个判断**每次生成 Pawn 都会被调用一次** —— 每次都全表扫太亏。
         /// 这些 Def 在启动之后基本不变，构建一次就够了。
-        /// （开发者热重载 Def 之后这份缓存会过期，最坏结果只是"退回旧行为"，
-        ///   不会造成新的错误，所以不额外做失效检测。）
+        /// （⚠ 开发者热重载 Def 之后这份缓存**不会自动重建**：万一热重载后新出现了一个
+        ///   「权重为正」的候选，我们仍然按旧清单判断，**可能误跳过**一次本该正常生成的
+        ///   植入体 —— 那不是「退回旧行为」，而是「该装的没装」。
+        ///   权衡后接受这点代价（只影响开发者热重载之后的那一次生成），不做失效检测；
+        ///   真怀疑踩到了，重进游戏即可 —— 这份缓存活不过一个进程。）
         /// </summary>
         private static List<ThingDef> viableTechHediffs;
         /// <summary>
@@ -389,12 +412,17 @@ namespace GNH.LocalFixes
                 {
                     continue;
                 }
-                if (!kind.techHediffsTags.Any(tag => candidate.techHediffsTags.Contains(tag)))
+                // 这里刻意用显式 for 而**不用** LINQ 的 .Any(tag => ...)：
+                // 这段代码每个生成的 Pawn 都会跑一遍，而 lambda 会在循环内捕获 candidate
+                //（编译器要生成 display class + 委托），List<string> 经 IEnumerable<T> 调 Any
+                // 还会把 List 的枚举器装箱 —— 合计每个候选最多 6 次堆分配。
+                // 下面这两个 TagListsOverlap 是零分配版本。
+                if (!TagListsOverlap(kind.techHediffsTags, candidate.techHediffsTags))
                 {
                     continue;
                 }
                 if (kind.techHediffsDisallowTags != null
-                    && kind.techHediffsDisallowTags.Any(tag => candidate.techHediffsTags.Contains(tag)))
+                    && TagListsOverlap(kind.techHediffsDisallowTags, candidate.techHediffsTags))
                 {
                     continue;
                 }
@@ -404,6 +432,29 @@ namespace GNH.LocalFixes
                 }
 
                 return true;   // 找到一个能用的就够了
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 两个字符串列表有没有交集。
+        ///
+        /// 语义等价于 a.Any(x =&gt; b.Contains(x))，但**零堆分配** ——
+        /// 这段代码在「每生成一个 Pawn」的路径上，不能用 LINQ（理由见调用处注释）。
+        /// 任一列表为 null 都按「无交集」处理（调用方已经先判过 null）。
+        /// </summary>
+        private static bool TagListsOverlap(List<string> a, List<string> b)
+        {
+            if (a == null || b == null)
+            {
+                return false;
+            }
+            for (int i = 0; i < a.Count; i++)
+            {
+                if (b.Contains(a[i]))
+                {
+                    return true;
+                }
             }
             return false;
         }

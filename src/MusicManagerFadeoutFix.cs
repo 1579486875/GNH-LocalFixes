@@ -122,8 +122,15 @@ namespace GNH.LocalFixes
     //      顺手也检查一下「音乐源」分组（规则是「必须有 CompPlaysMusic 组件」），
     //      避免同类问题在隔壁那半段代码里再炸一次。
     //
-    //      因为游戏取分组名单时返回的就是内部那个 List 本身（不是副本），
-    //      所以这里直接从名单里删掉，一帧之后就永久干净了 —— 不必改存档、不必重开游戏。
+    //      游戏取分组名单时（ListerThings.ThingsMatching）返回的通常就是内部那个 List
+    //      本身（不是副本），所以这里直接从名单里删掉，一帧之后就永久干净了 ——
+    //      不必改存档、不必重开游戏。
+    //
+    //      ⚠ 但有一个例外必须知道：该分组**从来没有被创建过**时，游戏返回的是一个
+    //        全游戏共享的空表（ListerThings.EmptyList —— 反编译 ThingsMatching
+    //        可见 `?? EmptyList`），不是内部表。
+    //        所以这里只能做 Remove（对空表就是空操作），
+    //        **绝不能**往返回值里 Add 或 Clear —— 那会污染全局所有查询者。
     //
     //   3. 把这次摘掉了什么、为什么摘，写进日志（只写前几次，之后不刷屏）。
     //      这条很重要：绝不能「静默吞掉异常」，否则问题被藏起来、以后没人查得出来。
@@ -162,7 +169,13 @@ namespace GNH.LocalFixes
         // 为什么需要它：本模组的构造函数在一个进程里可能被调用多次
         //（开发者工具热重载、切换语言都会重新来一遍），
         // 而 Harmony 装补丁是「叠加」不是「替换」—— 装两遍就会有两层一样的代码。
-        // 所以装之前先看标记，装完立刻立标记。
+        //
+        // ⚠ 实际做法是「**装之前就立标记**」：不管成功还是失败，本进程只尝试一次。
+        //   （2026-10-07 订正：这里原先写的是「装完立刻立标记」，与代码不符 ——
+        //     代码里 installAttempted = true 出现在尝试**之前**。
+        //     之所以不像本模组其它补丁那样「失败就留着下次重试」，是因为本补丁失败的
+        //     唯一现实原因是「游戏改版把这个方法改名或删掉了」；那种情况下在同一个进程里
+        //     重试一百次也还是找不到，只会把同一条 Error 多刷几遍。）
         private static bool installAttempted;
 
         // 详细报告只写前几次，避免万一有模组在不停制造新脏对象时把日志刷爆。
@@ -294,12 +307,15 @@ namespace GNH.LocalFixes
         // ----------------------------------------------------------------------
         // 真正的清理动作。返回一段给人看的说明文字，通过 out 参数返回摘掉的数量。
         //
-        // 参数 map 由调用方给：崩溃收尾器传的是「当前正在显示的地图」，
-        // 而进图主动清理的那个组件传的是「它自己所属的地图」。
+        // 参数 map 由调用方指定要清理哪张地图。目前**唯一**的调用点就是上面那个
+        // 崩溃收尾器（它传进来的是「当前正在显示的地图」Find.CurrentMap）。
         //
-        // 声明成 internal 是为了让同程序集的 MusicGroupSanitizer 也能调用它。
+        // ⚠ 为什么是 private：调用点全在本文件内，没必要对外开放。
+        //   早先写成 internal，是因为当时还有一个 MapComponent「MusicGroupSanitizer」
+        //   会调它；那个方案已经废弃（原因见本文件下方「为什么不用 MapComponent」那段），
+        //   所以 2026-10-07 把可见性收了回来。
         // ----------------------------------------------------------------------
-        internal static string Repair(Map map, out int removed)
+        private static string Repair(Map map, out int removed)
         {
             removed = 0;
 
@@ -572,6 +588,12 @@ namespace GNH.LocalFixes
                 }
 
                 // ① 最廉价的排除。不是建筑的东西，下面两个分组都不可能涉及。
+                //
+                //    关于 t == null 这个判断：按原版源码，ListerThings.Add 的第一行就是
+                //        if (!EverListable(t.def, use)) return;
+                //    也就是说原方法**已经访问过 t.def** 了 —— 能被我们这个收尾看到的那次调用，
+                //    t 根本不可能是 null。所以这一句在正常路径上永远不会命中，
+                //    留着纯粹是防御性的：保证「本补丁绝不会成为新的空引用来源」。
                 if (t == null)
                 {
                     return;
@@ -587,8 +609,13 @@ namespace GNH.LocalFixes
                 //    后果：MusicManagerPlay.UpdateMusicFadeout 每帧把它强转成
                 //    Building_MusicalInstrument 并失败，每次异常都要抓堆栈并写日志
                 //    （实测把游戏拖到每秒约 2 帧）。
+                //    性能：先做一次最廉价的引用比较（绝大多数情况下 def.thingClass 就是
+                //    乐器类本身），只有不相等时才退化成 IsAssignableFrom。
+                //    这样写语义完全等价 —— IsAssignableFrom 对「自己」本来就返回 true，
+                //    而这里处理的是 ListerThings.Add 这条极热路径（读档时每个物体一次，
+                //    本机约 17 万次）。
                 if (!(t is Building_MusicalInstrument)
-                    && InstrumentThingClass.IsAssignableFrom(def.thingClass))
+                    && (def.thingClass == InstrumentThingClass || InstrumentThingClass.IsAssignableFrom(def.thingClass)))
                 {
                     RemoveFromGroup(__instance, ThingRequestGroup.MusicalInstrument, t);
                     ReportBadInstrument(t);

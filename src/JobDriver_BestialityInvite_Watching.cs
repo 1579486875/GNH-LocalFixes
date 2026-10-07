@@ -36,6 +36,9 @@ namespace ElToro_BAddon
     // 真到那时候，你把本文件删掉即可。
     public class JobDriver_BestialityInvite_Watching : JobDriver
     {
+        // ⚠ targetA 装的是「人」、targetB 装的是「动物」。
+        //   这个顺序由 ElToro 自己的 JobDef 决定，不是我们挑的；
+        //   写反了两个强转都会各自抛 InvalidCastException。
         protected Pawn human => (Pawn)this.job.targetA.Thing;
         protected Pawn animal => (Pawn)this.job.targetB.Thing;
 
@@ -46,6 +49,12 @@ namespace ElToro_BAddon
 
         protected override IEnumerable<Toil> MakeNewToils()
         {
+            // 四条「做到一半就放弃」的条件，任一成立即中止任务：
+            //   · 目标消失了（被销毁 / 离开地图）或已被禁止（Forbidden）；
+            //   · 走不到目标跟前（Touch 模式，允许一定危险度）；
+            //   · 自己已被征召；
+            //   · 对方已被征召。
+            // 这是 RimWorld 任务的标准写法：缺了它们，遇到「目标没了」的任务会一直卡着。
             this.FailOnDespawnedNullOrForbidden(TargetIndex.A);
             this.FailOn(() => !pawn.CanReach(TargetA, PathEndMode.Touch, Danger.Some));
             this.FailOn(() => pawn.Drafted);
@@ -79,6 +88,10 @@ namespace ElToro_BAddon
                 if (!memory.WitnessedConsensualBestiality)
                 {
                     memory.WitnessedConsensualBestiality = true;
+                    // ⚠ 这里的 Settings 是 **ElToro 模组自己的**静态设置类，
+                    //    **不是**本补丁包的 GNHLocalFixesSettings。
+                    //    原因：本类位于 ElToro_BAddon 命名空间内，直接写 Settings 解析到的就是它；
+                    //    这么写是为了跟作者其它代码共用同一个「调试日志开关」。
                     if (Settings.DebugMode)
                         ModLog.Message($"[Bestiality Milestone] Milestone reached for pawn {pawn.NameShortColored}: Witnessed Consensual Bestiality.");
                 }
@@ -124,6 +137,7 @@ namespace ElToro_BAddon
                 if (!humanMemory.WasSeenPositive)
                 {
                     humanMemory.WasSeenPositive = true;
+                    // 同上：Settings 是 ElToro 模组自己的设置类，不是本补丁包的。
                     if (Settings.DebugMode)
                         ModLog.Message($"[Bestiality Milestone] Milestone reached for pawn {human.NameShortColored}: Was Seen Positively during bestiality.");
                 }

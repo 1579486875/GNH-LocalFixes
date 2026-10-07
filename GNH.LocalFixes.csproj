@@ -1,10 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net48</TargetFramework>
-    <LangVersion>latest</LangVersion>
+    <!-- 钉死语言版本：写 latest 会随 .NET SDK 漂移（本机 SDK 10 下是 C# 14），
+       换台机器/换个 SDK 可能编出不同语义甚至编译失败。net48 目标用 9.0 足够，
+       本工程也未使用任何 9.0 之后的语法。 -->
+    <LangVersion>9.0</LangVersion>
     <AssemblyName>GNH.LocalFixes</AssemblyName>
     <RootNamespace>GNH.LocalFixes</RootNamespace>
-    <Version>1.3.14</Version>
+    <Version>1.3.23</Version>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DebugType>none</DebugType>
     <!-- 编译产物不掺入 git 提交号：相同源码在任何机器上都编译出完全相同的 dll -->
@@ -14,14 +18,91 @@
     <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <!--
+      下面 4 条是「预防性声明」，不是为了掩盖当下的告警：2026-10-07 曾用
+      -p:NoWarn= 把它们全部清空、做了一次完整重编译，实测一条都不触发
+      （0 警告 0 错误）。保留它们，是为了将来真写出这些模式时不必再改工程文件。
+
+      CS0436 类型冲突（有一处故意重写别的模组的类，见 JobDriver_BestialityInvite_Watching.cs）
+      CS0618 使用了标记为过时的成员（调用点来自宿主模组暴露的旧签名，不是本工程主动选用过时 API）
+      CS0649 字段从未被赋值（那是其它模组通过反射填的）
+      CS0162 存在不可达代码（防御性写法，故意保留）
+    -->
     <NoWarn>CS0436;CS0618;CS0649;CS0162</NoWarn>
   </PropertyGroup>
+
+  <!--
+    ══════════════════════════════════════════════════════════════════════════
+      refs\ 目录是什么，以及 ⚠ 游戏更新后必须做的事
+    ══════════════════════════════════════════════════════════════════════════
+
+      本工程编译时用到的程序集全部放在 refs\ 里：
+
+        Assembly-CSharp.dll          ← 游戏本体（15.7 MB）
+        UnityEngine.dll              ← Unity
+        UnityEngine.CoreModule.dll   ← Unity（Rect / Mathf 在这里）
+        UnityEngine.IMGUIModule.dll  ← Unity（GUIContent / GUI / GUIStyle 在这里，
+                                         「模组设置」界面用到 Widgets 与 Listing_Standard，
+                                         它们的签名里出现了 GUIContent，缺了它是编不过的）
+        UnityEngine.TextRenderingModule.dll ← Unity（Font / TextAnchor / TextGenerator）
+        0Harmony.dll                 ← Harmony 模组提供
+        ElToro_BAddon.dll            ← 第三方模组（本模组要重写它的一个类）
+        RJW.dll                      ← 第三方模组
+
+      为什么用 refs\ 而不是直接指向游戏安装目录：
+      最后两个 dll 不在游戏目录里，它们躺在工坊目录下、路径随工坊 ID 变化，
+      写死路径换台机器就编不过。所以统一放一份进 refs\。
+
+      ⚠⚠ 这里有个必须记住的坑 ⚠⚠
+
+        refs\Assembly-CSharp.dll 是**游戏程序集在某个时刻的快照**。
+        游戏本体更新之后，它不会自动跟着变 —— 你会拿着**旧版 API** 编译，
+        编出来的 dll 在当前游戏里可能一加载就 MissingMethodException / TypeLoadException。
+        这种错在编译期完全看不出来，只在装上之后才炸，而且报错信息离根因很远。
+
+        所以：**每次游戏本体更新后，先重新同步 refs\，再编译。**
+
+        同步命令（推荐）：
+            powershell -ExecutionPolicy Bypass -File tools\sync-refs.ps1
+        或者手动把下面这些从游戏目录拷进 refs\：
+            RimWorldWin64_Data\Managed\Assembly-CSharp.dll
+            RimWorldWin64_Data\Managed\UnityEngine.dll
+            RimWorldWin64_Data\Managed\UnityEngine.CoreModule.dll
+            RimWorldWin64_Data\Managed\UnityEngine.IMGUIModule.dll
+            RimWorldWin64_Data\Managed\UnityEngine.TextRenderingModule.dll
+
+        想自己核对是否同步过：比较两个文件的「修改时间」即可（复制会保留原时间戳）：
+            refs\Assembly-CSharp.dll                       的修改时间
+            <游戏>\RimWorldWin64_Data\Managed\Assembly-CSharp.dll  的修改时间
+        两者相同 = 已同步。
+
+      （为什么不在本文件里自动比对时间戳：MSBuild 的属性函数有白名单，
+        System.IO.File.GetLastWriteTimeUtc 不在其中，会直接报 MSB4185 编译失败。
+        所以这件事交给 tools\sync-refs.ps1，它顺带也能把 refs 拷好。）
+  -->
+  <PropertyGroup>
+    <RimWorldDir Condition="'$(RimWorldDir)' == ''">D:\steam\steamapps\common\RimWorld</RimWorldDir>
+    <ManagedDir>$(RimWorldDir)\RimWorldWin64_Data\Managed</ManagedDir>
+  </PropertyGroup>
+
+  <!-- 编译前只做「文件在不在」的检查（Exists 是 MSBuild 内置函数，任何版本都支持）。
+       时间戳一致性交给 tools\sync-refs.ps1，见上面那段说明。 -->
+  <Target Name="GNHValidateRefs" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('refs\Assembly-CSharp.dll')"
+           Text="缺少 refs\Assembly-CSharp.dll，编译无法进行。请运行 powershell -ExecutionPolicy Bypass -File tools\sync-refs.ps1 从游戏目录同步。" />
+    <Error Condition="!Exists('refs\UnityEngine.IMGUIModule.dll')"
+           Text="缺少 refs\UnityEngine.IMGUIModule.dll（模组设置界面用到的 GUI 类型在里面）。请运行 powershell -ExecutionPolicy Bypass -File tools\sync-refs.ps1 从游戏目录同步。" />
+    <Warning Condition="!Exists('$(ManagedDir)\Assembly-CSharp.dll')"
+             Text="没找到游戏程序集（$(ManagedDir)\Assembly-CSharp.dll），本次无法核对 refs\ 是否与当前游戏版本一致。换机器请加 -p:RimWorldDir=&quot;你的 RimWorld 目录&quot;。" />
+  </Target>
+
   <ItemGroup>
-    <Compile Include="src\*.cs" />
+    <Compile Include="src\**\*.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="About\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Patches\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="README.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp"><HintPath>refs\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
@@ -30,5 +111,29 @@
     <Reference Include="RJW"><HintPath>refs\RJW.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine"><HintPath>refs\UnityEngine.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.CoreModule"><HintPath>refs\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>refs\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>refs\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
+
+  <!--
+    ══════════════════════════════════════════════════════════════════════════
+      补一步：把 dll 放进 Assemblies\，让 bin\<配置>\ 真的可以直接部署
+    ══════════════════════════════════════════════════════════════════════════
+
+      RimWorld **只**从 <模组目录>\Assemblies\ 里加载程序集；放在模组根目录的 dll
+      它看都不看。而编译器默认把 dll 直接吐在 bin\Release\ 根下 ——
+      于是「构建完把 bin\Release\ 整个复制过去」会得到一个没有程序集的模组：
+      进游戏后不报错、也不生效，最容易被误判成「补丁没写对」。
+
+      下面这个 Target 在每次 Build 之后补一步：把 dll 复制一份进 Assemblies\。
+
+      · 用 Copy 而不是 Move：不动标准输出位置，其它工具链仍能在 bin\Release\
+        根下找到 dll；
+      · SkipUnchangedFiles：增量构建时不会反复写盘；
+      · 目标目录用 MakeDir 先建出来，全新克隆也能一次构建成功。
+  -->
+  <Target Name="GNHStageAssembliesFolder" AfterTargets="Build">
+    <MakeDir Directories="$(OutDir)Assemblies" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(OutDir)Assemblies" SkipUnchangedFiles="true" />
+  </Target>
 </Project>

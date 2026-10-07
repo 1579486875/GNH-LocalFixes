@@ -42,6 +42,17 @@ namespace GNH.LocalFixes
     [HarmonyPatch(typeof(VerbProperties), "AdjustedRange")]
     public static class Patch_VerbProperties_AdjustedRange
     {
+        // ⚠ 参数名 attacker 不是随便起的，必须与原方法的参数名**完全一致**。
+        //
+        //   原方法签名是：Verse.VerbProperties.AdjustedRange(Verb ownerVerb, Thing attacker)
+        //  （已用反编译核对过）。Harmony 是靠「参数名对得上」把原方法的实参喂进来的；
+        //   一旦改了名字，这里就注入不到东西、只会得到 null ——
+        //   而本补丁的全部判断都压在「attacker 是不是 null」上，
+        //   那会把**每一次正常调用**都误判成异常情况，后果比不装这个补丁还糟。
+        //
+        // 这里刻意**不套 try/catch**：整个方法只有一次 null 比较和一次字段读，
+        // 而 __instance 来自非静态方法的实例（不可能是 null），找不到任何会抛异常的点。
+        // （本模组其它补丁入口都带 try/catch，那几处确实有反射/字典/日志调用。）
         [HarmonyPrefix]
         public static bool Prefix(VerbProperties __instance, Thing attacker, ref float __result)
         {

@@ -9,17 +9,28 @@ namespace GNH.LocalFixes
     // 修复：XML 补丁里的 <li>Royalty</li> 在中文环境下永远匹配不上
     // ==========================================================================
     //
-    // 【症状】
+    // 【症状：反直觉 —— 它根本不报红字】
     //
-    // 游戏日志里成片出现这样的错误（2026-10-04 实测，一次启动就 4 个模组中招）：
+    // 本补丁修的是**静默空转**：判定失败时 PatchOperationFindMod 会安静地跳过，
+    // 日志里**一条记录都没有**。所以「补丁到底有没有生效」光看日志是查不出来的 ——
+    // 想确认它工作了，请看本补丁安装时打的那条自述 Message。
+    // 反编译原文（Verse.PatchOperationFindMod.ApplyWorker）：
     //
-    //     [Vanilla Furniture Expanded]                 Patch operation FindMod(Royalty) failed
-    //     [Blue Archive Furniture]                     Patch operation FindMod(Royalty) failed
-    //     [华夏扩展 Chinese Comprehensive Expansion]    Patch operation FindMod(Royalty) failed
-    //     [Vanilla Furniture Expanded - Spacer Module] Patch operation FindMod(Royalty) failed
+    //     if (!flag && nomatch == null) return true;      // ← 判定失败 = 安静跳过，不报错
     //
-    // 而这些模组确实都装了、也确实都加载了（日志里 Ludeon.RimWorld.Royalty 赫然在列）。
-    // 所以「找不到 Royalty」这件事本身就是错的 —— 它是被判定逻辑坑了。
+    // --------------------------------------------------------------------------
+    // 【2026-10-06 审计更正：这里原先的症状描述是错的】
+    //
+    // 本文件早先在这里列过 4 条「Patch operation FindMod(Royalty) failed」当作本补丁的症状。
+    // 那是**归因错误**，而且与同文件下面「静默空转、不报红字」那段自相矛盾：
+    //
+    //   * 那条红字只在 flag == true（也就是**已经找到了** Royalty）之后、
+    //     match.Apply(xml) 里的**内容**应用失败时才会被打印出来；
+    //   * 换句话说，出现它恰恰证明 FindMod 的判定**成功了**，与「翻译导致判定失败」正好相反。
+    //
+    // 本机 2026-10-06 日志复核：`FindMod(Royalty) failed` **0 条**，
+    // 而 `PatchOperationFindMod(...): Error in <match>` 有 **19 条** —— 后者才是那类红字的真身。
+    // 其归因见 XmlExtensionsFindModFix.cs 的文件头（真凶是 disroom.mashiro 清空了 bedroomRequirements 节点）。
     //
     // --------------------------------------------------------------------------
     // 【根因：判定比的是「会被翻译的显示名」】
@@ -169,6 +180,12 @@ namespace GNH.LocalFixes
         // ----------------------------------------------------------------------
         // 构建「官方 DLC 短名 → packageId」映射。
         // 只在第一次需要时执行，之后直接返回。
+        //
+        // ⚠ 这里刻意**不加锁**（一个裸的双检缓存）。
+        //   理由：本方法只会在「Def 加载阶段」的主线程里被调用，不存在并发进来的路径。
+        //   对照：本模组另一处 XmlExtensionsFindModFix.EnsureDlcMap 是**加锁**的 ——
+        //   因为那条路径可能被 UI 操作触发。两处写法不同是有意的，不是遗漏。
+        //   （2026-10-07 补充说明。）
         // ----------------------------------------------------------------------
         private static void EnsureDlcMap()
         {

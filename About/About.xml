@@ -1,13 +1,63 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
   <name>本地修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
-  <modVersion IgnoreIfNoMatchingField="True">1.3.14</modVersion>
+  <modVersion IgnoreIfNoMatchingField="True">1.3.23</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
-  <description>针对本机模组组合的十四个修复合集（原「TAML 修复合集」的两项已并入）。十四项互相独立，均为最小侵入，可整体或逐项停用：
+  <description>针对本机模组组合的 19 个修复，互相独立、均为最小侵入，可整体或逐项停用。
+
+──────── 速览：修的是谁 —— 什么问题 —— 怎么修 ────────
+【1】ElToro 人兽杂交「观看」任务 —— dll 里缺 JobDriver 类，JobDef 加载失败 —— 照同类任务重写该类
+【2】CeleTech 智能切换武器 —— 原版 AdjustedRange 不判空，每 15 tick 崩一次 —— 加空值守卫
+【3】VFE Empire 爵位层级（Patches/VFEE_RoyalTitleExtFix.xml）
+VFE 生成「层级人物」时要读爵位的 RoyalTitleDefExtension.kindForHierarchy，而它前面没有 null 检查。
+偏偏 disroom.mashiro（本机第 1130 位，晚于 VFE 的第 464 位）会把
+    Defs/RoyalTitleDef[@ParentName="DukeBase"|"BaseEmpireTitle"|"ConsulBase"|"StellarchBase"]/modExtensions
+整体替换成 &lt;modExtensions Inherit="False" /&gt;。而 Inherit="False" 的含义是
+「清空继承来的内容、只留自己写的」（已反编译 Verse.XmlInheritance 逐行核对），它写的却是个空元素 ——
+于是 VFE 写好的扩展被整片抹掉，实测 16 个爵位中招。
+
+这不崩（本补丁兜住了），但后果很隐蔽：**所有帝国爵位的层级人物退化成同一个等级**。
+
+旧版为什么没修好：它的 xpath 按 defName 定位，命中的是「被 VFE 改成抽象模板的那几个原版 def」；
+真正生效的 def 没有 defName、靠 ParentName 继承出来，压根拿不到旧版写进去的值。
+
+本版（2026-10-07 重写）：按「实际生效的 def」定位 —— 有 defName 的用 defName，
+没有的用 ParentName（并排除同名模板下那些**有** defName 的爵位，否则 VFEE_HighStellarch
+会被误写成普通 Stellarch）；把 VFE 原本的 kindForHierarchy 与 iconPath 逐条补回，共 16 个爵位。
+每条都带 not(...) 保护，只在「确实缺这个扩展」时才动手。末尾留一条兜底，
+范围收窄到 disroom 真正会破坏的那四个 ParentName —— 旧版那条会波及 20 多个模组的 154 个爵位，属越界改写。
+
+
+【4】Vehicle Framework 开发者面板 —— 拿「显示名{defName}」整串去查 Def，成片红字 —— 先解析出纯 defName 再查
+【5】VFE Empire 乐器空间 —— placeWorkers 为 null 时直接 Contains，静态构造崩 —— 只替换那句判断
+【6】打开「模组配置」页即崩溃 —— CrossPromotion 调了 Steam 已废弃接口 —— 把那个前缀从补丁链上摘掉
+【7】RJW 动物动画悬空引用 —— 模组删了 Rotti，动画定义里还列着 —— 摘掉那两处死条目
+【8】被「禁用房间要求」连累而失效的功能 —— 前一步补丁失败，后面的全被跳过 —— 补做 VFE 的钢琴/营火/石棺
+【9】CCOE 月经结算空引用 —— 反射读错对象，抛 TargetException —— 挂收尾器，只在真抛时接管
+【10】原版植入体「0 权重」崩溃 —— 预算为 0 时抽到 null 再解引用 —— 前缀预判 + 收尾器兜底
+【11】非乐器混进「乐器」分组 —— 每帧强转失败，游戏掉到约 2fps —— 在登记进分组时就摘掉
+【12】中文下 &lt;li&gt;Royalty&lt;/li&gt; 匹配不上 —— DLC 显示名被翻译成「皇权」 —— 按 packageId 末段再判一次
+【13】天鹰溪谷联邦给炮塔塞已删除类型 —— 整个 Def 加载失败，炮塔消失 —— 移除该节点
+【14】XmlExtensions 的 FindMod 静默跳过 —— 与【12】同病，但走的是另一条判定路径 —— 加前置检查
+【15】领袖头衔定好了自己变回去 —— GenerateLeaderTitle 不读旧值、直接覆盖 —— 已有值就跳过整个方法
+【16】连续开新局会卡死在殖民者生成 —— NMM 的跨局残留 tracker 撞号 —— 前缀删掉那条残留记录
+【17】Onahole mimic 生成器刷警告 —— 空矩形被 resolver 拒绝（并非「找不到规则」）—— 提前拦下，与原版等价
+【18】金鸢尾兰「某不知名的沙皇」变智人 —— 该 PawnKind 没有 xenotypeSet —— 补一个固定的
+【19】雪兔纹身图标 —— iconPath 大小写与磁盘文件名不符，文化界面刷红字 —— 改回磁盘上真实的名字
+
+──────── v1.3.22（2026-10-07）本次加固 ────────
+· 日志安全壳：所有补丁安装路径上的日志调用改成「日志失败也不许抛」。此前若日志系统本身
+  故障（磁盘满 / 文件被占 / 被别的模组改坏），异常会从 catch 块里漏进 LocalFixesMod 的
+  构造函数，把「某个补丁没装上」升级成「Harmony 补丁叠层、越玩越卡」。
+· 热路径去反射：SteamWorkshopHookFix 那条「模组页每帧 × 全部模组」的路径不再每次反射取值。
+· 极热路径先比较再判定：MusicManagerFadeoutFix 在 ListerThings.Add 上先做一次引用比较。
+· 订正 9 处与代码不符的注释；删掉 2 个从未使用的 using；把 2 处魔数提成具名常量。
+
+（下面是每一项的详细记录：现象、根因证据、修法。速览里看不明白的再往下翻。）
 
 【1】ElToro 人兽杂交「观看」任务补全
 ElToro_BAddon.dll 中缺少 JobDriver_BestialityInvite_Watching 类，而 Defs/JobDefs/Jobs_Bestiality_Invite.xml 的 JobDef 引用了它，导致日志报 Could not find a type named ...。本补丁在 ElToro_BAddon 命名空间下**重写**了这个类（作者并没有发布过它的源码，所以是照同类任务 JobDriver_BestialityInvite_InviteToWatch 的结构重写；判定互动用的 API 也与同类不同），使该 JobDef 恢复正常加载。若将来作者自己补上该类，游戏取程序集列表中的首个匹配且本模组声明了 loadAfter，故优先使用作者版本。
@@ -226,6 +276,99 @@ VFESecurity.CompProperties_LongRangeArtillery，而 VFE Security 1.6 已经删�
 这一项是为「将来某个模组按名字写」准备的保险，属于与本包 FindModLanguageFix 配套的半个补丁。
 XmlExtensions 没装时自动跳过，不构成依赖。
 
+【15】领袖头衔定好了会自己变回去（2026-10-06 新增）
+你在文化里（.rid 文件或游戏界面）把领袖头衔定成「主席」，过一阵它会自己变成别的名字
+（例如「游击队区域指挥官」）—— 改模因、点「随机符号」之后尤其必现。
+
+原因（反编译 IdeoFoundation.GenerateLeaderTitle 得到）：
+头衔存在 Ideo.leaderTitleMale / leaderTitleFemale 两个字段上，而给它们赋值的几乎只有
+IdeoFoundation.GenerateLeaderTitle() 这一个方法。它**不读旧值，直接覆盖**：
+    ideo.leaderTitleMale   = NameGenerator.GenerateName(request, null, false, "r_leaderTitle");
+    ideo.leaderTitleFemale = ideo.leaderTitleMale;
+该方法全游戏共 6 个调用点：IdeoFoundation_Deity.Init、「随机符号」按钮（IdeoUIUtility.DoName）、
+IdeoUIUtility 的另一处按钮回调、Precept_Role.GenerateNameRaw、改模因对话框
+（Dialog_ChooseMemes）、改革文化对话框（Dialog_ReformIdeo）。
+
+注意：文化里的 &lt;nameLocked&gt; **管不到它**。那把锁只作用于 Precept.name
+（Ideo.RegenerateAllPreceptNames 里明写 if (precept.UsesGeneratedName &amp;&amp; !precept.nameLocked)），
+而领袖头衔根本不是 Precept 的字段，压根不走那条路 —— 这就是它「怎么锁都锁不住」的原因。
+
+修法：在方法最前面拦一道 —— 头衔还是空的就放行（新建文化的第一次生成得靠原方法），
+头衔已经有内容就跳过整个方法，谁也别想覆盖。IdeoFoundation 是抽象类，原版只有
+IdeoFoundation_Deity 一个具体子类且**没有重写**它，所以补基类即覆盖全部原版路径。
+
+模组设置里新增开关「保护自定义的领袖头衔」，**默认开**；关掉即完全恢复原版行为。
+想给某个文化换头衔：临时关掉 → 点一次「随机符号」→ 再打开。
+
+【16】连续开新局会卡死在殖民者生成（2026-10-06 新增）
+在同一个游戏进程里反复用 Quickstarter 开新局，开到第 8 次左右开始有概率卡死：殖民者生成连抛
+NullReferenceException，之后界面不再响应、日志也停了（实测第 8 次连抛 4 次后彻底卡住，5 分钟零日志）。
+
+原因（反编译 NudityMattersMore.dll 得到，MVID 与出错堆栈完全一致）：
+NudityMattersMore.CoverBody.UpdateIdeo 的第二个参数 tracker 被调用方
+Patch_PawnGenerator_NMM.NMMPawnInitialization 硬编码传成 null，而方法内部只在
+「PawnInteractionManager.ideoTrackers 里还没有这个 thingIDNumber」时才会新建并赋给它：
+    if (!ideoTrackers.ContainsKey(pawn.thingIDNumber)) {
+        ideoTrackers[pawn.thingIDNumber] = new PawnIdeoTracker();
+        tracker = ideoTrackers[pawn.thingIDNumber];     只有这条路径会给 tracker 赋值
+    }
+    ...
+    tracker.lastCheckTick = gameTick;                   字典里已有记录时，这里就是对 null 解引用
+堆栈里的偏移 [0x00079] 正是这一句（IL: ldarg.1 / ldarg.2 / stfld lastCheckTick）。
+
+ideoTrackers 是 public static 字段、跨局不清空，而新开一局时 thingIDNumber 会从 1 重新数，
+于是新局里刚生成的殖民者会命中上一局留下的同号记录 → ContainsKey 为 true → tracker 仍是 null → 崩。
+这也解释了「越开越容易炸」：字典是累积的，撞号概率随开新局次数上升。
+
+修法：给 UpdateIdeo 加前缀，只在「调用方传进来的 tracker 是 null，且字典里确实已有同号记录」
+这一种组合下，把那条属于上一局的残留记录从字典里删掉，让原方法改走「新建 tracker」分支。
+CoverCheck / InfoHelper.IsUncaring 这些自己带 tracker 的调用点原样放行，不受影响
+（CompTick 并不直接调它，是先经 CoverCheck、再按 600 tick 的门槛进来）。
+另附一个收尾器兜住同方法里 memes / precepts 两条 null 路径的空引用，只吞 NullReferenceException、
+不静默（每次记 Warning，最多 8 条）。
+
+NMM 没装或没启用时自动跳过，不构成依赖。
+
+【17】Onahole 的 mimic 生成器刷「Could not find any RuleDef」（2026-10-07 重查并重做）
+地图生成神殿/遗迹时，RJW_Onahole 会把一个空矩形推给 mimicSpawner 符号，原版 BaseGen
+因此每次开局刷约 34 条 WARNING。那句警告的字面意思（「找不到 RuleDef」）是误导的：
+规则一直都在，被拒的是传进来的矩形 —— 该模组的 patch 会把子区域无条件 ContractedBy(2)
+（四边各内缩 2 格），而神殿里大量子区域只有 1x1，收缩后宽高都变成 0；而 resolver 基类
+SymbolResolver 要求宽高都大于等于 1（minRectSize 默认 (1,1)），于是必然拒绝。
+
+本补丁（src/BaseGenMimicSpawnerQuietFix.cs）在 BaseGen.Resolve 之前拦一道：只拦
+「symbol 是 mimicSpawner 且矩形宽或高小于 1」的请求 —— 这类请求原版本来就会拒绝、
+而且什么都不做，所以跳过它与原版完全等价，只是不再往日志里刷警告；矩形正常时一律放行，
+模组功能不受影响。
+
+旧做法（2026-10-06 版：在 Defs 下追加一条同 symbol 的 RuleDef 做兜底）已证明无效并撤除，
+存档在 _scratch\deprecated-patches\。它无效的原因很直白：新规则的 resolver 还是同一个类、
+minRectSize 还是 (1,1)，对同一个空矩形照样返回 false。
+
+【18】金鸢尾兰「某不知名的沙皇」变成智人（2026-10-07 新增）
+金鸢尾兰（[OA]Stepped Flower Cake）的人物模板「某不知名的沙皇」（OASFC_Pawn_Shubing，
+继承 OASFC_BasePawn）生成后种族显示智人、没有鼠耳与尾巴、脸发黑，而同批其它鼠族正常。
+
+根因：鼠族外观由 Biotech 的 xenotype 决定，而 OASFC_BasePawn 只有 race=Ratkin、
+没有 xenotypeSet，生成时回退成默认的 Baseliner。OA 框架自己的 Biotech_Xeno_Patch.xml
+只覆盖了 OA_RK_Faction 与 OA_RK_BasePawn 两个目标，没覆盖金鸢尾兰自己的 PawnKindDef。
+
+本补丁给 OASFC_BasePawn 补一个固定使用 Ratkin_OA 的 xenotypeSet（外层 FindMod 保护，
+OA 框架没装时整个补丁不执行）。
+
+【19】雪兔纹身图标路径大小写不符（Patches/SnowRabbitTattooIconFix.xml）
+打开「意识形态」页面时日志刷：Could not load Texture2D ... NewMoonlight_HuoShu，
+紧接着 NullReferenceException + 一串 GUI 栈不平衡的报错（后三条都是第一条的连锁反应，不是三个独立故障）。
+
+根因是 SnowRabbit Race Beta 的 SR_HuoShu_Tattoo_Slot1 这个 def：
+第 134 行的 texPath 写小写 s（对），第 135 行的 iconPath 写大写 S（错），
+而磁盘上只有 NewMoonlight_Huoshu.png（小写 s）。
+反直觉的地方在于：Windows 文件系统不区分大小写，但 RimWorld 查贴图**不走文件系统** ——
+它在启动时把各模组 Textures 下的文件枚举进内存字典，查找是精确字符串匹配，大小写不一致照样 miss。
+
+本补丁只把这一个 iconPath 改回磁盘上真实的名字；外层 FindMod 认模组名，
+xpath 同时约束 defName 与当前文本内容且 success="Always"，将来作者自己修好就会安静跳过。
+
 </description>
   <modDependencies>
     <li>
@@ -243,11 +386,40 @@ XmlExtensions 没装时自动跳过，不构成依赖。
     <li>brrainz.achtung</li>
     <li>brrainz.cameraplus</li>
     <li>ElToro.BAddon</li>
+    <!-- ElToro 的动画扩展（Mods\RJW_动画_通用动物动画）。
+         我们的 Patches/ElToroAnimsRottiRefFix.xml 改的正是它加载的 Def，
+         按 ELToro 的 Def 先就位。
+         （2026-10-06 审计发现原先漏了这一条。） -->
+    <li>ElToro.Anims</li>
     <li>TOT.CeleTech.MKIII</li>
-    <li>oskarpotocki.vfe.empire</li>
-    <li>gugustar.snowrabbitracebeta</li>
-    <li>ariandel.miliraimperium</li>
-    <li>smashphil.vehicleframework</li>
+    <li>OskarPotocki.VFE.Empire</li>
+    <!-- VFE 核心（Vanilla Expanded Framework 的本体 Def 都在这里）。
+         我们的 Patches/VFEPianoFirepitRestore.xml 改的就是 VFECore 的
+         Joy_Piano / Play_Piano 等 Def，必须排在它之后。
+         这一条不只是「更整齐」：原先没声明它时，本补丁能否正确「补做」
+         完全取决于 disroom.mashiro 恰好也排在后面（见文件末尾那段长注释），
+         属于碰运气。补上之后顺序才有保证。
+         （2026-10-06 审计发现原先漏了这一条。） -->
+    <li>VanillaExpanded.VFECore</li>
+    <li>Gugustar.SnowRabbitRaceBeta</li>
+    <!-- [OA]脚踩花糕（ww.oberoniaaurea.steppedflowercake，工坊 3379736801）：
+         它是 OASFC_BasePawn 的定义者，而 OASFC_Pawn_Shubing（「某不知名的沙皇」）
+         继承自它。我们的 Patches/OASFC_TsarXenotypeFix.xml 用
+         PatchOperationConditional 的 xpath 去查这个 Def 是否已就位 ——
+         xpath 问的是「现在有没有」，不是「装了没」，所以【必须】排在定义者之后。
+         排在前面的话 xpath 匹配不到，补丁会安静地什么都不做，
+         而且日志里一条线索都不留，排查时极难想到是顺序问题。
+
+         ⚠ 有个容易搞混的点：该补丁外层的 FindMod 守卫写的是
+         「[OA]Ratkin Faction: Oberonia aurea」（金鸢尾兰帝国，工坊 3159926804），
+         因为补丁里用到的 Ratkin_OA 异种人定义在那边；但要改的 Def 在本模组。
+         守卫通过 ≠ 目标已加载，这是两件事。
+
+         （2026-10-07 复审发现原先漏了这一条，与 2026-10-06 漏掉
+           vanillaexpanded.vfecore 属于同一类问题：新增补丁时容易忘记配顺序。） -->
+    <li>WW.OberoniaAurea.SteppedFlowerCake</li>
+    <li>Ariandel.MiliraImperium</li>
+    <li>SmashPhil.VehicleFramework</li>
     <!-- CCOE：我们要给它自己的 Patch_CumOut 挂 Finalizer，
          得保证它先加载、目标方法先就位。 -->
     <li>keahuy.rjw.ccoe</li>
@@ -255,7 +427,30 @@ XmlExtensions 没装时自动跳过，不构成依赖。
          VFE Security 1.6 已删除的类型，导致整个 Def 加载失败。
          我们的清理补丁（Patches/FixTY2ValleyLongRangeArtillery.xml）
          必须排在它之后，才能把那个节点拿掉。 -->
-    <li>tyll.valley</li>
+    <li>TYll.valley</li>
+    <!-- disroom.mashiro（disabledroomRequirements，工坊 3297881350，本机位次 1134
+         —— 2026-10-06 实测值；这个数字会随模组列表调整而变，只作参考）：
+
+         它的 Patches/RoyalTitles_VFEEmpire.xml 为了实现「删除所有房间要求」，用
+         PatchOperationReplace 把爵位的 modExtensions 整个替换成空表，xpath 覆盖
+         DukeBase / BaseEmpireTitle / ConsulBase / StellarchBase 四个父类 —— 也就是
+         原版全部帝国爵位加上 VFE 全部新增爵位。VFEEmpire 自己写的 RoyalTitleDefExtension
+         就这样被一并抹掉。
+
+         后果不是「少个字段」而是崩溃。WorldComponent_Hierarchy.MakePawnFor 里
+             title.GetModExtension<RoyalTitleDefExtension>().kindForHierarchy
+         两步之间没有 null 检查，取回 null 后直接 ldfld（IL 偏移 0x000d，已反编译核对）
+         抛 NullReferenceException；而 InitializeTitles 与 FinalizeInit 一路都没有
+         try/catch，整轮 WorldComponentUtility.FinalizeInit 就此中断，排在 VFEEmpire
+         之后的所有世界组件都不会被初始化。
+
+         所以本补丁包的 VFEE_RoyalTitleExtFix.xml 必须排在 disroom.mashiro 之后执行，
+         才能把扩展补回来；否则我们加的扩展随后被清空，日志里 NRE 照旧，看起来完全无效。
+         这同时修正了 Patches/VFEPianoFirepitRestore.xml 的排序语义 —— 它补做的正是
+         「被 disroom 替换节点连累而失败」的那批 VFE 家具效果，本就该排在 disroom 之后。
+
+         （2026-10-05 查清。） -->
+    <li>disroom.mashiro</li>
   </loadAfter>
   <!--
     排序说明（2026-10-04 更正）：

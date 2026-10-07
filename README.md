@@ -1,23 +1,69 @@
-# GNH 本地修复补丁（GNH.LocalFixes）
+﻿# GNH 本地修复补丁（GNH.LocalFixes）
 
 > **📦 下载**：[最新版本（Release）](https://github.com/1579486875/GNH-LocalFixes/releases/latest) —— 下载 zip，解压后放进 `Mods\` 目录即可（内含编译好的 dll，需要 Harmony）。
 
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`GNH-本地修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.14**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.3.23**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
 ## 构建与部署
 
     dotnet build GNH.LocalFixes.csproj -c Release
-    # bin\Release\ 直接就是可部署的模组结构（About + Assemblies + Patches），整体复制到 Mods 目录
+
+构建完 `bin\Release\` 就是一个**完整可部署的模组目录**：
+
+    bin\Release\
+      About\About.xml                ← 模组元数据
+      Assemblies\GNH.LocalFixes.dll  ← RimWorld 只从这个目录加载程序集
+      Patches\*.xml                  ← 纯 XML 补丁
+      README.md
+      GNH.LocalFixes.dll             ← 编译器在根目录留的那一份，RimWorld 不读它，可无视
+
+整体复制到 `RimWorld\Mods\GNH-本地修复补丁\` 即可。也可以直接用 `tools\deploy.ps1`
+（备份旧文件后复制，并会先检查游戏是否正在运行）。
+
+> **`Assemblies\` 那一层不能少。** RimWorld 不读模组根目录下的 dll ——
+> 少了这层目录，模组会在列表里正常出现、进游戏也不报错，但补丁一个都不生效，
+> 最容易被误判成「代码写错了」。v1.3.15 之前本工程的构建产物正是这个样子
+> （dll 落在 `bin\Release\` 根下），现已由 csproj 里的 `GNHStageAssembliesFolder`
+> 这个 Target 补齐。
 
 `refs\` 下的引用 DLL 不会进入产物（所有 `<Reference>` 都有 `<Private>false</Private>`）；
 `EnableDefaultNoneItems=false` 用于防止把 refs 误打包进模组。
 
-## 十四项修复
+> 从 1.3.15 起 `refs\` 里多了两个 Unity 模块（`UnityEngine.IMGUIModule.dll`、
+> `UnityEngine.TextRenderingModule.dll`）—— 模组设置界面用到 `Widgets` 与 `Listing_Standard`，
+> 它们的签名里出现 `GUIContent`，少这两个就编不过。`tools\sync-refs.ps1` 已经把它们
+> 一起同步，csproj 里也加了「缺了就报错」的前置检查。
 
-十四项互相独立，均为最小侵入，可整体或逐项停用。
+## 十九项修复
+
+十九项互相独立，均为最小侵入，可整体或逐项停用。
+
+> **本版（v1.3.23，2026-10-07）的重点变更**
+> 
+> · **第 3 项 VFEE 爵位补丁已重写。** 旧版按 `defName` 定位，命中的是「被 VFE 改成抽象模板的那几个原版 def」；
+>   真正生效的 def 没有 `defName`、靠 `ParentName` 继承出来，拿不到旧版写进去的值。
+>   加上 `disroom.mashiro`（本机第 1130 位，晚于 VFE 的第 464 位）把这类爵位的 `modExtensions`
+>   整体替换成 `<modExtensions Inherit="False" />` —— 而 `Inherit="False"` 的语义是
+>   「清空继承来的内容、只留自己写的」，写空元素就等于把 VFE 的扩展整片抹掉。
+>   净效果：**帝国所有爵位的层级人物退化成同一个等级**（不崩，但功能倒退）。
+>   新版按「实际生效的 def」定位，把 16 个爵位的 `kindForHierarchy` / `iconPath` 逐条补回，
+>   并用 .NET 真 XPath 引擎跑通了「VFE → disroom → 本补丁」的完整流水线模拟：**期望值不符 = 0**。
+> 
+> · **新增第 19 项**（雪兔纹身图标）—— 这一条其实早就修好了，但一直没写进文档，本次补上。
+> 
+> · **一批代码加固**：所有补丁安装路径上的日志调用改为「日志失败也不许抛」
+>   （此前日志子系统一旦故障，异常会从 catch 块漏进 `LocalFixesMod` 的构造函数，
+>   把「某个补丁没装上」升级成「Harmony 补丁叠层、越玩越卡」）；
+>   `SteamWorkshopHookFix` 在「模组页每帧 × 全部模组」这条路径上去掉了每次反射取值；
+>   `MusicManagerFadeoutFix` 在极热路径上先做引用比较再退化到类型判定；
+>   `CrossPromotionUnpatch` 的每帧入口补了 try/catch。
+> 
+> · **文档口径订正**：修掉 9 处与代码不符的注释、删掉 2 个从未使用的 `using`、
+>   把 2 处魔数提成具名常量。
+
 
 | # | 内容 | 承载 |
 | --- | --- | --- |
@@ -35,6 +81,104 @@
 | 12 | **中文环境下 `<li>Royalty</li>` 永远匹配不上（原版路径）** —— 官方 DLC 的显示名会被语言包翻译，导致多个模组的补丁整块静默失效 | `src/FindModLanguageFix.cs` |
 | 13 | 天鹰溪谷联邦往炮塔 Def 塞入 VFE Security 1.6 已删除的类型，导致整个 Def 加载失败、一批炮塔消失 | `Patches/FixTY2ValleyLongRangeArtillery.xml` |
 | 14 | **XmlExtensions 的 `FindMod` 同样败给翻译**（另一条独立路径）：它自己遍历 `RunningMods` 比名字，中文下判定 DLC 恒为 false，而且**连一句红字都不留** | `src/XmlExtensionsFindModFix.cs` |
+| 15 | **领袖头衔定好了会自己变回去**：改模因 / 点「随机符号」时，`IdeoFoundation.GenerateLeaderTitle()` 会把 `Ideo.leaderTitleMale` 无条件重新掷骰子；`<nameLocked>` 管不到它 | `src/Patch_IdeoFoundation_KeepLeaderTitle.cs` + `src/GNHLocalFixesSettings.cs` |
+| 16 | **同一进程里连续开新局会卡死在殖民者生成**：`NudityMattersMore.CoverBody.UpdateIdeo` 的 tracker 参数被调用方写死传成 `null`，而它自己的静态字典跨局不清空、撞上同号残留后直接空引用（越开越容易炸） | `src/NmmIdeoTrackerNullFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
+| 17 | **Onahole 的 mimic 生成器刷「Could not find any RuleDef」**：模组把「1×1 小格子四边各内缩 2 格」得到的空矩形推给 `mimicSpawner` 符号，而 resolver 要求宽高 ≥ 1，于是必然拒绝。警告的字面意思（找不到 RuleDef）是误导的 —— 规则一直都在 | `src/BaseGenMimicSpawnerQuietFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
+| 18 | **金鸢尾兰「某不知名的沙皇」生成后变成智人**：`OASFC_BasePawn` 只写了 `race=Ratkin`、没有 `xenotypeSet`，生成时回退成默认的 Baseliner，鼠耳与尾巴全没了 | `Patches/OASFC_TsarXenotypeFix.xml` |
+| 19 | **打开「意识形态」页面刷 `Could not load Texture2D` + NRE**：雪兔纹身 `SR_HuoShu_Tattoo_Slot1` 的 `iconPath` 写成大写 `S`，磁盘上却是小写 `s`；RimWorld 查贴图走的是启动时建的内存字典、精确匹配字符串，**不看文件系统**，所以大小写不一致照样 miss | `Patches/SnowRabbitTattooIconFix.xml` |
+
+### 第 16 项：同一进程里连续开新局会卡死在殖民者生成（2026-10-06）
+
+**症状**：同一个游戏进程里反复用 Quickstarter 开新局，开到第 8 次左右开始有概率卡死。
+殖民者生成连抛 `NullReferenceException`，之后界面不再响应、日志也停了 ——
+2026-10-06 实测第 8 次开新局连抛 4 次后彻底卡住（13:19:58 → 13:24:12 之间整整 5 分钟零日志），
+玩家只能重开；第 9 次只抛 1 次，被 `PawnGenerator` 自己的重试兜住，地图正常生成。
+
+**原因**（反编译 `NudityMattersMore.dll`，MVID `c7f1a2d25f9246cd94581be1c9ed2025`，
+与出错堆栈里的那个完全一致）：
+
+`NudityMattersMore.CoverBody.UpdateIdeo(Pawn pawn, PawnIdeoTracker tracker, int gameTick)`
+的第二个参数被它的调用方硬编码传成 `null`：
+
+    // NudityMattersMore.Patch_PawnGenerator_NMM.NMMPawnInitialization（HarmonyPostfix）
+    CoverBody.UpdateIdeo(__result, null, 0);        ← 第二个实参写死 null
+
+而方法内部只在「静态字典里还没有这个 thingIDNumber」时才会新建 tracker 并赋值：
+
+    if (!PawnInteractionManager.ideoTrackers.ContainsKey(pawn.thingIDNumber))
+    {
+        PawnInteractionManager.ideoTrackers[pawn.thingIDNumber] = new PawnIdeoTracker();
+        tracker = PawnInteractionManager.ideoTrackers[pawn.thingIDNumber];   ← 只有这条路径会赋值
+    }
+    ...
+    tracker.lastCheckTick = gameTick;        ← 字典里已有记录时，这里就是对 null 解引用
+
+堆栈里的偏移 `[0x00079]` 正是这一句，IL 是 `ldarg.1` / `ldarg.2` / `stfld lastCheckTick`。
+
+关键在 `ideoTrackers` 是个 **`public static` 字段、跨局不清空**，而 RimWorld 每开一局都会
+新建 `UniqueIDsManager`、`thingIDNumber` 从 1 重新数。于是新局里刚生成的殖民者会命中上一局
+留下的同号记录 → `ContainsKey` 为 true → tracker 仍是 `null` → 崩。
+这也解释了「越开越容易炸」：字典是累积的，撞号概率随开新局次数上升。
+
+**修法**：给 `UpdateIdeo` 加前缀，只在「调用方传进来的 tracker 是 `null`，且字典里确实已有
+同号记录」这一种组合下，把那条属于上一局的残留记录从字典里删掉 —— 原方法随即改走
+「新建 tracker」分支，一切照旧。`CompTick` / `CoverCheck` 这些自己带 tracker 的调用点
+原样放行，不受影响。另附一个收尾器，兜住同方法里 `memes` / `precepts` 两条 null 路径的空引用，
+只吞 `NullReferenceException`、不静默（每次记 Warning，最多 8 条）。
+
+**为什么走反射**：本补丁包必须能在 NMM 没装 / 被禁用时照常工作。一旦在编译期引用它的类型，
+程序集里就会出现对该 dll 的依赖，运行库枚举类型时可能整批失败
+（机制见 `LocalFixesMod.LoadAllTypesTolerantly` 的注释）。所以全部走 `AccessTools.TypeByName`，
+字典用非泛型 `IDictionary` 操作 —— 既不认识 `PawnIdeoTracker`，也不需要认识。
+找不到 NMM 时只打一条 Message 就跳过。
+
+### 第 15 项：领袖头衔「改好了自己变回去」（2026-10-06）
+
+**症状**：在 `.rid` 或文化界面里把领袖头衔定成「主席」，过一阵它自己变成了别的
+（例如「游击队区域指挥官」）。改模因、点「随机符号」之后尤其必现。
+
+**根因**（反编译 `RimWorld.IdeoFoundation.GenerateLeaderTitle` 得到）：
+
+头衔存在 `Ideo.leaderTitleMale` / `leaderTitleFemale` 两个字段上。给它们赋值的几乎
+只有 `IdeoFoundation.GenerateLeaderTitle()` 这一个方法，而它**从不读旧值，直接覆盖**：
+
+    ideo.leaderTitleMale   = NameGenerator.GenerateName(request, null, false, "r_leaderTitle");
+    ideo.leaderTitleFemale = ideo.leaderTitleMale;          // 男女强制同一个
+
+该方法全游戏共 6 个调用点：`IdeoFoundation_Deity.Init`、`IdeoUIUtility.DoName`
+（就是「随机符号」按钮）、`IdeoUIUtility.<>c__DisplayClass116_0`、
+`Precept_Role.GenerateNameRaw`、`Dialog_ChooseMemes`（改模因）、`Dialog_ReformIdeo`。
+最常撞上的是改模因那一条。
+
+**为什么 `<nameLocked>` 救不了它**：那把锁只作用于 `Precept.name`
+（`Ideo.RegenerateAllPreceptNames` 里明写 `if (precept.UsesGeneratedName && !precept.nameLocked)`）。
+领袖头衔不是 Precept 的字段，是 `Ideo` 自己的两个字符串，完全不经过那把锁 ——
+这就是它「怎么锁都锁不住」的原因。
+
+**修法**：在方法最前面拦一道 ——
+
+    头衔是空的 → 放行（新建文化的第一次生成还得靠原方法）
+    头衔有内容 → 跳过原方法，谁也别想覆盖
+
+`IdeoFoundation` 是**抽象类**，原版只有 `IdeoFoundation_Deity` 一个具体子类，
+且该子类**没有重写**这个方法，所以补基类就覆盖了全部原版路径
+（反编译核对 + 运行时反射复核，两条都过了）。
+
+**开关**：模组设置里新增「保护自定义的领袖头衔」，**默认开**，关掉 = 完全恢复原版行为。
+想给某个文化换个头衔时：临时关掉它，点一次「随机符号」，再打开。
+
+**验证**（测试工程在 `E:\TAML\_work\gnh-localfixes-test\`）：
+
+| 套件 | 跑法 | 结果 |
+| --- | --- | --- |
+| 判断逻辑离线测试 | `dotnet run -c Release` | **30 / 30 通过**（含 5 万次随机 fuzz） |
+| 补丁运行时验证 | `powershell -ExecutionPolicy Bypass -File verify-patch-runtime.ps1` | **26 / 26 通过** |
+
+运行时验证是在一个独立 PowerShell 进程里**真的**把补丁装进 `Assembly-CSharp`，
+再真的调用一次 `GenerateLeaderTitle()` 对照行为：开关开着时头衔原样留下，
+关掉之后原方法立刻把它清掉 —— 两个方向都验到了，而不是只看「补丁装上了」。
+（该脚本必须保存为 **UTF-8 带 BOM**：PowerShell 5.1 读无 BOM 的 `.ps1` 会按 ANSI
+解码，里面的中文注释会让解析器直接报 `Unexpected token`。）
 
 ### 第 12 项与第 14 项：同一个病，两条独立的路径
 
@@ -195,6 +339,264 @@ NRE 发生在 `partsMoney -= thingDef.BaseMarketValue`（`thingDef` 为 null）�
 > 所以最终改成了**不新增任何会被存档记录的东西**的方案。
 
 
+## 2026-10-06 全量审计与修正
+
+对补丁包做了一次三路独立审计（XML/Def 引用、构建配置/依赖、源码注释与质量），下面是发现并已修正的问题。
+
+### 功能修正
+
+- **`CcoeReflectionFix` 覆盖不全**：CCOE 有**三个** Harmony 前缀写了同一个有缺陷的表达式
+  （`ArchotechVaginaEnhance.Patch_CumOut`、`MenstruationCycleNotSealedA.Patch_BeforeCumOut`、
+  `MenstruationCycleNotSealedC.Patch_AfterCumOut`），此前只修了第一个，另外两个照旧刷
+  `TargetException`。实测日志（12:49）里本补丁自述「fix is working」的同一秒，
+  紧接着就是一条来自 `Patch_BeforeCumOut` 的异常。现已三个全覆盖（逐个目标记录安装状态，
+  已装的不重装、没装上的下次重试）。
+- **删除 `Patches/MiliraPortableConsoleLayerFix.xml`**：审计证明它要修的问题**不存在** ——
+  作者已经在真正生效的那个 `<apparel>` 节点里写了 `<layers>`，而补丁的 `[not(layers)]`
+  命中的是同一个 ThingDef 里**另一个**不含 layers 的兄弟节点，等于往重复字段上写值。
+  四条证据：磁盘 XML 实际内容、运行时 `apparel.layers` 非空（无补丁时的快照）、
+  日志堆栈来自 Character Editor 主菜单而非意识形态页面、它声称修好的那个 NRE 至今仍在。
+  （误删可从 `_backup\` 取回。）
+- **`LoadAllTypesTolerantly` 的兜底空洞**：原先遇到非 `ReflectionTypeLoadException`
+  就返回 null，会让**所有**补丁一个都不装 —— 正是它想避免的「被拖死」。
+  已改为退化到「按已知类名逐个取」，单个类坏掉不再拖垮整包。
+- **`TechHediffsZeroBudgetFix` 去掉 LINQ**：该判断每个生成的 Pawn 都会跑，
+  原先的 `.Any(tag => ...)` 会在循环内产生最多 6 次堆分配（lambda 捕获 + 枚举器装箱），
+  已换成零分配的显式循环（新增 `TagListsOverlap`）。
+
+### 注释修正（16 处，多为「代码改过、注释没跟上」）
+
+`NmmIdeoTrackerNullFix`（开新局次数与耗时口径、调用点清单漏 `InfoHelper.IsUncaring`、
+字段个数、把 600 tick 门槛误写成「每 tick」）· `LocalFixesMod`（那句与文件头反编译结论
+正面矛盾的「每次打开模组管理器都会重新构造」）· `TechHediffsZeroBudgetFix`（两条互相打架的
+过期判据）· `VFEEInstrumentSpaceFix`（「两个爵位」实为九个）· `FindModLanguageFix`
+（症状归因错误，与同包 `XmlExtensionsFindModFix` 的结论相反）·
+`VehicleFrameworkDebugFix`（「改名就注入不进去」说过头）。
+
+### 构建与工具
+
+- **`tools/sync-refs.ps1`**：原先只同步 3 个文件，而 csproj 硬性检查
+  `UnityEngine.IMGUIModule.dll`，报错文案还指向这个补不齐的脚本 —— 叠加 `.gitignore`
+  忽略 `refs\`，全新克隆会陷入「脚本补不齐 → 编译失败 → 报错又让你跑这个脚本」的死循环。
+  已补齐 5 个游戏文件，并为 3 个模组来源文件加了缺失检查与出处提示。实测通过。
+- **`tools/deploy.ps1`**：补上目标目录残留文件清理（避免「bin 里删了、部署目录还留着」）、
+  退出码区分「没部署」与「部署了但哈希不符」、同秒重复备份的套娃问题、`-Configuration` 传错提示。
+- **csproj**：`src\*.cs` → `src\**\*.cs`（子目录不再静默漏编译）；
+  `LangVersion` 从 `latest` 钉死为 `9.0`（不再随 SDK 漂移）。
+
+### 审计通过项（未改动）
+
+`refs\` 8 个 DLL 与游戏本体 **SHA256 全部一致**；6 个 XML 补丁的语法 / 编码 / 启停保护 /
+部署一致性全部通过；**27 项 def 与类型引用在 1.6 加载集内逐一确认可用**（含 `Rotti` 只在 1.5、
+`VFESecurity.CompProperties_LongRangeArtillery` 只在 1.4/1.5 这类「按全版本扫会误判」的项）；
+`NmmIdeoTrackerNullFix` 的性能经实测确认可忽略（`UpdateIdeo` 对每个 Pawn 最多每 600 tick 一次）。
+
+### About.xml
+
+`loadAfter` 补上了此前漏掉的 `vanillaexpanded.vfecore` 与 `eltoro.anims`
+（前者是本补丁 `VFEPianoFirepitRestore.xml` 改的 Def 的宿主，原先能否正确「补做」
+完全取决于 `disroom.mashiro` 恰好也排在后面）。
+
+
+## 2026-10-07 重做：第 17 项（Onahole mimic 生成器）—— 前一版判断错了，这一版是实证的
+
+**现象**：地图生成神殿/遗迹时刷
+
+```
+Could not find any RuleDef for symbol "mimicSpawner" with any resolver that could resolve rect=(...)
+```
+
+堆栈 `BaseGen.Resolve` ← `BaseGen.Generate` ← `GenStep_ScatterShrines.ScatterAt`。实测每次开局 **34 条**。
+
+### ⚠ 先把错的说清楚
+
+2026-10-06 那一版的结论是「**RuleDef 没能进入 `DefDatabase`，原因没写进日志，属模组自身问题**」，
+并据此写了个「在 `Defs` 下追加同 symbol 的 RuleDef 兜底」的 XML 补丁。
+
+**那个结论是错的，补丁也从原理上不可能生效**，已撤除（存档在 `_scratch\deprecated-patches\`）。
+错在两处：
+
+| 当时的判断 | 真相 |
+|---|---|
+| `CanResolve` 用基类默认实现，「恒为 true」 | 基类字段是 `public IntVec2 minRectSize = IntVec2.One;` —— **默认 `(1,1)`，不是 `(0,0)`**；`CanResolve` 要求宽高都 ≥ 1 |
+| 那句警告 = 「规则没注册」 | `BaseGen.Resolve` 里「字典查不到」和「查到了但每个 resolver 都拒绝」**打印的是同一句话**，实际发生的是后者 |
+
+### 真正的根因（运行时实证，非推测）
+
+模组 `RJW_Onahole.Patches.SymbolResolver_Ancient_Patch` 里：
+
+```csharp
+resolveParams.rect = rp.rect.ContractedBy(2);      // 无条件四边各内缩 2 格
+BaseGen.symbolStack.Push("mimicSpawner", resolveParams);
+```
+
+古代神殿会拿大量**只有 1×1 的子区域**去跑 resolver，收缩 2 格后就成了空矩形。
+`CellRect.Width/Height` 的 getter 里有 `if (minX > maxX) return 0;`，所以空矩形的宽高是 **0**，
+必然过不了 `minRectSize = (1,1)` 这道门 —— 于是 `tmpResolvers` 为空，打印那句措辞误导人的警告。
+
+`verify-mimic-quiet.ps1` 把日志里的两组数字**逐字复现**了（这才是根因被钉死的证据）：
+
+```
+[PASS] ContractedBy(2) on it gives EXACTLY the logged text (51,238,47,234)
+[PASS] its ContractedBy(2) gives EXACTLY the second logged shape (50,237,49,235)
+```
+
+### 处理
+
+新增 `src/BaseGenMimicSpawnerQuietFix.cs`，在 `BaseGen.Resolve` 之前拦一道：
+**只拦「symbol 是 `mimicSpawner` 且矩形宽或高小于 1」的请求**。
+
+这种请求原版本来就会拒绝、而且什么都不做，所以跳过它与原版**完全等价**，只是不再刷警告；
+矩形正常时一律放行，模组功能（古代神殿里的 mimic 生成）完全不受影响。
+不引用 Onahole 模组的任何类型，只比对字符串 —— 模组没装时它永远走不到跳过分支。
+
+### 顺带修掉的两个真 bug（都是本轮验证抓出来的）
+
+| 问题 | 说明 |
+|---|---|
+| **嵌套类型名写错，补丁静默失效** | `AccessTools.TypeByName("RimWorld.BaseGen.SymbolStack.Element")` **永远返回 null** —— .NET 里嵌套类型的规范名要用 `+`：`SymbolStack+Element`。第一版会因此只打一句「已跳过」就不干活。现在改成 `FindResolveMethod` 从方法签名反取参数类型，一个名字都不用拼 |
+| **日志调用能连累判断结果** | 返回 `false` 之前调 `Log.Message`；万一 `Log` 自己抛异常，异常会穿出前缀 —— 而 Harmony 前缀抛异常会让**整个 `BaseGen.Resolve` 失败**，那就不是「少消一条警告」，而是毁掉整张地图的生成。现在日志单独包 `try/catch`，与判断结果彻底解耦 |
+
+### 验证（可复现）
+
+```powershell
+cd E:\TAML\_work\gnh-localfixes-test
+powershell -ExecutionPolicy Bypass -File verify-mimic-quiet.ps1
+```
+
+```
+RESULT: 58 checks, 0 failed, 0 skipped
+ALL RUNTIME CHECKS PASSED
+```
+
+覆盖：`CellRect` 语义实证（含 `FromLimits` 会规范化排序这个反直觉行为）、补丁依赖的
+API 可见性、Harmony 真装补丁并读回账本、前缀决策表（该拦 5 种 / 该放行 7 种 /
+防御分支 3 种）、端到端对照实验（装补丁→原方法不跑；卸补丁→原方法跑；
+装补丁 + 正常矩形→原方法照跑，证明没有过度拦截）。
+
+### ⚠ 两个宿主环境的坑（写这类验证脚本必看）
+
+| 坑 | 现象 | 处置 |
+|---|---|---|
+| `Verse.Log` 在 PowerShell 宿主里不可用 | `Message/Warning/Error` 全抛 `SecurityException: ECall methods must be packaged into a system module.`（Unity 的 `Debug` 是 ECall） | 这是宿主限制，游戏里正常。脚本里把 `Install()` 的最后一记日志当成预期内异常；端到端改用「**会不会抛异常**」作判据 —— 原方法一跑就必然撞上它，反而成了天然探针 |
+| 参数位置的括号表达式不能跨行 | `Write-Host ("..."` 换行接 `+ $x)` → `Missing closing ')'`，而且报错行号会指到别处 | 拼成一行。已做最小复现确认：同一段代码并成一行即通过 |
+
+
+## 2026-10-07 全量复审（兼容性 / 完整性 / 性能 / 编译 / XML / 翻译 / Def 引用 / 构建配置 / 注释）
+
+对补丁包做了一轮逐维度复审。结论：**除一处注释表述外全部通过，未发现功能缺陷。**
+
+### 复审方法与结论（可复现）
+
+| 维度 | 方法 | 结论 |
+|---|---|---|
+| 编译 | 清空 `NoWarn` 后 `dotnet build -c Release` 完整重编译 | **0 warning / 0 error** |
+| XML | 7 个补丁逐文件解析 + 尖括号/注释标记配对 | 全部配对，解析通过 |
+| XML 极端输入 | 用 .NET 原生 XPath 引擎（与 RimWorld 同源）把 20 条 xpath 跑在 4 种极端文档上 | **0 异常**，幂等场景识别正确 |
+| Def 引用 | 18 个 `defName` + 3 个 `@Name` 与全库索引（98,499 项）比对 | 全部存在 |
+| C# 类型引用 | 在 DLL 里按类型名检索 | 全部命中（`VFESecurity.CompProperties_LongRangeArtillery` 按设计**应当**不存在） |
+| 性能 | 扫 tick 钩子 / 热路径 / 分配 / 反射缓存 | **0 个 tick 驱动代码**；3 个高频补丁均有早退 |
+| 幂等性 | 检查 9 个安装点的守卫 | 全部达标（`HashSet` + `lock` + 先立标记） |
+| 注释 | 16 个文件逐一核对文件头、根因说明、交叉引用 | 16/16 有文件头；密度 33%~79% |
+| 翻译 | 检查新增内容是否含玩家可见文本 | 无需 `Languages\`（新增的 `RuleDef` 无 label） |
+| 构建配置 | `csproj` / `tools\*.ps1` 结构与 BOM | 规范 |
+
+### 极端场景实测（20 条 xpath × 4 种极端输入）
+
+结果记为「匹配数 / 异常数」：
+
+| 极端输入 | 结果 | 说明 |
+|---|---|---|
+| 空 `<Defs/>` | 1 / **0** | 仅「往根节点追加 Def」那条命中，符合预期 |
+| 全无关 Def（目标全不存在） | 1 / **0** | 其余全部安静跳过 |
+| **幂等场景**（`OASFC_BasePawn` 已有 `xenotypeSet`） | 4 / **0** | 内层 `Conditional` 正确走 `match` 分支 → **不会重复添加** |
+| 结构畸形（空 `comps` / `modExtensions` / `building`） | 6 / **0** | 空容器被正确地视为「缺该字段」 |
+
+### 性能要点（为什么它不拖慢游戏）
+
+- **没有任何 `Tick()` / `TickRare()` / `TickLong()` 钩子** —— 补丁全部是「加载期一次性」或「事件触发型」。
+- 三个挂在**高频方法**上的补丁都做了早退：
+  - `VerbProperties.AdjustedRange`（每次瞄准/射击）→ 仅在 `attacker == null` 时介入，正常路径只多一次判空；
+  - `ListerThings.Add`（每个对象登记）→ 三层廉价过滤，非建筑直接返回；
+  - `UIRoot_Update`（每帧）→ 帧计数节流，完成后每帧只剩一次 bool 判断。
+- 反射目标与 `Type` 均已缓存；日志有次数上限（`MaxDetailedLogs`）与去重（`ErrorOnce`）。
+
+### 本次修正（唯 1 处）
+
+`GNH.LocalFixes.csproj` 的 `NoWarn` 注释原文写着「CS0618 … **见下方说明**」，
+但下方**并无**该说明（悬空引用，对读者是死路）。已改为直接说明理由，
+并补记「2026-10-07 清空 `NoWarn` 实测 0 触发」这一事实。
+
+该修正为**纯注释变更**：重建后 DLL 哈希与修改前**完全一致**，故**无需重新部署**。
+
+### 复审中查清、但**不属于本补丁包**的问题
+
+**`Tried 300 times to generate age for X`**（日志里 7 个模板，含「某不知名的沙皇」）。
+
+机制已定位到 `Verse.PawnGenerator.GenerateRandomAge`：年龄抽样须连过 5 道关卡
+（`min/maxGenerationAge` 区间、发育阶段 `AllowedDevelopmentalStages`、
+包含/排除年龄区间）。鼠族自带 `ageGenerationCurve = (14,0)(18,50)(23,100)(30,20)(40,0)`、
+`lifeExpectancy` 70，因此走的是鼠族自有曲线而非游戏默认曲线。
+
+但按该曲线加权，沙皇的 `[20,25]` 窗口命中率约 **43%**，300 次全失败在概率上不成立；
+**确切触发点需在游戏内实测才能定论**。已逐项排除：鼠族 `defName` 冲突
+（`3497673755` 未启用）、`AllowedDevelopmentalStages` 默认值（确为 `Adult`）、
+`ValidateAndFix` 干预、`lifeStageAges` 继承断裂、曲线首末点校验失败。
+
+**与本补丁包无关**：本包对沙皇只补 `xenotypeSet`，完全不涉及年龄生成。
+
+### 第二轮复审（同日，换角度复查：运行时与顺序）
+
+第一轮偏重「文件级」检查，第二轮专查静态检查看不见的两面 —— **运行时真实行为**与**加载顺序**。
+
+#### ★ 修正：`loadAfter` 漏了脚踩花糕（真实隐患，已修）
+
+`Patches/OASFC_TsarXenotypeFix.xml` 用 `PatchOperationConditional` 的 xpath 去查
+`Defs/PawnKindDef[@Name="OASFC_BasePawn"]`。**xpath 问的是「这个 Def 现在有没有」，
+不是「那个模组装了没」**，所以补丁**必须**排在 `OASFC_BasePawn` 的定义者
+（`ww.oberoniaaurea.steppedflowercake`，工坊 3379736801）**之后**。
+
+而原来的 `loadAfter` **没有**这一条。实测当时位次：本包 **1133**、脚踩花糕 **561** ——
+**碰巧**在后，所以功能是好的；但一旦重排加载顺序（RimCrow 自动排序、手动拖动），
+本包可能被挪到前面，此时 xpath 匹配不到 → 补丁**静默不生效**、**日志里一条线索都没有**。
+
+**另一个容易搞混的点**：该补丁的 `FindMod` 守卫写的是
+「`[OA]Ratkin Faction: Oberonia aurea`」（金鸢尾兰帝国，位次 348），因为补丁用到的
+`Ratkin_OA` 异种人定义在那边；**但要改的 Def 在脚踩花糕里**。
+**守卫通过 ≠ 目标已加载**，两者是两件事。
+
+已补入 `loadAfter` 并写好注释。这与 2026-10-06 漏掉 `vanillaexpanded.vfecore`
+（当时注释写着「属于碰运气」）是**同一类问题：新增补丁时忘记配顺序**。
+
+#### 复核通过项
+
+| 项目 | 方法 | 结论 |
+|---|---|---|
+| **`refs\` 快照是否过期** | 8 个 DLL 与实际游戏/模组文件逐一比 SHA256 | **全部一致**（`Assembly-CSharp` 15777280 B；`0Harmony` 2.4.1.0，位于 `2009463077\Current\Assemblies\`；`ElToro_BAddon` 与 `RJW` 均为 1.6 版） |
+| **运行时是否真的装上** | 从两份日志提取 `[GNH LocalFixes]` | **14 个安装点全部成功、0 失败** |
+| **加载顺序** | 7 个补丁的目标 Def × 全库定义者 × `loadAfter` | 除上述 1 处外全部齐备 |
+| **翻译策略** | 查设置界面文本与其注释 | **有意写死中文**，理由已注明（语言包文件夹名带括号，走 `Languages\` 会静默失效） |
+| **测试套件** | 跑 `_work\gnh-localfixes-test\` | **单元 30/30、运行时 26/26 全通过** |
+
+**补丁在实机上真正拦下的问题**（证明不是「装了但没生效」）：
+
+- `已兜住 PawnTechHediffsGenerator 的「总权重 0」空引用（Empire_Royal_Yeoman / Empire_Royal_Stellarch）`
+- `拦下一个「标签写错」的乐器 … 否则游戏会每帧抛 InvalidCastException`
+- `拦下「挂着配方但不是工作台」的对象`，累计 **11 个**
+- `CCOE CumOut fix is working: swallowed a TargetException`
+
+日志节流（`MaxDetailedLogs`）与去重（`ErrorOnce`）均已在实机验证生效。
+
+**测试套件内容**（`_work\gnh-localfixes-test\`，10 个文件：3 个原有套件 + 7 个本次新增的审计／基准脚本）：
+
+- `LeaderTitlePolicyTests.csproj` + `Program.cs`：纯逻辑单测，含 NUL / 零宽空格 U+200B /
+  BOM U+FEFF / 代理对残片 / 10000 字符长标题 等边界输入，外加 **50000 次随机 fuzz**
+  与纯函数性验证。
+- `verify-patch-runtime.ps1`（321 行）：**真的**加载 Unity + `Assembly-CSharp` + 刚编出的 DLL，
+  **真的**用 Harmony 装上补丁，核对 Harmony 记录的补丁目标与优先级；再造空白对象
+  **真的调用** `GenerateLeaderTitle()`，验证「有头衔 → 拦住」与「关开关 → 放行」
+  **双向**行为。进程退出即失效，不写文件、不碰存档。
+
 ## ⚠️ 硬性规则（2026-10-02 事故教训，改本工程前必读）
 
 1. **补丁安装必须幂等。** RimWorld 的 `LoadedModManager.CreateModClasses()` 一局之内会**被多次调用**
@@ -243,6 +645,24 @@ NRE 发生在 `partsMoney -= thingDef.BaseMarketValue`（`thingDef` 为 null）�
   而那个异常被吞掉，导致第 5 项修复从未生效却没人知道。
 - **v1.2.1**：加 `installed` 静态守卫（`LocalFixesMod` 与 `VFEEInstrumentSpaceFix` 双重），
   并将 `AccessTools.Method` 的 `generics` 改为 `null`。
+- **v1.3.15 期间踩到的两个坑**（都不在运行逻辑里，但都会让人白折腾半天）：
+  1. **`HarmonyLib.Priority` 的数值方向很容易记反。** 实测真值（从 `refs\0Harmony.dll`
+     反射读出）是**数值越大越先执行**：
+     `First=800, VeryHigh=700, High=600, HigherThanNormal=500, Normal=400,
+     LowerThanNormal=300, Low=200, VeryLow=100, Last=0`。
+     `Low` 是「靠后」而不是「靠前」—— 写之前先确认，别凭印象。
+  2. **本仓库的 `.ps1` 脚本必须存成「UTF-8 带 BOM」。** Windows PowerShell 5.1 读无 BOM 的
+     `.ps1` 会用系统 ANSI 代码页解码，脚本里的中文注释会变成乱码，甚至让解析器报出
+     `Unexpected token '}'` 这种指向完全不相关行号的错（`verify-patch-runtime.ps1`
+     就是这么先踩了一次）。`.cs` 文件不受影响：Roslyn 对无 BOM 的源文件按 UTF-8 解码，
+     本工程所有 `.cs` 一直都是无 BOM 的。
+  3. **部署备份绝不能留在 `Mods\` 目录里。** RimWorld 与 RimCrow 的扫法都是
+     「`Mods\` 下每个子目录，只要有 `About\About.xml` 就算一个模组」。
+     `tools\deploy.ps1` 的第一版把旧版本备份成
+     `Mods\GNH-本地修复补丁.backup-<时间戳>\` —— 于是凭空多出一个**同 packageId 的
+     第二个副本**，RimCrow 的「处理重复模组」界面立刻报冲突（一份 1.3.15 已启用、
+     一份 1.3.14 未启用），还得手工去清。现已改为备份到工程目录下的 `_backup\`，
+     并加进 `.gitignore`。
 
 ---
 
@@ -255,7 +675,7 @@ NRE 发生在 `partsMoney -= thingDef.BaseMarketValue`（`thingDef` 为 null）�
 
 | 需要的 DLL | 来源 |
 | --- | --- |
-| `Assembly-CSharp.dll`、`UnityEngine.dll`、`UnityEngine.CoreModule.dll` | RimWorld 安装目录 `RimWorldWin64_Data\Managed\` |
+| `Assembly-CSharp.dll`、`UnityEngine.dll`、`UnityEngine.CoreModule.dll`、`UnityEngine.IMGUIModule.dll`、`UnityEngine.TextRenderingModule.dll` | RimWorld 安装目录 `RimWorldWin64_Data\Managed\` |
 | `0Harmony.dll` | [Harmony 模组](https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077) 的 `Assemblies\` |
 | `RJW.dll` | RimJobWorld 模组 |
 | `ElToro_BAddon.dll` | ElToros Bestiality Addon 模组 |
