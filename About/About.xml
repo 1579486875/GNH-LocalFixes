@@ -3,7 +3,7 @@
   <name>本地修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
-  <modVersion IgnoreIfNoMatchingField="True">1.3.24</modVersion>
+  <modVersion>1.3.25</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
@@ -48,8 +48,28 @@ VFE 生成「层级人物」时要读爵位的 RoyalTitleDefExtension.kindForHie
 【17】Onahole mimic 生成器刷警告 —— 空矩形被 resolver 拒绝（并非「找不到规则」）—— 提前拦下，与原版等价
 【18】金鸢尾兰「某不知名的沙皇」变智人 —— 该 PawnKind 没有 xenotypeSet —— 补一个固定的
 【19】雪兔纹身图标 —— iconPath 大小写与磁盘文件名不符，文化界面刷红字 —— 改回磁盘上真实的名字
-【20】Allies are Helpful 空缓存 —— 两个静态缓存字段还没建好就被当成列表用，地图切换等瞬间抛 NRE、中断该角色 tick —— 只在为 null 时填成空列表
+【20】Allies are Helpful 的空引用 —— 「角色当前没有工作」时那道守卫失效，随后直接读空对象 —— 把那几次读取改成 null 安全
 【21】RJW 基因扩展的调试刷屏 —— 每帧问一次的「怀孕了吗」里留了一句无节流调试输出，开发者模式下一局刷 3 万行 —— 只拦那一句，报错警告一条不少
+
+──────── v1.3.25（2026-10-08）修正第 20 项的定位 ────────
+· 【20】重新定位并改写：v1.3.24 把「Allies are Helpful」的崩溃归因于
+  「两个静态缓存字段没被初始化、初值是 null」，修法是「为 null 时填空列表」。
+  事后把 IL 逐条读出来复核，那个归因**是错的** —— .cctor 有 117 字节 / 29 条指令，
+  明确把两个字段初始化成了空列表；而它们唯一的赋值来源（GetTendTargets /
+  GetRescueTargets）各只有一个 return，返回的都是当场 new 出来的 List，
+  也永远不会是 null。也就是说：旧修法从装上那天起就是一个永不生效的空操作。
+· 真正的原因在别处：Postfix 里 Job val = __instance.jobs?.curJob; 之后，
+  守卫写的是 val?.def != null，而 curJob 为 null 时它算出来是 false、不会提前返回，
+  于是代码继续往下走，在后文直接读 val.def 而抛空引用。
+  本版改用转译器，把那段方法体里每一次「读 Job.def 字段」换成 null 安全的读取
+  （两者在求值栈上完全等价，只把「null 时抛异常」变成「null 时返回 null」），
+  并挂一个收尾器兜底。补丁类同时改名为 AlliesAreHelpfulCurJobNullFix。
+· 另外顺手订正了 LocalFixesMod 里关于「GetTypes() 什么时候会整体失败」的一段注释：
+  原文说「卸载 RJW / ElToro 就会让 GetTypes() 失败」，实测并不成立
+  （对那两个模组的引用全在方法体内部，签名里没有），已改为实测准确的说明。
+· 其余 20 项一字未动。
+
+  编译 0 警告 0 错误；转译器在真实 IL 上实测匹配到 5 处读取并全部改写。
 
 ──────── v1.3.24（2026-10-08）本次新增 ────────
 · 新增【20】Allies are Helpful 空缓存修复：该模组把两个还没初始化的静态缓存字段
@@ -386,22 +406,32 @@ OA 框架没装时整个补丁不执行）。
 本补丁只把这一个 iconPath 改回磁盘上真实的名字；外层 FindMod 认模组名，
 xpath 同时约束 defName 与当前文本内容且 success="Always"，将来作者自己修好就会安静跳过。
 
-【20】Allies are Helpful 的空引用笔误（2026-10-08 新增）
+【20】Allies are Helpful 在「角色没有工作」时的空引用（2026-10-08 新增）
 模组「Allies are Helpful」（ninagoblin.alliesarehelpful，工坊 3534920369）里有个静态类
-PawnTendAndRescuePatch（注意：这个类没有命名空间，全名就叫这个），它用两个私有的静态缓存字段
-_cachedTendTargets / _cachedRescueTargets 记录「需要照顾的伤员」与「需要救走的倒地者」。
-这两个字段在静态构造函数里没有被赋初值（反编译可见 .cctor 是空的），
-所以它们的初始值就是引用类型的默认值 —— null。
+PawnTendAndRescuePatch（注意：这个类没有命名空间，全名就叫这个），它挂在 Verse.Pawn.TickRare 上，
+负责给「没在忙的」盟友自动安排「去照顾伤员 / 去把倒地的人救回来」。
+它的 Postfix 开头是这样写的（反编译逐字核对）：
+    Job val = __instance.jobs?.curJob;                     ← 用了 ?.，说明作者知道它可能是 null
+    if (val?.def != null &amp;&amp; val.def != 等待闲逛 &amp;&amp; val.def != 跟随)
+    {
+        return;                                            ← 正在干别的活，不打扰
+    }
+    ...
+    if (... &amp;&amp; val.def != 照顾病人) { ... }                   ← 这里直接读了 val.def
+    if (... || val.def == 营救)      { ... }                   ← 还有这里
 
-而它的两处判断写错了连接符，只有「两个缓存同时为 null」时才会安全短路：
-· UpdateCache 里：
-    dangerSystemEnabled &amp;&amp; (缓存1 != null || (缓存2 != null &amp;&amp; 缓存1.Count != 0) || 缓存2.Count != 0)
-· Postfix 里：
-    (缓存1 == null &amp;&amp; 缓存2 == null) || (缓存1.Count == 0 &amp;&amp; 缓存2.Count == 0)
-只要其中一个是 null、另一个不是，就会掉进对 null 取 .Count 的那一段，抛 NullReferenceException。
-（另外，唯一给它们赋值的地方 UpdateCache() 被一道时间闸门挡着，还要求当前地图的 mapPawns 非空；
- 闸门不满足时整段赋值被跳过，而下面那段判断照样会执行 —— 这就是 null 窗口的来处。
- 两个 getter 的首行都是 new List，永远不会返回 null，所以字段一旦被赋过值就再也不会是 null。）
+问题出在两处不一致：
+· 第一行用了 ?.，等于承认 curJob 可能是 null；
+· 但紧接着的守卫写的是 val?.def != null —— curJob 为 null 时它算出来是「null != null」也就是 false，
+  于是这个「提前返回」不成立，代码继续往下走；
+· 再往下，上面那两处直接写 val.def，没有任何保护 —— 于是抛空引用异常。
+
+换句话说：作者的本意是「角色正忙就别打扰它」，可偏偏当角色**完全没有工作**（curJob == null，
+这在游戏里很常见）时，这段守卫反而放行了，最后撞在 val.def 上。
+
+为什么一局只出现几次、而不是每个角色每 250 tick 都炸？因为要继续往下走，还得同时满足：
+缓存里有需要照顾或救援的人、那个人能被预约、自己没有处在危险中、年龄大于 2 岁……
+全部凑齐才会走到那一行。
 
 实测（2026-10-08 快速测试地图）：一场帝国派系袭击落地后，日志里开始反复出现
     Exception ticking &lt;角色名&gt; (at (x, 0, z)): System.NullReferenceException
@@ -409,11 +439,26 @@ _cachedTendTargets / _cachedRescueTargets 记录「需要照顾的伤员」与�
 累计 4 条实体 + 51 条重复堆栈折叠，涉及的角色（努斯丰斯 / 杰克 / 厄克 / 洛里）全是刚进场的帝国成员
 —— 该派系与玩家不敌对，因此被这个「帮盟友搭把手」的模组纳入了管辖范围。
 
-本补丁（src/AlliesAreHelpfulNullCacheFix.cs）在 Postfix 之前插一道前缀：
-只在字段仍然是 null 时，把它换成一个新建的空列表 —— 这正是作者本来想表达的状态
-（暂时没有需要照顾 / 救援的目标）。缓存有内容时一个字节都不改动；
-下次 UpdateCache() 该刷新时，照常会用真实数据覆盖掉这个空列表。
-不引用该模组的任何类型（类型名与字段名全部走字符串 + 反射），模组没装时只打一条 Message 就跳过。
+本补丁（src/AlliesAreHelpfulCurJobNullFix.cs）用转译器，把那个方法体里每一次「读取 Job.def 字段」
+换成 null 安全的 SafeJobDef(job)：两者在求值栈上完全等价（都是「吃进一个 Job、吐出一个 JobDef」），
+区别只在 job 为 null 时 —— 原来抛异常，现在返回 null。
+于是 val.def != 照顾病人 在 val 为 null 时得到 true，语义正好是「他现在没在做这件事，可以给他安排」，
+与作者的本意一致。另挂一个收尾器兜底，防止将来该模组改版、转译器匹配不上时又去刷红字。
+不引用该模组的任何类型（类型名走字符串 + 反射），模组没装时只打一条 Message 就跳过。
+
+⚠ 一段被推翻的旧结论（留档，免得以后重走弯路）：
+本补丁在 2026-10-08 之前叫 AlliesAreHelpfulNullCacheFix，当时的诊断是
+「那两个静态缓存字段 _cachedTendTargets / _cachedRescueTargets 没有被初始化、初值就是 null」，
+修法是「发现是 null 就填一个空列表」。**那个诊断是错的**：
+把 IL 逐条读出来可以看到 .cctor 有 117 字节 / 29 条指令，其中明确包含
+    newobj List&lt;Pawn&gt;::.ctor
+    stsfld PawnTendAndRescuePatch::_cachedTendTargets
+两个字段在类型初始化之后就已经是空列表；而它们唯一的赋值来源
+GetTendTargets / GetRescueTargets 各只有一个 return，返回的都是当场 new 出来的 List，
+永远不会是 null。两个事实合起来 ⇒ 这两个字段不可能是 null，
+所以旧修法是一个永不生效的空操作，本次已删除。
+（当时误判的原因：反编译器把 .cctor 显示成了 { }，看起来像空方法 ——
+ 遇到「静态构造函数是空的」这类结论，一定要再看一眼 IL 指令表。）
 
 【21】RJW 基因扩展在开发者模式下每帧刷屏（2026-10-08 新增）
 模组「RJW 基因扩展 / RJW Genes」（vegapnk.rjw.genes，本机路径 Mods\RJW_基因_核心，v2.7.0）

@@ -239,28 +239,36 @@ namespace GNH.LocalFixes
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
             TryInstall("BaseGenMimicSpawnerQuietFix", BaseGenMimicSpawnerQuietFix.Install);
 
-            // 2026-10-08 新增：修「Allies are Helpful」的一处空引用笔误。
+            // 2026-10-08 新增：修「Allies are Helpful」的一处空引用。
             //
-            // 触发场景（本轮快速测试地图实测抓到）：一场帝国派系袭击落地之后，
+            // 触发场景（快速测试地图实测抓到）：一场帝国派系袭击落地之后，
             // 日志里开始出现
             //     Exception ticking <角色名> (at (x, 0, z)): System.NullReferenceException
             //       at PawnTendAndRescuePatch.Postfix (Verse.Pawn __instance)
             // 实测 4 条 + 51 条重复堆栈折叠，涉及的角色全是刚进场的帝国成员。
             //
-            // 根因（已用反编译逐行核对，完整证据链见补丁类的文件头注释）：
-            // 该模组的两个私有静态缓存字段 _cachedTendTargets / _cachedRescueTargets
-            // 在静态构造函数里**没有被初始化**（.cctor 是空的），初始值就是 null；
-            // 而它的 UpdateCache() 与 Postfix() 里各有一处把 null 当成 List 去取 .Count
-            // 的笔误（该用 || 的地方写成了 &&）。只要在一次「缓存还没建起来」的窗口里
-            // 走进那段判断，就会抛空引用并中断该角色的 TickRare。
+            // 根因（已用反编译把 IL 逐条读出来核对，完整证据链见补丁类的文件头注释）：
+            // Postfix 里 `Job val = __instance.jobs?.curJob;` 之后，
+            // 作者的守卫写的是 `if (val?.def != null && ...)` —— val 为 null 时它求值为 false，
+            // **不会 return**，于是继续往下走，在第 130 / 146 行直接读 `val.def` 而炸。
+            // 也就是说：真正的问题是「角色当前没有工作」这一常见情形没有被拦住。
             //
-            // 修法与安全性：只在这两个字段是 null 时把它们换成一个空列表 ——
-            // 而这正是作者本来想表达的状态（暂时没有需要照顾 / 救援的目标）；
-            // 缓存有内容时一个字节都不改动，下次 UpdateCache() 刷新时照常覆盖。
-            // 对第三方 dll 零编译期依赖（类型名与字段名全部走字符串 + 反射），
+            // ⚠ 本步在 2026-10-08 之前叫 AlliesAreHelpfulNullCacheFix，当时的判断是
+            //   「两个静态缓存字段 _cachedTendTargets / _cachedRescueTargets 没被初始化，
+            //   初值是 null」。那个判断是**错的** —— .cctor 并非空方法（117 字节 / 29 条指令，
+            //   明确包含 newobj + stsfld），且那两个字段唯一的赋值来源
+            //   GetTendTargets / GetRescueTargets 都只有一个 return、永远返回新建的 List。
+            //   两个事实合起来说明字段不可能是 null，旧修法是永不生效的空操作。
+            //   推翻过程写在补丁类文件头的「一段被推翻的旧结论」一节。
+            //
+            // 修法与安全性：用转译器把 Postfix 里每一次「读 Job.def 字段」换成
+            // null 安全的 SafeJobDef(job)。两者在求值栈上完全等价（[Job] → [JobDef]），
+            // 只在 job 为 null 时把「抛异常」变成「返回 null」；而原代码本来就在那一步崩掉，
+            // 所以不可能比原来更差。另挂一个收尾器兜底，防止将来模组改版让转译器失配。
+            // 对第三方 dll 零编译期依赖（类型名走字符串 + 反射），
             // 模组没装时只打一条 Message 就直接跳过。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            TryInstall("AlliesAreHelpfulNullCacheFix", AlliesAreHelpfulNullCacheFix.Install);
+            TryInstall("AlliesAreHelpfulCurJobNullFix", AlliesAreHelpfulCurJobNullFix.Install);
 
             // 2026-10-08 新增：消掉「RJW 基因扩展」在开发者模式下每帧刷的那句调试输出。
             //
@@ -299,20 +307,37 @@ namespace GNH.LocalFixes
         // PatchAll 内部是「先把程序集里所有类型都取出来（GetTypes），
         // 再一类一类地装」。有两处要命的地方：
         //
-        //   1) GetTypes() 是**整体失败**的。
-        //      本程序集里有一个类（ElToro_BAddon.JobDriver_BestialityInvite_Watching）
-        //      在编译期引用了 ElToro_BAddon.dll 和 RJW.dll 的类型。
-        //      哪天用户把 RJW 或 ElToro 禁用/卸载了，运行库去取那个类型时找不到依赖程序集，
-        //      GetTypes() 就会抛 ReflectionTypeLoadException —— **整批类型都拿不到**，
+        //   1) GetTypes() 有可能**整体失败**。
+        //      Assembly.GetTypes() 要解析每个类型的「签名」—— 基类、接口、字段类型、
+        //      方法参数与返回值类型。签名里任何一处引用了「当前加载不到的程序集」，
+        //      这个类型就取不出来；失败的类型一多，GetTypes() 直接抛
+        //      ReflectionTypeLoadException —— **整批类型都拿不到**，
         //      于是整个补丁包一个都装不上。
         //      这正是「本地修复补丁反而被某个没启用的模组拖死」的情形。
+        //
+        //      ⚠ 2026-10-08 用离线宿主实测，纠正了这里原先的一处错误说法：
+        //        旧注释写的是「卸载 RJW / ElToro 就会让 GetTypes() 失败」，**实测并不成立**。
+        //        本程序集里引用这两个模组的只有
+        //        ElToro_BAddon.JobDriver_BestialityInvite_Watching 一个类，
+        //        而它对那两个模组类型的引用**全部在方法体内部**；
+        //        它自己的签名是 TryMakePreToilReservations(bool) 与 MakeNewToils()，
+        //        用的都是游戏本体的类型。方法体要等真正调用时才解析，与 GetTypes() 无关。
+        //        实测把 RJW.dll 与 ElToro_BAddon.dll 全部抽走：GetTypes() 照样成功，
+        //        24 个类型一个不少（连 JobDriver 那个类本身也在）。
+        //
+        //        真正会让 GetTypes() 整体失败的是**游戏本体程序集**取不到：
+        //        实测抽走 Assembly-CSharp.dll → 抛 ReflectionTypeLoadException，24 个里只剩 20 个。
+        //        那种情况下游戏压根没跑起来，轮不到本补丁操心。
+        //        但「签名里引用可选模组的类型」这种写法将来完全可能被引入
+        //        （只要有人给某个类加一个 ElToro 类型的字段或方法参数就会），
+        //        所以这段兜底必须留着 —— 它挡的是「将来某一天」，不是「今天」。
         //
         //   2) 只要有一个类装失败，PatchAll 会直接中止，排在它后面的类全部不装。
         //
         // 【现在的做法】
         //
         //   * 取类型时兜住 ReflectionTypeLoadException，把**能加载的那部分**继续用作候选
-        //    （取不到的那几个本来就是引用了缺失模组的类，对应功能本来也用不上）；
+        //    （取不到的那几个，签名里引用了当前加载不到的程序集，对应功能本来也用不上）；
         //   * 每个补丁类单独 try/catch：失败只记一条 Error，不影响别的类；
         //   * 每个类成功安装后记进 installedPatchClasses，
         //     下次（热重载 Def / 切换语言导致本模组对象被重新构造时）直接跳过 ——
@@ -376,9 +401,12 @@ namespace GNH.LocalFixes
             }
             catch (ReflectionTypeLoadException ex)
             {
-                // 这种情况基本只有一个原因：本程序集里有类型引用了当前没装的模组程序集。
-                // 这是**允许**的 —— 那些类型对应的功能本来就不存在，跳过它们即可，
-                // 其余补丁照常工作。
+                // 含义：有一部分类型的「签名」引用了当前加载不到的程序集，所以取不出来。
+                // 注意不是「装了但没启用」就会命中 —— 只有当某个类型的签名
+                //（基类 / 字段类型 / 方法参数与返回值）直接用到那个模组的类型时才会。
+                // 实测依据见本文件上方 InstallAllPatchClasses 那段说明。
+                // 这属于**允许**的情况：取不到的那几个类型对应的功能本来也用不上，
+                // 跳过它们即可，其余补丁照常工作。
                 Type[] partial = ex.Types;
                 List<Type> usable = new List<Type>();
                 if (partial != null)

@@ -5,7 +5,7 @@
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`GNH-本地修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.24**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.3.25**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
 ## 构建与部署
 
@@ -41,7 +41,35 @@
 
 二十一项互相独立，均为最小侵入，可整体或逐项停用。
 
-> **本版（v1.3.24，2026-10-08）的重点变更**
+> **本版（v1.3.25，2026-10-08）的重点变更 —— 第 20 项重新定位**
+> 
+> · **v1.3.24 对第 20 项的诊断是错的，本版已改正。**
+>   上一版说「`Allies are Helpful` 的两个静态缓存字段没被初始化、初值是 `null`」，
+>   修法是「为 `null` 时填一个空列表」。把 IL 逐条读出来复核之后确认：
+>   那个 `.cctor` 有 117 字节 / 29 条指令，**明确把两个字段初始化成了空列表**；
+>   而它们唯一的赋值来源（`GetTendTargets` / `GetRescueTargets`）各只有一个 `return`，
+>   返回的都是当场 `new` 出来的 `List`，**也永远不会是 `null`**。
+>   也就是说：**上一版那个修复从装上那天起就是一个永不生效的空操作。**
+> 
+> · **真正的原因**：`Postfix` 里 `Job val = __instance.jobs?.curJob;` 之后，
+>   守卫写的是 `val?.def != null` —— `curJob` 为 `null`（角色当前没有工作，这在游戏里很常见）时
+>   它算出来是 `false`、**不会提前返回**，代码继续往下走，
+>   在后文直接读 `val.def`，于是抛空引用。
+> 
+> · **本版的修法**：用转译器把那个方法体里每一次「读 `Job.def` 字段」
+>   换成 `null` 安全的读取。两者在求值栈上完全等价（都是「吃进一个 `Job`、吐出一个 `JobDef`」），
+>   区别只在 `job` 为 `null` 时 —— 原来抛异常，现在返回 `null`。
+>   另挂一个收尾器兜底。补丁类改名为 `AlliesAreHelpfulCurJobNullFix`。
+>   实测：转译器在真实 IL 上匹配到 **5 处**读取并全部改写。
+> 
+> · 顺手订正了 `LocalFixesMod` 里关于「`GetTypes()` 什么时候会整体失败」的一段注释 ——
+>   原文说「卸载 RJW / ElToro 就会让 `GetTypes()` 失败」，用离线宿主实测**并不成立**
+>   （对那两个模组的引用全在方法体内部，签名里没有），已改为实测准确的说明。
+>   其余 20 项一字未动。
+> 
+> ---
+> 
+> **上一版（v1.3.24，2026-10-08）的重点变更**
 > 
 > · **新增第 20 项 —— 一开殖民地就刷 `NullReferenceException`。**
 >   `Allies are Helpful`（盟友来帮忙）的 `PawnTendAndRescuePatch.Postfix`
@@ -104,7 +132,7 @@
 | 17 | **Onahole 的 mimic 生成器刷「Could not find any RuleDef」**：模组把「1×1 小格子四边各内缩 2 格」得到的空矩形推给 `mimicSpawner` 符号，而 resolver 要求宽高 ≥ 1，于是必然拒绝。警告的字面意思（找不到 RuleDef）是误导的 —— 规则一直都在 | `src/BaseGenMimicSpawnerQuietFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
 | 18 | **金鸢尾兰「某不知名的沙皇」生成后变成智人**：`OASFC_BasePawn` 只写了 `race=Ratkin`、没有 `xenotypeSet`，生成时回退成默认的 Baseliner，鼠耳与尾巴全没了 | `Patches/OASFC_TsarXenotypeFix.xml` |
 | 19 | **打开「意识形态」页面刷 `Could not load Texture2D` + NRE**：雪兔纹身 `SR_HuoShu_Tattoo_Slot1` 的 `iconPath` 写成大写 `S`，磁盘上却是小写 `s`；RimWorld 查贴图走的是启动时建的内存字典、精确匹配字符串，**不看文件系统**，所以大小写不一致照样 miss | `Patches/SnowRabbitTattooIconFix.xml` |
-| 20 | **一开殖民地就刷 `Exception ticking ...: NullReferenceException`**：`Allies are Helpful`（盟友来帮忙）的 `PawnTendAndRescuePatch.Postfix` 校验缓存时 `&&` 写成了 `||`，而它的静态构造函数是空的、缓存字段恒为 `null` —— 于是每个殖民者每次 tick 都抛一次 | `src/AlliesAreHelpfulNullCacheFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
+| 20 | **刷 `Exception ticking ...: NullReferenceException`**：`Allies are Helpful`（盟友来帮忙）的 `PawnTendAndRescuePatch.Postfix` 里，`Job val = __instance.jobs?.curJob;` 之后的守卫写成 `val?.def != null` —— 「角色当前没有工作」（`curJob` 为 `null`）时它算出来是 `false`、**不会提前返回**，代码继续往下走，在后文直接读 `val.def`，于是抛空引用并中断该角色那一次 `TickRare` | `src/AlliesAreHelpfulCurJobNullFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
 | 21 | **日志被 `[RJW-Genes] multipreg checks` 刷爆**：开发者模式下这一句打印了 **31,415 次**（占整份日志的 65%、约 1.4 MB），每行还各带一次磁盘写入 | `src/RjwGenesSpamQuietFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
 
 ### 第 16 项：同一进程里连续开新局会卡死在殖民者生成（2026-10-06）
