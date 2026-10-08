@@ -3,491 +3,72 @@
   <name>本地修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
+  <url>https://github.com/1579486875/GNH-LocalFixes</url>
   <modVersion>1.3.25</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
-  <description>针对本机模组组合的 21 个修复，互相独立、均为最小侵入，可整体或逐项停用。
+  <description>21 个针对性修复 —— 每一个都对应一次真实崩溃或刷屏，每一个都能单独关掉。
 
-──────── 速览：修的是谁 —— 什么问题 —— 怎么修 ────────
-【1】ElToro 人兽杂交「观看」任务 —— dll 里缺 JobDriver 类，JobDef 加载失败 —— 照同类任务重写该类
-【2】CeleTech 智能切换武器 —— 原版 AdjustedRange 不判空，每 15 tick 崩一次 —— 加空值守卫
-【3】VFE Empire 爵位层级（Patches/VFEE_RoyalTitleExtFix.xml）
-VFE 生成「层级人物」时要读爵位的 RoyalTitleDefExtension.kindForHierarchy，而它前面没有 null 检查。
-偏偏 disroom.mashiro（本机第 1130 位，晚于 VFE 的第 464 位）会把
-    Defs/RoyalTitleDef[@ParentName="DukeBase"|"BaseEmpireTitle"|"ConsulBase"|"StellarchBase"]/modExtensions
-整体替换成 &lt;modExtensions Inherit="False" /&gt;。而 Inherit="False" 的含义是
-「清空继承来的内容、只留自己写的」（已反编译 Verse.XmlInheritance 逐行核对），它写的却是个空元素 ——
-于是 VFE 写好的扩展被整片抹掉，实测 16 个爵位中招。
+─────────────── 一句话说清 ───────────────
 
-这不崩（本补丁兜住了），但后果很隐蔽：**所有帝国爵位的层级人物退化成同一个等级**。
+RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
+某个模组自己写错一行、或者和另一个模组撞上 —— 游戏不崩，
+但日志被刷爆、某个功能悄悄失效、甚至隔一会儿就卡一下。
+报给作者要等，自己又改不动。
 
-旧版为什么没修好：它的 xpath 按 defName 定位，命中的是「被 VFE 改成抽象模板的那几个原版 def」；
-真正生效的 def 没有 defName、靠 ParentName 继承出来，压根拿不到旧版写进去的值。
+本模组就是把这些毛病一个个找出来、就地修掉。
+21 个修复互相独立、最小侵入，任何一个出问题都能单独停用，绝不连坐。
 
-本版（2026-10-07 重写）：按「实际生效的 def」定位 —— 有 defName 的用 defName，
-没有的用 ParentName（并排除同名模板下那些**有** defName 的爵位，否则 VFEE_HighStellarch
-会被误写成普通 Stellarch）；把 VFE 原本的 kindForHierarchy 与 iconPath 逐条补回，共 16 个爵位。
-每条都带 not(...) 保护，只在「确实缺这个扩展」时才动手。末尾留一条兜底，
-范围收窄到 disroom 真正会破坏的那四个 ParentName —— 旧版那条会波及 20 多个模组的 154 个爵位，属越界改写。
+─────────────── 21 项速览 ───────────────
+（格式：出的什么问题 —— 怎么修）
 
-
+【1】ElToro 人兽杂交「观看」任务 —— 任务类缺失导致 JobDef 加载失败 —— 照同类任务补齐
+【2】CeleTech 智能切换武器 —— 原版射程计算不判空，每 15 tick 崩一次 —— 加空值守卫
+【3】VFE Empire 爵位层级 —— 另一个模组把爵位扩展整片清空，16 个爵位的层级人物退化成同一级 —— 按「实际生效的 def」逐条补回
 【4】Vehicle Framework 开发者面板 —— 拿「显示名{defName}」整串去查 Def，成片红字 —— 先解析出纯 defName 再查
 【5】VFE Empire 乐器空间 —— placeWorkers 为 null 时直接 Contains，静态构造崩 —— 只替换那句判断
 【6】打开「模组配置」页即崩溃 —— CrossPromotion 调了 Steam 已废弃接口 —— 把那个前缀从补丁链上摘掉
 【7】RJW 动物动画悬空引用 —— 模组删了 Rotti，动画定义里还列着 —— 摘掉那两处死条目
-【8】被「禁用房间要求」连累而失效的功能 —— 前一步补丁失败，后面的全被跳过 —— 补做 VFE 的钢琴/营火/石棺
+【8】被「禁用房间要求」连累而失效的功能 —— 前一步补丁失败，后面的全被跳过 —— 补做 VFE 的钢琴、营火、石棺
 【9】CCOE 月经结算空引用 —— 反射读错对象，抛 TargetException —— 挂收尾器，只在真抛时接管
-【10】原版植入体「0 权重」崩溃 —— 预算为 0 时抽到 null 再解引用 —— 前缀预判 + 收尾器兜底
+【10】原版植入体「0 权重」崩溃 —— 预算为 0 时抽到 null 再解引用 —— 前缀预判加收尾器兜底
 【11】非乐器混进「乐器」分组 —— 每帧强转失败，游戏掉到约 2fps —— 在登记进分组时就摘掉
-【12】中文下 &lt;li&gt;Royalty&lt;/li&gt; 匹配不上 —— DLC 显示名被翻译成「皇权」 —— 按 packageId 末段再判一次
-【13】天鹰溪谷联邦给炮塔塞已删除类型 —— 整个 Def 加载失败，炮塔消失 —— 移除该节点
-【14】XmlExtensions 的 FindMod 静默跳过 —— 与【12】同病，但走的是另一条判定路径 —— 加前置检查
+【12】中文下 Royalty 这类判定匹配不上 —— 官方 DLC 的显示名被翻译成「皇权」 —— 按 packageId 末段再判一次
+【13】天鹰溪谷联邦给炮塔塞了已删除的类型 —— 整个 Def 加载失败、炮塔消失 —— 移除该节点
+【14】XmlExtensions 的 FindMod 静默跳过 —— 与第 12 项同病，走的是另一条判定路径 —— 加前置检查
 【15】领袖头衔定好了自己变回去 —— GenerateLeaderTitle 不读旧值、直接覆盖 —— 已有值就跳过整个方法
-【16】连续开新局会卡死在殖民者生成 —— NMM 的跨局残留 tracker 撞号 —— 前缀删掉那条残留记录
-【17】Onahole mimic 生成器刷警告 —— 空矩形被 resolver 拒绝（并非「找不到规则」）—— 提前拦下，与原版等价
-【18】金鸢尾兰「某不知名的沙皇」变智人 —— 该 PawnKind 没有 xenotypeSet —— 补一个固定的
+【16】连续开新局会卡死在殖民者生成 —— NMM 的跨局残留记录撞号 —— 前缀删掉那条残留
+【17】Onahole mimic 生成器刷警告 —— 空矩形被 resolver 拒绝 —— 提前拦下，与原版等价
+【18】金鸢尾兰「某不知名的沙皇」变智人 —— 该模板缺 xenotypeSet —— 补一个固定的
 【19】雪兔纹身图标 —— iconPath 大小写与磁盘文件名不符，文化界面刷红字 —— 改回磁盘上真实的名字
-【20】Allies are Helpful 的空引用 —— 「角色当前没有工作」时那道守卫失效，随后直接读空对象 —— 把那几次读取改成 null 安全
-【21】RJW 基因扩展的调试刷屏 —— 每帧问一次的「怀孕了吗」里留了一句无节流调试输出，开发者模式下一局刷 3 万行 —— 只拦那一句，报错警告一条不少
+【20】Allies are Helpful 的空引用 —— 角色「当前没有工作」时那道守卫失效，随后直接读空对象 —— 把那几次读取改成 null 安全
+【21】RJW 基因扩展的调试刷屏 —— 每帧问一次的「怀孕了吗」里留了无节流调试输出，开发者模式下一局刷 3 万行 —— 只拦那一句，报错警告一条不少
 
-──────── v1.3.25（2026-10-08）修正第 20 项的定位 ────────
-· 【20】重新定位并改写：v1.3.24 把「Allies are Helpful」的崩溃归因于
-  「两个静态缓存字段没被初始化、初值是 null」，修法是「为 null 时填空列表」。
-  事后把 IL 逐条读出来复核，那个归因**是错的** —— .cctor 有 117 字节 / 29 条指令，
-  明确把两个字段初始化成了空列表；而它们唯一的赋值来源（GetTendTargets /
-  GetRescueTargets）各只有一个 return，返回的都是当场 new 出来的 List，
-  也永远不会是 null。也就是说：旧修法从装上那天起就是一个永不生效的空操作。
-· 真正的原因在别处：Postfix 里 Job val = __instance.jobs?.curJob; 之后，
-  守卫写的是 val?.def != null，而 curJob 为 null 时它算出来是 false、不会提前返回，
-  于是代码继续往下走，在后文直接读 val.def 而抛空引用。
-  本版改用转译器，把那段方法体里每一次「读 Job.def 字段」换成 null 安全的读取
-  （两者在求值栈上完全等价，只把「null 时抛异常」变成「null 时返回 null」），
-  并挂一个收尾器兜底。补丁类同时改名为 AlliesAreHelpfulCurJobNullFix。
-· 另外顺手订正了 LocalFixesMod 里关于「GetTypes() 什么时候会整体失败」的一段注释：
-  原文说「卸载 RJW / ElToro 就会让 GetTypes() 失败」，实测并不成立
-  （对那两个模组的引用全在方法体内部，签名里没有），已改为实测准确的说明。
-· 其余 20 项一字未动。
+每一项的根因分析、反编译证据与验证方法，见仓库里的「技术说明.md」。
 
-  编译 0 警告 0 错误；转译器在真实 IL 上实测匹配到 5 处读取并全部改写。
+─────────────── 怎么用 ───────────────
 
-──────── v1.3.24（2026-10-08）本次新增 ────────
-· 新增【20】Allies are Helpful 空缓存修复：该模组把两个还没初始化的静态缓存字段
-  当成一定建好的列表来用，只要在一次「缓存还没建起来」的窗口里走进判断就会抛
-  NullReferenceException，并中断那个角色的 TickRare。
-  实测：快速测试地图里一场帝国袭击落地后，日志开始持续出现该堆栈
-  （4 条实体 + 83 条重复折叠，涉及角色全是刚进场的帝国成员）。
-· 新增【21】RJW 基因扩展的调试刷屏消音：该模组在「这个角色怀孕了吗」这个
-  每帧都会被问很多次的高频方法里，留了一句既没有去重、也没有节流的调试输出；
-  开发者模式下实测一局刷了 31415 行、占整份日志的 65%，把真正要看的问题全埋掉了。
-  本补丁只拦那一句（已用反编译确认该字符串在全库只有一处），
-  该模组真正的报错与警告一条都不会少。
-· 主线逻辑一行未动，本版只增加这两个新的独立补丁类；
+· 装进 Mods 目录、在游戏里启用即可，没有任何必填设置。
+· 想只保留一部分：Patches 目录下是 6 个 XML 补丁，Assemblies 目录里是一个 dll，
+  两者互不依赖，按需删掉不要的那部分就行。
+· 「选项 → 模组设置 → GNH 本地修复补丁」里有一个开关：
+  保护自定义的领袖头衔（默认开启）。
+· 启动后在日志里搜 [GNH LocalFixes]。它会逐条打印
+  「装上了什么 / 跳过了什么 / 哪一步失败了」—— 出问题第一时间看这里。
 
-  编译 0 警告 0 错误，对第三方 dll 零编译期依赖。
+─────────────── 支持的语言 ───────────────
 
-──────── v1.3.22（2026-10-07）本次加固 ────────
-· 日志安全壳：所有补丁安装路径上的日志调用改成「日志失败也不许抛」。此前若日志系统本身
-  故障（磁盘满 / 文件被占 / 被别的模组改坏），异常会从 catch 块里漏进 LocalFixesMod 的
-  构造函数，把「某个补丁没装上」升级成「Harmony 补丁叠层、越玩越卡」。
-· 热路径去反射：SteamWorkshopHookFix 那条「模组页每帧 × 全部模组」的路径不再每次反射取值。
-· 极热路径先比较再判定：MusicManagerFadeoutFix 在 ListerThings.Add 上先做一次引用比较。
-· 订正 9 处与代码不符的注释；删掉 2 个从未使用的 using；把 2 处魔数提成具名常量。
+本模组自己的界面文字与自检日志为中文。
+它修的是别的模组的行为、不涉及那些模组的文本，
+所以无论你的游戏用中文还是英文，修复效果完全一样。
 
-（下面是每一项的详细记录：现象、根因证据、修法。速览里看不明白的再往下翻。）
+─────────────── 模组信息 ───────────────
 
-【1】ElToro 人兽杂交「观看」任务补全
-ElToro_BAddon.dll 中缺少 JobDriver_BestialityInvite_Watching 类，而 Defs/JobDefs/Jobs_Bestiality_Invite.xml 的 JobDef 引用了它，导致日志报 Could not find a type named ...。本补丁在 ElToro_BAddon 命名空间下**重写**了这个类（作者并没有发布过它的源码，所以是照同类任务 JobDriver_BestialityInvite_InviteToWatch 的结构重写；判定互动用的 API 也与同类不同），使该 JobDef 恢复正常加载。若将来作者自己补上该类，游戏取程序集列表中的首个匹配且本模组声明了 loadAfter，故优先使用作者版本。
-
-【2】CeleTech「智能切换武器」空引用防护
-原版 Verse.VerbProperties.AdjustedRange 未对 attacker 做空检查。CeleTech 的 CompAppWeaTransferAppPart 会对收在背包容器里、没有持有者的武器取 EffectiveRange（此时 attacker 为 null），导致该小人每 15 tick 抛一次 NullReferenceException 并中断 Pawn.Tick。本补丁加此前缀守卫：attacker 为 null 时返回基础射程，其余情况行为完全不变。
-
-【3】VFE Empire 爵位层级空引用（Patches/VFEE_RoyalTitleExtFix.xml）
-WorldComponent_Hierarchy.MakePawnFor 取到 RoyalTitleDefExtension 后直接读 kindForHierarchy，两步之间没有 null 检查，任何未挂该扩展（或该字段为空）的爵位都会抛 NullReferenceException 并中断世界组件初始化。该字段类型为 PawnKindDef（已用反编译核对签名）。
-VFE Empire 自身的补丁只给 8 个爵位挂了该扩展（Freeholder / Yeoman / Acolyte / Knight / Praetor / Baron / Count / Emperor），而原版 Royalty 共有 11 个爵位 —— Consul / Duke / Stellarch 这三个它完全没有覆盖。
-（它给 Freeholder 留的层级值是空的，但那是有意的：Freeholder 的 seniority 是 0，而 VFE 只挑 seniority 大于 0 的爵位去生成层级人物，所以它根本走不到会崩的那一行。Duke / Consul / Stellarch 的 seniority 分别是 700 / 800 / 900，确实在名单里，才会出事。）
-本补丁分两步：先给这三个爵位写入各自正确的 PawnKindDef（Empire_Royal_Consul / Empire_Royal_Duke / Empire_Royal_Stellarch，均为原版真实存在的定义，已逐一核对）；再遍历全部 RoyalTitleDef 兜底，给其它模组新增、VFE 不认识的爵位补一个非空值 Empire_Royal_Yeoman，避免取到 null。第一步不会与 VFE 冲突：AddModExtension 是追加语义而 GetModExtension 只取第一个匹配项，VFE 因 loadAfter 先执行，其扩展始终优先。
-整个操作由 PatchOperationFindMod 包裹，仅在检测到 VFE Empire 时执行（PatchOperation 基类没有 MayRequire 字段，只能用 FindMod 包裹）。
-
-【4】Vehicle Framework 开发者面板的「查不到就报错」兜底
-Vehicles.Patch_Debug.DebugHideVehiclesFromPawnSpawner 会用每个菜单节点的 label 去 PawnKindDef 数据库里查，而且用的是「查不到就报错」的那个重载（errorOnFail 为 true）。
-日志里抓到过它报错：Failed to find Verse.PawnKindDef named 悠兰族星主巫女{Yuran_Stellarch_Miko} —— 当时节点的 label 是「显示名{defName}」这种拼接格式，整串拿去查必然失败，于是打开一次开发者面板就按节点数量刷出成片红字。
-本补丁接管这个方法：先从花括号里解析出真正的 defName，再按原文查一次，两条路都查不到就静默跳过、不再写日志；判定为载具的节点照旧从菜单里删掉，功能与原方法一致。
-（2026-10-03 反编译核实补充：当前 RimWorld 1.6 的 SpawnPawn 传给节点的已经是纯 defName，所以那条报错路径在当前版本不会触发，本补丁在此起的是防御作用。旧描述里写的「1241 个节点全部失败」是误读 —— 1241 是那条报错模板里「该类型已加载的总数」。）
-
-【5】VFE Empire「乐器空间」房间需求静态构造崩溃
-RoomRequirement_InstrumentSpace 的静态构造里对 BuildableDef.placeWorkers 直接调用 Contains，而该字段在 Def 未声明 placeWorkers 时是 null 而非空列表，于是遍历到第一个此类 ThingDef 即抛 NullReferenceException，类型随后被 CLR 标记为初始化失败。本补丁在 Verse.LoadedModManager.CreateModClasses（Def 尚未解析、所有静态构造尚未执行）时安装，优先只替换那句不安全的判断（保留作者原初始化流程），找不到该编译器生成方法时再接管整个初始化。
-
-【6】打开「模组配置」页面即崩溃的修复（brrainz CrossPromotion）
-打开模组配置页面、显示任一模组详情时会终止整个进程。四次崩溃转储的调用链完全一致：Page_ModsConfig.DoWindowContents -> Brrainz.CrossPromotion.Page_ModsConfig_DoModInfo_Prefix -> Verse.ModMetaData.GetWorkshopItemHook() -> Verse.Steam.WorkshopItemHook..ctor -> SendSteamDetailsQuery() -> Steamworks.SteamUGC.RequestUGCDetails(...)。
-RequestUGCDetails 是 Valve 早已废弃的接口，当前 steam_api64.dll（6.91.21.57）调用它会触发结构化异常（KERNELBASE!RaiseException），被 RimWorld 的崩溃处理程序拦截后进程即终止；与内存占用无关。
-其中 CrossPromotion 是内嵌在 Visual Exceptions / Achtung! / Camera+ 内部、运行时以 Assembly.Load 加载的共享组件，因此磁盘上的 CrossPromotion.dll 里并没有这个方法。
-关键结论（实测得出）：在链路下层打补丁无效。Harmony 替换的是方法的本机代码，而 Mono 的 JIT 内联读取的是 IL，整条链被逐层内联后，对 SendSteamDetailsQuery、WorkshopItemHook..ctor、GetWorkshopItemHook 的任何补丁都拦不住它——补丁表显示已安装，崩溃却分毫不变。
-因此本补丁改为把这个前缀本身从 DoModInfo 的补丁链上摘除（Harmony.Unpatch），Harmony 随即重建包装器，那段会崩的调用在新生成代码里根本不存在。这也是侵入性最小的做法：DoModInfo 是 212 行的方法，负责绘制预览图、名称、作者、版本以及「上传到创意工坊」按钮，因此不能禁用或替换它；摘掉这一个前缀的唯一代价是失去 brrainz 自带的交叉推广面板。
-CrossPromotion 另外三个前缀（PostClose、WorkshopItems_Notify_Subscribed、ModLister_RebuildModList）不涉及该调用链，保持原样。
-注意：CrossPromotion.dll 不能删除 —— VisualExceptions.HarmonyMain 与 AchtungMod.AchtungLoader 都以类型方式引用它，删掉会使这两个模组抛 TypeLoadException。
-
-【7】RJW 动物动画的悬空引用（Patches/ElToroAnimsRottiRefFix.xml）
-NewRatkinPlus 1.6 删掉了 Rotti（罗蒂）这个动物，但 ElToros Bestiality Animations 的动画定义里仍列着它。该条目所在字段是 Rimworld_Animations.PawnTest_Race.races，类型为 List&lt;ThingDef&gt;（已用反编译确认签名）；RimWorld 解析 List&lt;ThingDef&gt; 时会按名查找 Def，找不到就报红字，而同一条目上的 MayRequire 只检查「模组是否启用」，挡不住「模组还在、Def 却没了」这种情况。
-真正会加载的只有 1.6 目录下的两个文件（该模组 LoadFolders 为 v1.6 = ["/", "1.6"]，Common/ 与 1.5/ 均不加载）。本补丁用一条精确 xpath 摘掉那两处悬空条目，已实测命中 2 处，且不会触动同一列表里的 RK_KingHamster 等有效项。
-整个操作由 PatchOperationFindMod 包裹并全程 success=Always：未装该动画模组、或将来作者自己修好了这一行时，本补丁都安静地什么都不做，不会反而制造新的红字。
-
-依赖：Harmony。
-排序要求：需排在 ElToro.BAddon、TOT.CeleTech.MKIII、VFE Empire、Vehicle Framework 与 brrainz 系列之后加载（已在 loadAfter 中声明）。
-【8】修好被「禁用房间要求」连累跳过的功能
-
-「disabledroomRequirements」这个模组会把所有帝国爵位的卧室 / 王座厅要求清空。
-这本身没问题，但它的做法是把整个节点替换掉，于是另外几个模组「往这些节点里追加
-内容」的补丁就会失败 —— 而 RimWorld 的补丁序列一旦某一步失败，后面的步骤就全部
-不再执行。
-
-受影响最大的是 Vanilla Furniture Expanded：它本来要让立式钢琴改用皇权的音乐系统
-（贵族弹琴、进而获得音乐心情），还要给营火加火焰冥想焦点、给石棺加动物安葬链接。
-这些跟房间要求毫无关系，却被前面的失败连累，一直没有生效。本补丁把这几项补做回来，
-房间要求相关的部分仍然不动，保持那个模组禁用它的效果。本补丁是幂等的：
-即使将来删掉 disabledroomRequirements，也不会出现重复添加。
-
-⚠ 2026-10-04 补充说明（v1.3.13 时查清，很重要）：
-从 v1.3.12 起，日志里会多出四行
-    [Blue Archive Furniture]        Patch operation Verse.PatchOperationFindMod(Royalty) failed
-    [Vanilla Furniture Expanded]    Patch operation Verse.PatchOperationFindMod(Royalty) failed
-    [华夏扩展 …]                     Patch operation Verse.PatchOperationFindMod(Royalty) failed
-    [Vanilla Furniture Expanded - Spacer Module]  Patch operation Verse.PatchOperationFindMod(Royalty) failed
-
-这**不是**新出现的损坏，而是本补丁包里的 FindModLanguageFix 让老问题**第一次被如实报出来**：
-在 v1.3.11 及更早，FindMod(Royalty) 判定为 false（DLC 显示名被翻译成「皇权」），
-整块 &lt;match&gt; 被静默跳过，什么都没做、也什么都不报；v1.3.12 修好了判定，
-&lt;match&gt; 里的语句终于执行了，这才轮到它们因为节点被清空而报错。
-
-红字标题里的「FindMod(Royalty)」是**误报**。证据是原版这两段（反编译原文）：
-
-    // Verse.PatchOperation.Apply
-    bool flag = ApplyWorker(xml);
-    ...
-    if (flag) neverSucceeded = false;      // ← 只要成功过一次，就清掉「从未成功」标记
-    return flag;
-
-    // Verse.PatchOperation.Complete（红字就是这里打的）
-    if (neverSucceeded)
-        Log.Error($"[{modIdentifier}] Patch operation {this} failed\nfile: {sourceFile}");
-
-也就是说：这行红字的**唯一**触发条件是 Apply 返回了 false。
-而 FindMod 的 ApplyWorker 在「没找到模组」时是 return true（安静跳过、不报错）——
-所以**只要红字出现，就证明 Royalty 本来就被找到了**，出错的是它 &lt;match&gt; 里那条
-    …/bedroomRequirements/li[@Class="RoomRequirement_ThingAnyOf"]/things
-的 xpath —— 因为 disroom.mashiro 已经把整个 bedroomRequirements 换成了空表。
-
-这几行红字**无害**：它们只想给「贵族卧室」多登记几张床，而卧室要求已被整个删掉，
-登记与否都不影响游戏。真正有价值的连带损失（VFE 的钢琴 / 营火 / 石棺那 8 条）
-已由本补丁包补做回来。
-
-想彻底消掉这四行红字，最干净的办法是**调整加载顺序**：把 disroom.mashiro
-（本机位次 470）挪到那批家具模组之后（本机位次 687~722）。
-它们先正常追加，disroom.mashiro 最后再统一清空，最终游戏效果完全一样，红字不再出现。
-
-【9】CCOE 月经结算的空引用（反射读错了目标）
-CCOE（RJW_补丁_CCOE，packageId keahuy.rjw.ccoe）在 CumOut 的前缀里这样读封堵状态：
-
-    bool isSealed = (bool)(typeof(Comp_SealCum).GetField("cumSealed", AccessTools.all)
-        ?.GetValue(__instance.Pawn.GetComp&lt;Comp_SealCum&gt;()) ?? false);
-
-那个 ?. 保护错了对象：GetField 只要字段名对就永远不返回 null，所以 ?. 形同虚设；
-真正可能为空的是 GetValue 的参数 —— Pawn 身上没有 Comp_SealCum 时
-GetComp&lt;Comp_SealCum&gt;() 返回 null，而 FieldInfo.GetValue(null) 去读实例字段会抛
-TargetException: Non-static field requires a target（?? false 也救不了，因为抛出的是异常而不是 null）。
-Comp_SealCum 只由两处提供：Cumpilation 通过 XML 给常规种族挂，CCOE 自己给机械体挂；
-Anomaly 的肉兽（例如硬棘兽 Toughspike）两边都不沾，于是每次月经结算都刷一条红字。
-实测：Error processing womb of Toughspike1986: System.Reflection.TargetException ...
-本补丁给该前缀挂 Finalizer，只在真的抛出 TargetException 时接管，并返回 true
-（没有封堵组件 => 视为未封堵 => 放行原方法），与作者 ?? false 的本意完全一致；
-正常路径一行代码都不经过。CCOE 没装时自动跳过，不构成依赖。
-
-【10】原版植入体生成的「0 权重」崩溃
-原版 PawnTechHediffsGenerator.GenerateTechHediffsFor 拿预算当筛选门槛：
-
-    var source = DefDatabase&lt;ThingDef&gt;.AllDefs.Where(x =&gt; x.isTechHediff
-        &amp;&amp; x.BaseMarketValue &lt;= partsMoney &amp;&amp; ...);
-    if (source.Any()) {
-        ThingDef thingDef = source.RandomElementByWeight(w =&gt; w.BaseMarketValue);
-        partsMoney -= thingDef.BaseMarketValue;      // ← 崩溃点
-    }
-
-而 RandomElementByWeight 在总权重不大于 0 时不抽签，只打一条
-「RandomElementByWeight with totalWeight=0」然后返回 default(T) —— 对引用类型就是 null，
-下一行解引用即空引用异常，整个 pawn 生成失败（Error while generating pawn. Rethrowing.）。
-触发条件是「预算恰为 0，且候选里存在 BaseMarketValue 为 0 的植入体」。
-这条堆栈里会带 RavenRace 的 TRANSPILER 字样，但它只是把同一个调用点换成了自己的
-ChooseImplant，而 ChooseImplant 最后一行 fallback 仍是原版那句，所以这是原版的边界缺陷，
-不是它的锅。
-
-⚠ 2026-10-04 19:12 实机日志证明「只拦一种配置」**不够**，本项因此做成两层：
-
-第一层 · 前缀（能预判的就别让它跑）
-在候选清单里找一遍「真正抽得中的」项（市值大于 0、标签命中、未被 disallow、
-非暴力植入体而该小人又禁暴力）。找到一个就放行原版，一个都没有才跳过。
-跳过不损失功能：那种配置下原版的结果本来就是崩溃，我们跳过等价于「这次不装」。
-
-第二层 · 收尾器（预判不了的就兜住）
-前缀仍有预测不到的两件事：
-  · 预算 `partsMoney` 是 `techHediffsMoney.RandomInRange` **随机抽出来的**，
-    而前缀只能看范围上限 —— 抽小了就可能落到「只剩 0 权重候选」；
-  · 原版筛选里有一句 `!tmpGeneratedTechHediffsList.Contains(x)`
-    （同一只小人装过的不要再挑），所以 `techHediffsMaxAmount > 1` 时
-    第二轮候选可能已被掏空。
-这两件事都没法在前缀里可靠预测（替它抽签会改变后面所有随机数，代价更大）。
-所以在方法上加一个收尾器：**只在真的抛空引用异常时**接管，记一条 Warning（写明
-是哪个 PawnKind，不静默），然后安静结束这次调用。其它异常一律原样抛出。
-
-这样做是安全的，因为反编译原文里崩溃点与「改坏东西」之间还隔着一步：
-
-    ThingDef thingDef = source.RandomElementByWeight(w =&gt; w.BaseMarketValue);
-    partsMoney -= thingDef.BaseMarketValue;      // ← 崩在这里（thingDef 是 null）
-    InstallPart(pawn, thingDef);                 // ← 还没执行到
-
-也就是说崩的那一刻 partsMoney 没动、植入体没装，**没有装到一半的残留**。
-被兜住的结果与原版真正想要的语义（它自己的报错信息就在教人改用
-TryRandomElementByWeight）完全一致：这次抽不中，不装这一个。
-
-【11】每帧 InvalidCastException：非乐器混进「乐器」分组（游戏被拖到约 2fps）
-Verse.ThingListGroupHelper.Includes 判断一个东西是不是「乐器」时**只看 def**，
-而 MusicManagerPlay.UpdateMusicFadeout 会把分组里的东西**强行转成** Building_MusicalInstrument。
-只要分组里混进一个「def 说是乐器、对象却不是乐器」的脏对象（说明见第 8 项），
-它每帧都会抛 InvalidCastException；每次异常都要抓堆栈并写日志，实测把游戏拖到每秒约 2 帧。
-
-本补丁在「登记进分组」的那一刻就拦下来：给 ListerThings.Add 挂收尾器，
-发现对象的真实类型与 def 对不上就从分组里摘掉，从源头不让它进组；
-另外在 MusicManagerPlay.UpdateMusicFadeout 上挂收尾器兜底。
-两条路径都会在日志里报出它的 def、真实类型、来源模组、地图与坐标，方便排查。
-
-顺带还拦下同源的另一种脏对象：「挂着配方却不是工作台」（ThingRequestGroup.PotentialBillGiver 里
-真实类型不实现 IBillGiver 的东西）—— 它是原版 BillUtility 那串警告的来源。
-
-【12】中文环境下 &lt;li&gt;Royalty&lt;/li&gt; 永远匹配不上
-模组作者写 &lt;PatchOperationFindMod&gt; 判定 DLC 时，原版 ApplyWorker 走的是
-ModLister.HasActiveModWithName(名字)，而它比的是 ModMetaData.Name；
-对官方 DLC 来说这个值取自 ExpansionDef.label —— **一个会被语言包翻译的显示名**。
-简体中文下 Royalty 的 label 就是「皇权」，于是「皇权」==「Royalty」恒为 false，
-整块补丁被静默跳过：什么都不做，也什么都不报。
-
-本补丁给 HasActiveModWithName 挂收尾器，只在本判定为失败时，用官方 DLC 的 packageId 末段
-再补一次判断（Royalty → Ludeon.RimWorld.Royalty），并确认该 DLC 当前确实启用。
-安全边界收得很紧：只认 Ludeon.RimWorld 前缀，其余一概不处理。
-
-⚠ 装上它之后日志里会**多出**几行 Patch operation FindMod(Royalty) failed ——
-那不是新增的损坏，而是老问题第一次被如实报出来，详见第 8 项里的补充说明。
-
-（注：这是「原版那条路径」，与第 14 项修的 XmlExtensions 那条路径是两回事。）
-
-【13】天鹰溪谷联邦往炮塔 Def 塞入已删除的类型
-[天鹰2.0]溪谷联邦（tyll.valley）会给 TY_A_Heavy_double_fired_mortar 挂上
-VFESecurity.CompProperties_LongRangeArtillery，而 VFE Security 1.6 已经删掉了这个类型。
-类型找不到会让整个 Def 加载失败，连带一批炮塔消失。
-本补丁把这个节点移除（success="Always"，将来作者自己修好就安静跳过）。
-它由 loadAfter 排在 tyll.valley 之后，确保顺序正确。
-
-【14】XmlExtensions 的 FindMod 在中文环境下会「静默」跳过 DLC 补丁
-「找不到模组」这件事，游戏里有**两条互不相干的判定路径**，各修各的：
-
-    ① 原版：Verse.PatchOperationFindMod.ApplyWorker
-            → 调 ModLister.HasActiveModWithName(名字)
-            → 已由本补丁包的 FindModLanguageFix（v1.3.12）修好
-
-    ② XmlExtensions：XmlExtensions.FindMod.Patch 与 Boolean.FindMod.Evaluation
-            → 自己遍历 LoadedModManager.RunningMods 比字符串
-            → 由本项负责
-
-两处的病根一样：没写 &lt;packageId&gt;true&lt;/packageId&gt; 时比的是模组「显示名」，而官方 DLC 的显示名
-取自 ExpansionDef.label —— 一个会被语言包翻译的字段（简体中文下 Royalty 就是「皇权」），
-所以作者写的 &lt;li&gt;Royalty&lt;/li&gt; 永远匹配不上。
-
-② 比 ① 更隐蔽：Boolean.FindMod.Evaluation 只把结果写进 ref bool，**从不报错**，
-所以失败时日志里一条痕迹都没有，玩家只会觉得「这个模组的内容怎么缺了一块」。
-
-修法（最小侵入）：只给那两个判定点加前置检查 —— 先按原逻辑预判，
-**只有原本注定失败时**才把作者写的 DLC 短名临时换成它的实际显示名（Royalty → 皇权），
-让原代码自己跑完（caseTrue / caseFalse / logic / foundMod 全部原样），判定结束后原地还原。
-安全边界收得很紧：只认 Ludeon.RimWorld 前缀的官方模组，其余一概不处理 ——
-否则「以 .Core 结尾的模组」会让所有 &lt;li&gt;Core&lt;/li&gt; 突然命中，那比原 bug 更糟。
-
-本机实测：112 处 XmlExtensions FindMod 调用全部写了 packageId，暂时不受影响；
-这一项是为「将来某个模组按名字写」准备的保险，属于与本包 FindModLanguageFix 配套的半个补丁。
-XmlExtensions 没装时自动跳过，不构成依赖。
-
-【15】领袖头衔定好了会自己变回去（2026-10-06 新增）
-你在文化里（.rid 文件或游戏界面）把领袖头衔定成「主席」，过一阵它会自己变成别的名字
-（例如「游击队区域指挥官」）—— 改模因、点「随机符号」之后尤其必现。
-
-原因（反编译 IdeoFoundation.GenerateLeaderTitle 得到）：
-头衔存在 Ideo.leaderTitleMale / leaderTitleFemale 两个字段上，而给它们赋值的几乎只有
-IdeoFoundation.GenerateLeaderTitle() 这一个方法。它**不读旧值，直接覆盖**：
-    ideo.leaderTitleMale   = NameGenerator.GenerateName(request, null, false, "r_leaderTitle");
-    ideo.leaderTitleFemale = ideo.leaderTitleMale;
-该方法全游戏共 6 个调用点：IdeoFoundation_Deity.Init、「随机符号」按钮（IdeoUIUtility.DoName）、
-IdeoUIUtility 的另一处按钮回调、Precept_Role.GenerateNameRaw、改模因对话框
-（Dialog_ChooseMemes）、改革文化对话框（Dialog_ReformIdeo）。
-
-注意：文化里的 &lt;nameLocked&gt; **管不到它**。那把锁只作用于 Precept.name
-（Ideo.RegenerateAllPreceptNames 里明写 if (precept.UsesGeneratedName &amp;&amp; !precept.nameLocked)），
-而领袖头衔根本不是 Precept 的字段，压根不走那条路 —— 这就是它「怎么锁都锁不住」的原因。
-
-修法：在方法最前面拦一道 —— 头衔还是空的就放行（新建文化的第一次生成得靠原方法），
-头衔已经有内容就跳过整个方法，谁也别想覆盖。IdeoFoundation 是抽象类，原版只有
-IdeoFoundation_Deity 一个具体子类且**没有重写**它，所以补基类即覆盖全部原版路径。
-
-模组设置里新增开关「保护自定义的领袖头衔」，**默认开**；关掉即完全恢复原版行为。
-想给某个文化换头衔：临时关掉 → 点一次「随机符号」→ 再打开。
-
-【16】连续开新局会卡死在殖民者生成（2026-10-06 新增）
-在同一个游戏进程里反复用 Quickstarter 开新局，开到第 8 次左右开始有概率卡死：殖民者生成连抛
-NullReferenceException，之后界面不再响应、日志也停了（实测第 8 次连抛 4 次后彻底卡住，5 分钟零日志）。
-
-原因（反编译 NudityMattersMore.dll 得到，MVID 与出错堆栈完全一致）：
-NudityMattersMore.CoverBody.UpdateIdeo 的第二个参数 tracker 被调用方
-Patch_PawnGenerator_NMM.NMMPawnInitialization 硬编码传成 null，而方法内部只在
-「PawnInteractionManager.ideoTrackers 里还没有这个 thingIDNumber」时才会新建并赋给它：
-    if (!ideoTrackers.ContainsKey(pawn.thingIDNumber)) {
-        ideoTrackers[pawn.thingIDNumber] = new PawnIdeoTracker();
-        tracker = ideoTrackers[pawn.thingIDNumber];     只有这条路径会给 tracker 赋值
-    }
-    ...
-    tracker.lastCheckTick = gameTick;                   字典里已有记录时，这里就是对 null 解引用
-堆栈里的偏移 [0x00079] 正是这一句（IL: ldarg.1 / ldarg.2 / stfld lastCheckTick）。
-
-ideoTrackers 是 public static 字段、跨局不清空，而新开一局时 thingIDNumber 会从 1 重新数，
-于是新局里刚生成的殖民者会命中上一局留下的同号记录 → ContainsKey 为 true → tracker 仍是 null → 崩。
-这也解释了「越开越容易炸」：字典是累积的，撞号概率随开新局次数上升。
-
-修法：给 UpdateIdeo 加前缀，只在「调用方传进来的 tracker 是 null，且字典里确实已有同号记录」
-这一种组合下，把那条属于上一局的残留记录从字典里删掉，让原方法改走「新建 tracker」分支。
-CoverCheck / InfoHelper.IsUncaring 这些自己带 tracker 的调用点原样放行，不受影响
-（CompTick 并不直接调它，是先经 CoverCheck、再按 600 tick 的门槛进来）。
-另附一个收尾器兜住同方法里 memes / precepts 两条 null 路径的空引用，只吞 NullReferenceException、
-不静默（每次记 Warning，最多 8 条）。
-
-NMM 没装或没启用时自动跳过，不构成依赖。
-
-【17】Onahole 的 mimic 生成器刷「Could not find any RuleDef」（2026-10-07 重查并重做）
-地图生成神殿/遗迹时，RJW_Onahole 会把一个空矩形推给 mimicSpawner 符号，原版 BaseGen
-因此每次开局刷约 34 条 WARNING。那句警告的字面意思（「找不到 RuleDef」）是误导的：
-规则一直都在，被拒的是传进来的矩形 —— 该模组的 patch 会把子区域无条件 ContractedBy(2)
-（四边各内缩 2 格），而神殿里大量子区域只有 1x1，收缩后宽高都变成 0；而 resolver 基类
-SymbolResolver 要求宽高都大于等于 1（minRectSize 默认 (1,1)），于是必然拒绝。
-
-本补丁（src/BaseGenMimicSpawnerQuietFix.cs）在 BaseGen.Resolve 之前拦一道：只拦
-「symbol 是 mimicSpawner 且矩形宽或高小于 1」的请求 —— 这类请求原版本来就会拒绝、
-而且什么都不做，所以跳过它与原版完全等价，只是不再往日志里刷警告；矩形正常时一律放行，
-模组功能不受影响。
-
-旧做法（2026-10-06 版：在 Defs 下追加一条同 symbol 的 RuleDef 做兜底）已证明无效并撤除，
-存档在 _scratch\deprecated-patches\。它无效的原因很直白：新规则的 resolver 还是同一个类、
-minRectSize 还是 (1,1)，对同一个空矩形照样返回 false。
-
-【18】金鸢尾兰「某不知名的沙皇」变成智人（2026-10-07 新增）
-金鸢尾兰（[OA]Stepped Flower Cake）的人物模板「某不知名的沙皇」（OASFC_Pawn_Shubing，
-继承 OASFC_BasePawn）生成后种族显示智人、没有鼠耳与尾巴、脸发黑，而同批其它鼠族正常。
-
-根因：鼠族外观由 Biotech 的 xenotype 决定，而 OASFC_BasePawn 只有 race=Ratkin、
-没有 xenotypeSet，生成时回退成默认的 Baseliner。OA 框架自己的 Biotech_Xeno_Patch.xml
-只覆盖了 OA_RK_Faction 与 OA_RK_BasePawn 两个目标，没覆盖金鸢尾兰自己的 PawnKindDef。
-
-本补丁给 OASFC_BasePawn 补一个固定使用 Ratkin_OA 的 xenotypeSet（外层 FindMod 保护，
-OA 框架没装时整个补丁不执行）。
-
-【19】雪兔纹身图标路径大小写不符（Patches/SnowRabbitTattooIconFix.xml）
-打开「意识形态」页面时日志刷：Could not load Texture2D ... NewMoonlight_HuoShu，
-紧接着 NullReferenceException + 一串 GUI 栈不平衡的报错（后三条都是第一条的连锁反应，不是三个独立故障）。
-
-根因是 SnowRabbit Race Beta 的 SR_HuoShu_Tattoo_Slot1 这个 def：
-第 134 行的 texPath 写小写 s（对），第 135 行的 iconPath 写大写 S（错），
-而磁盘上只有 NewMoonlight_Huoshu.png（小写 s）。
-反直觉的地方在于：Windows 文件系统不区分大小写，但 RimWorld 查贴图**不走文件系统** ——
-它在启动时把各模组 Textures 下的文件枚举进内存字典，查找是精确字符串匹配，大小写不一致照样 miss。
-
-本补丁只把这一个 iconPath 改回磁盘上真实的名字；外层 FindMod 认模组名，
-xpath 同时约束 defName 与当前文本内容且 success="Always"，将来作者自己修好就会安静跳过。
-
-【20】Allies are Helpful 在「角色没有工作」时的空引用（2026-10-08 新增）
-模组「Allies are Helpful」（ninagoblin.alliesarehelpful，工坊 3534920369）里有个静态类
-PawnTendAndRescuePatch（注意：这个类没有命名空间，全名就叫这个），它挂在 Verse.Pawn.TickRare 上，
-负责给「没在忙的」盟友自动安排「去照顾伤员 / 去把倒地的人救回来」。
-它的 Postfix 开头是这样写的（反编译逐字核对）：
-    Job val = __instance.jobs?.curJob;                     ← 用了 ?.，说明作者知道它可能是 null
-    if (val?.def != null &amp;&amp; val.def != 等待闲逛 &amp;&amp; val.def != 跟随)
-    {
-        return;                                            ← 正在干别的活，不打扰
-    }
-    ...
-    if (... &amp;&amp; val.def != 照顾病人) { ... }                   ← 这里直接读了 val.def
-    if (... || val.def == 营救)      { ... }                   ← 还有这里
-
-问题出在两处不一致：
-· 第一行用了 ?.，等于承认 curJob 可能是 null；
-· 但紧接着的守卫写的是 val?.def != null —— curJob 为 null 时它算出来是「null != null」也就是 false，
-  于是这个「提前返回」不成立，代码继续往下走；
-· 再往下，上面那两处直接写 val.def，没有任何保护 —— 于是抛空引用异常。
-
-换句话说：作者的本意是「角色正忙就别打扰它」，可偏偏当角色**完全没有工作**（curJob == null，
-这在游戏里很常见）时，这段守卫反而放行了，最后撞在 val.def 上。
-
-为什么一局只出现几次、而不是每个角色每 250 tick 都炸？因为要继续往下走，还得同时满足：
-缓存里有需要照顾或救援的人、那个人能被预约、自己没有处在危险中、年龄大于 2 岁……
-全部凑齐才会走到那一行。
-
-实测（2026-10-08 快速测试地图）：一场帝国派系袭击落地后，日志里开始反复出现
-    Exception ticking &lt;角色名&gt; (at (x, 0, z)): System.NullReferenceException
-      at PawnTendAndRescuePatch.Postfix (Verse.Pawn __instance)
-累计 4 条实体 + 51 条重复堆栈折叠，涉及的角色（努斯丰斯 / 杰克 / 厄克 / 洛里）全是刚进场的帝国成员
-—— 该派系与玩家不敌对，因此被这个「帮盟友搭把手」的模组纳入了管辖范围。
-
-本补丁（src/AlliesAreHelpfulCurJobNullFix.cs）用转译器，把那个方法体里每一次「读取 Job.def 字段」
-换成 null 安全的 SafeJobDef(job)：两者在求值栈上完全等价（都是「吃进一个 Job、吐出一个 JobDef」），
-区别只在 job 为 null 时 —— 原来抛异常，现在返回 null。
-于是 val.def != 照顾病人 在 val 为 null 时得到 true，语义正好是「他现在没在做这件事，可以给他安排」，
-与作者的本意一致。另挂一个收尾器兜底，防止将来该模组改版、转译器匹配不上时又去刷红字。
-不引用该模组的任何类型（类型名走字符串 + 反射），模组没装时只打一条 Message 就跳过。
-
-⚠ 一段被推翻的旧结论（留档，免得以后重走弯路）：
-本补丁在 2026-10-08 之前叫 AlliesAreHelpfulNullCacheFix，当时的诊断是
-「那两个静态缓存字段 _cachedTendTargets / _cachedRescueTargets 没有被初始化、初值就是 null」，
-修法是「发现是 null 就填一个空列表」。**那个诊断是错的**：
-把 IL 逐条读出来可以看到 .cctor 有 117 字节 / 29 条指令，其中明确包含
-    newobj List&lt;Pawn&gt;::.ctor
-    stsfld PawnTendAndRescuePatch::_cachedTendTargets
-两个字段在类型初始化之后就已经是空列表；而它们唯一的赋值来源
-GetTendTargets / GetRescueTargets 各只有一个 return，返回的都是当场 new 出来的 List，
-永远不会是 null。两个事实合起来 ⇒ 这两个字段不可能是 null，
-所以旧修法是一个永不生效的空操作，本次已删除。
-（当时误判的原因：反编译器把 .cctor 显示成了 { }，看起来像空方法 ——
- 遇到「静态构造函数是空的」这类结论，一定要再看一眼 IL 指令表。）
-
-【21】RJW 基因扩展在开发者模式下每帧刷屏（2026-10-08 新增）
-模组「RJW 基因扩展 / RJW Genes」（vegapnk.rjw.genes，本机路径 Mods\RJW_基因_核心，v2.7.0）
-只要在开发者模式（-debug）下运行，就会往日志里疯狂打印同一句话：
-    [RJW-Genes] multipreg checks
-实测一局约 30 分钟刷出 31415 行，占整份日志（2.1 MB）的 65%，
-把真正需要排查的异常与警告全埋掉了。
-
-根因（该模组自带源码，直接读到，无需猜测）：
-    1.6\Source\Genes\Patches\MultiplePregnancies.cs 第 26 行
-        if (RJWSettings.DevMode) RJW_Genes.ModLog.Message("multipreg checks");
-这行代码所在的 Harmony Postfix 挂在 PawnExtensions.IsPregnant(Pawn, bool) 上 ——
-「这个角色怀孕了吗」在游戏里每帧都会被问很多次（每个角色、每个相关系统都会问），
-而这句调试输出既没有去重也没有节流，于是问一次就往日志里写一行。
-
-需要注意：这句话外面包着 if (RJWSettings.DevMode)，所以**正常游玩时不会出现**；
-但做深度测试必须开 -debug，一开就被它淹没。而且它每写一行都要落盘一次 I/O，
-本身就在白白吃掉帧时间。
-
-本补丁（src/RjwGenesSpamQuietFix.cs）patch 的是这句日志最终要调用的
-    RJW_Genes.ModLog.Message(string message)
-给它挂一个前缀：当且仅当传进来的字符串正好是 multipreg checks 时跳过原方法，
-其余参数一律放行。已用反编译器在整个 Rjw-Genes.dll 里搜过该字符串常量 ——
-**全库只有一处调用点**，因此不可能误伤其它日志；
-ModLog 类另有 Error / Warning / Debug 三个方法，本补丁一个都不碰，
-该模组真正的报错与警告照常输出。被拦掉的那行字不参与任何游戏逻辑，
-屏蔽它对游戏行为没有任何影响。
-
-</description>
+适用版本　RimWorld 1.6
+前置依赖　Harmony
+作者　　　大赢经直插白皮赢道
+仓库与反馈　https://github.com/1579486875/GNH-LocalFixes</description>
   <modDependencies>
     <li>
       <packageId>brrainz.harmony</packageId>
