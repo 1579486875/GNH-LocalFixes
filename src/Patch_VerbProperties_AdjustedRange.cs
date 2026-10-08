@@ -9,7 +9,7 @@ namespace GNH.LocalFixes
     //
     // 【问题出在哪】
     //
-    // 游戏原本的射程计算方法里，有一句直接使用了「攻击者」这个对象，
+    // 游戏原本的射程计算方法里，有两处直接使用「攻击者」这个对象，
     // 却没有先检查它是不是空的：
     //
     //     float num = (rangeStat == null) ? range : attacker.GetStatValue(rangeStat);
@@ -17,6 +17,16 @@ namespace GNH.LocalFixes
     //     Map mapHeld = attacker.MapHeld;
     //
     // 平时这样没问题，因为算射程的时候总是有个持枪的人。
+    //
+    // 【那到底炸在哪一行】
+    //
+    // 两处都可能，取决于这把武器有没有配 rangeStat（射程属性）：
+    //   · 配了（绝大多数枪械都有）—— 第一行就炸，因为 attacker.GetStatValue 要解引用 attacker；
+    //   · 没配 —— 第一行走的是 `range` 那个分支、根本不碰 attacker，
+    //     于是要往下走到 `attacker.MapHeld` 才炸。
+    //（2026-10-08 反编译逐行核对原方法后更正：原注释把崩溃点笼统写成「上面那两行」，
+    //  读者会以为第一行在 rangeStat 为 null 时也会炸 —— 实际不会。
+    //  不过结论不变：只要 attacker 是 null，这一趟必然在其中一行炸掉。）
     //
     // 【那什么时候会没有攻击者】
     //

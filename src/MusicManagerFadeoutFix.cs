@@ -36,8 +36,13 @@ namespace GNH.LocalFixes
     //     Root level exception in Update(): System.InvalidCastException
     //       at RimWorld.MusicManagerPlay.UpdateMusicFadeout () [0x0008f]
     //
-    // 2026-10-04 那次实测：一个多小时里刷了 109 条，几乎每一帧一条。
-    // 每条异常都要构造、记录、写日志，本身就是纯粹的浪费，会让游戏变卡。
+    // 2026-10-04 那次实测：一个多小时里，这条例外持续不断地出现
+    //（日志系统会把同一位置的重复异常折叠计数，所以日志里记下的条数远小于真实抛出次数）。
+    // 每条异常都要构造、抓堆栈、记录、写日志，本身就是纯粹的浪费，会让游戏变卡。
+    //
+    // ⚠ 原文写的是「刷了 109 条，几乎每一帧一条」—— 这两个数字互相矛盾
+    //  （真按每帧一条算，一小时是二十万数量级）。2026-10-08 核对后删掉具体数字，
+    //   只保留「持续不断」这个能站得住的结论。
     //
     // --------------------------------------------------------------------------
     // 【出问题的那行游戏源码长什么样】
@@ -341,8 +346,8 @@ namespace GNH.LocalFixes
 
             // ---- ① 「乐器」分组：凡是真实类型不是 Building_MusicalInstrument 的，一律摘掉 ----
             //
-            // 注意：游戏返回的就是它内部那张名单本身（不是拷贝），
-            // 所以下面这句 RemoveAt 会真正改动游戏的名单，下一帧就不会再拿到这个脏对象了。
+            // 摘除走的是 RemoveFromGroup → lister.Remove(t)（游戏自己的方法），
+            // 它会真正改动游戏内部那张名单，下一帧就不会再拿到这个脏对象了。
             List<Thing> instruments = lister.ThingsInGroup(ThingRequestGroup.MusicalInstrument);
             if (instruments != null && instruments.Count > 0)
             {
@@ -358,7 +363,7 @@ namespace GNH.LocalFixes
                     }
 
                     AppendDescription(sb, t, i, "乐器分组", ref described);
-                    instruments.RemoveAt(i);
+                    RemoveFromGroup(lister, ThingRequestGroup.MusicalInstrument, t);
                     removed++;
                     removedFromInstruments++;
                 }
@@ -384,7 +389,7 @@ namespace GNH.LocalFixes
                     }
 
                     AppendDescription(sb, t, i, "音乐源分组", ref described);
-                    sources.RemoveAt(i);
+                    RemoveFromGroup(lister, ThingRequestGroup.MusicSource, t);
                     removed++;
                     removedFromSources++;
                 }
@@ -397,6 +402,53 @@ namespace GNH.LocalFixes
 
             return "\n  分组明细：乐器分组摘掉 " + removedFromInstruments + " 个，"
                  + "音乐源分组摘掉 " + removedFromSources + " 个。" + sb;
+        }
+
+        // ----------------------------------------------------------------------
+        // 把一个对象从物品索引里摘掉。
+        //
+        // ⚠⚠ 2026-10-08 修正：原来这里（以及 Patch_ListerThings_Add 那一侧）
+        //    是直接对 ThingsInGroup() 返回的 List 做 Remove / RemoveAt。
+        //    那是错的 —— 它绕过了游戏登记簿自己的维护。已反编译核对
+        //    Verse.ListerThings 的 Add / Remove 两个方法：
+        //
+        //      Add(t)    做三件事：① 填 listsByDef / listsByGroup
+        //                          ② stateHashByGroup[组]++
+        //                          ③ 触发 thingListChangedCallbacks.onThingAdded
+        //      Remove(t) 是它的严格对称面：同样三件事（最后一条是 onThingRemoved）
+        //
+        //    两者的「该不该进这个组」判据也完全一致：Add 用的是私有方法
+        //    GroupIncludes(t, g)，而它的实现就是
+        //        if (use == Region && !g.StoreInRegion()) return false;
+        //        return g.Includes(t.def);
+        //    Remove 里写的正是 (use != Region || g.StoreInRegion()) && g.Includes(t.def)。
+        //    既然脏对象当初是经由 Add 进去的，Remove 就一定认得它、删得掉。
+        //
+        //    为什么非要用游戏自己的 Remove：绕过去只改 List，会让 stateHashByGroup
+        //    与实际内容不同步。本版游戏里读 StateHashOfGroup 的只有围栏/大门那套
+        //    （只关心 Fence / Door / Animal 组），暂时看不出问题；但别的模组一旦
+        //    拿它做缓存失效判断，就会一直读到过期缓存 —— 那正是本文件开头反复强调的
+        //    「别人的共享状态不要污染」。
+        //
+        //    代价：Remove 会遍历全部物品组（几十个），而我们只在真摘掉脏对象时才走
+        //    这一趟 —— 罕见路径，可以接受。
+        // ----------------------------------------------------------------------
+        internal static void RemoveFromGroup(ListerThings lister, ThingRequestGroup group, Thing t)
+        {
+            if (t != null)
+            {
+                lister.Remove(t);
+                return;
+            }
+
+            // 兜底：列表里混进了 null。正常途径进不来（ListerThings.Add 第一步就会
+            // 在 t.def 上空引用），但真出现时不能交给游戏自己的 Remove ——
+            // 它同样会在 t.def 上炸。这种情况只能直接摘。
+            List<Thing> list = lister.ThingsInGroup(group);
+            if (list != null)
+            {
+                list.Remove(null);
+            }
         }
 
         // ----------------------------------------------------------------------
@@ -617,7 +669,7 @@ namespace GNH.LocalFixes
                 if (!(t is Building_MusicalInstrument)
                     && (def.thingClass == InstrumentThingClass || InstrumentThingClass.IsAssignableFrom(def.thingClass)))
                 {
-                    RemoveFromGroup(__instance, ThingRequestGroup.MusicalInstrument, t);
+                    MusicManagerFadeoutFix.RemoveFromGroup(__instance, ThingRequestGroup.MusicalInstrument, t);
                     ReportBadInstrument(t);
                     return;
                 }
@@ -634,7 +686,7 @@ namespace GNH.LocalFixes
                 //    所以这里读到的是现成缓存，不会触发重复计算。
                 if (!(t is IBillGiver) && !def.AllRecipes.NullOrEmpty())
                 {
-                    RemoveFromGroup(__instance, ThingRequestGroup.PotentialBillGiver, t);
+                    MusicManagerFadeoutFix.RemoveFromGroup(__instance, ThingRequestGroup.PotentialBillGiver, t);
                     ReportBadBillGiver(t);
                 }
             }
@@ -643,19 +695,6 @@ namespace GNH.LocalFixes
                 // 用固定 key 的 ErrorOnce：无论触发多少次，日志里最多只会出现一条。
                 Log.ErrorOnce("[GNH LocalFixes] Patch_ListerThings_Add_RejectMislabeledInstrument 出错"
                     + "（已忽略，不影响游戏；音乐淡出的收尾器仍会兜底）：" + ex, PatchErrorLogKey);
-            }
-        }
-
-        // ----------------------------------------------------------------------
-        // 把一个对象从指定的分组名单里摘掉。
-        // 游戏返回的就是内部那张名单本身（不是拷贝），所以 Remove 会真正生效。
-        // ----------------------------------------------------------------------
-        private static void RemoveFromGroup(ListerThings lister, ThingRequestGroup group, Thing t)
-        {
-            List<Thing> list = lister.ThingsInGroup(group);
-            if (list != null)
-            {
-                list.Remove(t);
             }
         }
 

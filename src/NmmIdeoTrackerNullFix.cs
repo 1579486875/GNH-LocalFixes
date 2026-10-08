@@ -115,9 +115,17 @@ namespace GNH.LocalFixes
     //
     // 【为什么不直接引用 NudityMattersMore.dll】
     //
-    // 本补丁包必须能在「NMM 没装 / 被禁用」的情况下照常工作，其余补丁不受牵连。
-    // 一旦在编译期引用它的类型，本程序集里就会出现对该 dll 的依赖，
-    // 运行库枚举类型时可能整批失败（机制见 LocalFixesMod.LoadAllTypesTolerantly 的注释）。
+    // 两条原因：
+    //   1. 这份 dll 压根没有放进 refs\，编译期就取不到它的类型。
+    //      工程只为「确实要继承、或要直接调用其成员」的第三方 dll 才放 refs\
+    //      （目前是 ElToro_BAddon 与 RJW 两份）；本补丁只需要判断一个对象是不是 null，
+    //      不值得为此多背一份 dll 引用。
+    //   2. 本补丁包必须能在「NMM 没装 / 被禁用」的情况下照常工作 ——
+    //      走反射 + AccessTools.TypeByName，找不到目标就置位跳过、只打一条 Message，
+    //      其余补丁一点都不受影响。
+    //      （⚠ 别把它写成「一旦编译期引用了它，运行库枚举类型时就会整批失败」：
+    //        那条口径 2026-10-08 已被推翻 —— 本程序集里引用了 RJW / ElToro 类型的那个类
+    //        照样能被正常枚举出来，详见 LocalFixesMod.LoadAllTypesTolerantly 的注释。）
     // 所以这里全部走反射 + AccessTools.TypeByName：
     //   · 找不到 NudityMattersMore.CoverBody → 直接置位跳过，只打一条 Message；
     //   · 字典用非泛型 IDictionary 接口来操作（Dictionary<int,T> 本来就实现了它），
@@ -402,6 +410,12 @@ namespace GNH.LocalFixes
             catch (Exception)
             {
                 // 前缀里绝不能往外抛 —— 那是把「修 bug 的代码」变成「制造 bug 的代码」。
+                //
+                // 这里**刻意不打日志**（本工程别处的 catch 都要求至少打一条）：
+                //   · 本方法跑在 Pawn 生成路径上，而日志自身也可能抛（磁盘写满、
+                //     日志文件被占用、被别的模组打坏了 Log）—— 在这里打日志等于多引入一个失败点；
+                //   · 这一步失败 ==「没删掉那条残留」== 等同于本补丁没生效，
+                //     真正的后果会由紧随其后的收尾器原样上报，那里才是该报错的地方。
             }
         }
 

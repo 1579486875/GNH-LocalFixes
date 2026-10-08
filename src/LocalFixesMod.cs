@@ -108,19 +108,25 @@ namespace GNH.LocalFixes
         // 也就是说：**一个写日志失败，能把一个本来已经装好的补丁包变成性能炸弹。**
         // 所以这里统一走下面三个壳子：日志成功就正常打印，失败就静静地算了 ——
         // 「没打出日志」是可以接受的，「因为打不出日志而崩掉」不可以。
-        private static void SafeLogMessage(string message)
+        //
+        // ⚠ 2026-10-08 由 private 改成 internal：**别的文件也要用它们**。
+        //   起因是 AssemblyGetTypesFallbackFix 的收尾器里有裸的 Log.Warning，
+        //   而收尾器跑在「别人的方法」里 —— 它一抛，被修的模组反而挂得更惨
+        //   （详见那个文件里 ReportOnce 上面的注释，含实测过程）。
+        //   谁在「不在自己 try/catch 保护内」的位置打日志，就必须用这三个壳子。
+        internal static void SafeLogMessage(string message)
         {
             try { Log.Message(message); }
             catch (Exception) { /* 日志失败只能算了，绝不能因此影响补丁安装 */ }
         }
 
-        private static void SafeLogWarning(string message)
+        internal static void SafeLogWarning(string message)
         {
             try { Log.Warning(message); }
             catch (Exception) { }
         }
 
-        private static void SafeLogError(string message)
+        internal static void SafeLogError(string message)
         {
             try { Log.Error(message); }
             catch (Exception) { }
@@ -143,10 +149,14 @@ namespace GNH.LocalFixes
                     + "falls back to its built-in default (ON). Other fixes are unaffected: " + ex);
             }
 
-            // 再兜一层：把「逐类安装」整个包起来。
+            // 再兜一层：把「逐类安装」这一步包起来。
             //
-            // 里面的 InstallPatchClass 与 TryInstall 都已经各自 try/catch 了，
-            // 而且它们打日志走的是 SafeLog*（自己也不会抛）。
+            // ⚠ 构造函数里其实有【两条】互相独立的安装路径，读注释时别把它们混成一条：
+            //   (a) 下面这个 try 块里的 InstallAllPatchClasses() —— 只管带 [HarmonyPatch]
+            //       特性的那 4 个补丁类，内部由 InstallPatchClass 逐类 try/catch；
+            //   (b) 本 try 块【之后】平铺的那些 TryInstall(...) —— 它们不在这个 try 里，
+            //       也不经过 InstallAllPatchClasses，而是各自由 TryInstall 逐项 try/catch。
+            // 两条路径的每一步都已经自兜了，打日志也都走 SafeLog*（自己不会抛）。
             // 那这里为什么还要再包一层？因为**本构造函数绝不能抛**（原因见上面那段），
             // 而「绝不能抛」这种要求不能建立在「下游每一处都做对了」的假设上 ——
             // 将来有人在 InstallAllPatchClasses 里加了一行会抛的代码，
@@ -175,6 +185,30 @@ namespace GNH.LocalFixes
             // 同时 catch 里**必须**打 Log.Error：那场事故的另一半教训是
             //   「异常被静默吞掉、补丁其实从没生效，却没人知道」。
             //   日志是排查者唯一能看出「这一步没装上」的线索。
+            // 2026-10-08 新增：给 Assembly.GetTypes() 挂一层安全网。
+            //
+            // 现象：每次启动日志里都有
+            //     Exception in post-load event 'Apply final patches':
+            //     System.Reflection.ReflectionTypeLoadException
+            //     Could not resolve type ... 'AchievementsExpanded.TrackerBase'
+            //       at AM.Patches.Patch_Verb_MeleeAttack_ApplyMeleeDamageToTarget.PatchAll()
+            // 近战动画（Melee Animation）会遍历所有已加载的 dll、逐个调 GetTypes()
+            // 挑出「继承了 Verb_MeleeAttack」的类来打补丁，而那句 GetTypes()
+            // **不在它的 try 块里** —— 一抛异常，整个循环当场中断，
+            // 排在后面的 dll 全都不再扫。所以漏掉的不是「某一个补丁」而是一批。
+            //
+            // 根因：Geneva Checklist（工坊 3339044171）把它的成就联动组件
+            // GenevaChecklistAchievements.dll 放进了**无条件加载**的 1.6\Assemblies\，
+            // 而该组件引用的 AchievementsExpanded 程序集并没有装（它自己的
+            // loadfolders.xml 里那一项是带 IfModActive 条件的，而条件目录里又没放 dll）。
+            //
+            // 修法：给 GetTypes() 挂收尾器 —— 正常时什么都不做，
+            // 只在「类型加载失败」时把确认不了的类剔掉、把能用的交出去，
+            // 于是「一整份清单作废」变成「少几个类但清单还能用」。
+            // 完整推导与安全性论证见 AssemblyGetTypesFallbackFix.cs 的文件头注释。
+            // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
+            TryInstall("AssemblyGetTypesFallbackFix", AssemblyGetTypesFallbackFix.Install);
+
             TryInstall("VFEEInstrumentSpaceFix", VFEEInstrumentSpaceFix.Install);
             TryInstall("SteamWorkshopHookFix", SteamWorkshopHookFix.Install);
             TryInstall("CrossPromotionUnpatch", CrossPromotionUnpatch.Install);
@@ -323,10 +357,13 @@ namespace GNH.LocalFixes
         //        它自己的签名是 TryMakePreToilReservations(bool) 与 MakeNewToils()，
         //        用的都是游戏本体的类型。方法体要等真正调用时才解析，与 GetTypes() 无关。
         //        实测把 RJW.dll 与 ElToro_BAddon.dll 全部抽走：GetTypes() 照样成功，
-        //        24 个类型一个不少（连 JobDriver 那个类本身也在）。
+        //        本程序集的类型一个不少（连 JobDriver 那个类本身也在）。
         //
         //        真正会让 GetTypes() 整体失败的是**游戏本体程序集**取不到：
-        //        实测抽走 Assembly-CSharp.dll → 抛 ReflectionTypeLoadException，24 个里只剩 20 个。
+        //        实测抽走 Assembly-CSharp.dll → 抛 ReflectionTypeLoadException，大部分类型取不出来。
+        //        （2026-10-08 更正：原文写的是「24 个类型一个不少」与「24 个里只剩 20 个」。
+        //          这种绝对数字会随源码增删立刻失效 —— 加一个类它就不对了。
+        //          此后这类实测一律用相对表述，不写死个数。）
         //        那种情况下游戏压根没跑起来，轮不到本补丁操心。
         //        但「签名里引用可选模组的类型」这种写法将来完全可能被引入
         //        （只要有人给某个类加一个 ElToro 类型的字段或方法参数就会），
@@ -342,7 +379,7 @@ namespace GNH.LocalFixes
         //   * 每个类成功安装后记进 installedPatchClasses，
         //     下次（热重载 Def / 切换语言导致本模组对象被重新构造时）直接跳过 ——
         //     【2026-10-06 审计更正】这里原先写的是「游戏里每次打开模组管理器都会重新构造」，
-        //     那与文件开头 :29-30 的反编译结论**直接矛盾**，也已复核证伪：
+        //     那与文件开头「为什么要防重复」那一节的反编译结论**直接矛盾**，也已复核证伪：
         //     LoadAllActiveMods 的调用点只有 PlayDataLoader.DoPlayLoad 与 HotReloadDefs 里的委托，
         //     **没有** UI 路径。打开模组页面不会触发这里。
         //     既不会漏装，也不会叠层。

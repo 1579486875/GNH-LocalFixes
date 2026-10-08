@@ -219,6 +219,11 @@ namespace GNH.LocalFixes
 
         private const int ErrorLogKey = 0x58454D46; // "XEMF"
 
+        // 第二个错误键：**显式命名**，不要再写 ErrorLogKey + 1 ——
+        // 「第二个键 = 第一个键 + 1」是个隐式约定，将来有人加第三个键时极易撞号。
+        // 值仍然由 ErrorLogKey 推导，保证两者永不重复。
+        private const int ErrorLogKeyRestoreFailed = ErrorLogKey + 1;
+
         // ----------------------------------------------------------------------
         // 一次「临时改名」的现场记录。
         //
@@ -422,7 +427,7 @@ namespace GNH.LocalFixes
             {
                 // 还原失败影响也很小：那个节点里存的是 DLC 的实际名，下次同样能匹配成功。
                 Log.ErrorOnce("[GNH LocalFixes] XmlExtensionsFindModFix.Postfix 还原 mods 失败"
-                    + "（影响很小）：" + ex, ErrorLogKey + 1);
+                    + "（影响很小）：" + ex, ErrorLogKeyRestoreFailed);
             }
         }
 

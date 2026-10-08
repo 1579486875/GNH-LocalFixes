@@ -95,8 +95,8 @@ namespace GNH.LocalFixes
         /// <summary>
         /// 「WorkshopItemHook 的字段找不到」专用键。
         ///
-        /// 为什么必须与上面那个分开（2026-10-05 复审查出）：本文件上方 :90-92 的注释
-        /// 自己写下了规则 ——「两条错误消息必须各用各的键，共用一个键的话，
+        /// 为什么必须与上面那个分开（2026-10-05 复审查出）：就在上面 ErrorKeyFieldsNotFound
+        /// 那一行的上方，注释已经写下了规则 ——「两条错误消息必须各用各的键，共用一个键的话，
         /// 后出现的那条会被静默丢掉，而它往往正是最需要看到的一条」——
         /// 但代码里两处传的却是同一个键，等于亲手把那条规则推翻了。
         ///
@@ -126,10 +126,18 @@ namespace GNH.LocalFixes
         /// <summary>
         /// workshopHookInt 的**强类型读写委托**，用来替掉热路径上的 FieldInfo.GetValue。
         ///
-        /// 为什么值得单独做一个：GetWorkshopItemHook 在「模组」页面里是
-        /// **每帧 × 每个模组**被调用的（本机约 1146 个模组，即每秒上万次）。
+        /// 为什么值得单独做一个：GetWorkshopItemHook 会被反复取用 ——
+        /// 已反编译核对，它的唯一调用点是 ModMetaData.CanToUploadToWorkshop()，
+        /// 而模组列表每次重绘都会逐个模组问一遍「这个能不能上传」。
         /// FieldInfo.GetValue 每次都要走一遍反射的参数检查与装箱/拆箱；
         /// 而 FieldRefAccess 生成的是强类型委托，调用它跟直接写 `obj.field` 差不多快。
+        ///
+        /// ⚠ 2026-10-08 更正：这里原先写的是「在模组页面里**每帧 × 每个模组**被调用
+        ///   （1146 个模组，即每秒上万次）」。那句话没有经过反编译核对，
+        ///   **量级高估了好几个数量级**（真实调用点在 ModMetaData.CanToUploadToWorkshop，
+        ///   只在模组详情判定「能不能上传」时才会走到）。
+        ///   优化方向本身仍然成立（换强类型委托只会更快、不会有副作用），
+        ///   只是收益比原先写的小 —— 但把错数字留在注释里比收益估计不准更糟。
         ///
         /// 拿不到时（原版改了字段名或类型）保持 null，下面的代码会自动退回
         /// FieldInfo 反射路径 —— 慢一点，但功能完全不变。
@@ -150,9 +158,15 @@ namespace GNH.LocalFixes
         ///
         /// 为什么不能只用 authorField != null 来判断（2026-10-04 审计查出的性能坑）：
         /// 万一原版把这个字段改了名，authorField 会**永远是 null**，于是下面那段
-        /// 「没有就查一次」变成「每次调用都查一次」。而 GetWorkshopItemHook 在模组页面里
-        /// 是**每帧 × 每个模组**被调用的（本机 1146 个模组），那就是每帧上千次反射元数据查找。
+        /// 「没有就查一次」变成「每次调用都查一次」。而 GetWorkshopItemHook 会被反复问到
+        /// （它的唯一调用点是 ModMetaData.CanToUploadToWorkshop，模组列表每次重绘都会
+        /// 逐个模组问一遍「这个能不能上传」），那样就成了一轮又一轮的反射元数据查找。
         /// 用一个独立的标志把「查过」和「查到了」分开记。
+        ///
+        /// ⚠ 2026-10-08 更正：这里原先写的是「在模组页面里是**每帧 × 每个模组**被调用的
+        ///   （本机 1146 个模组），那就是每帧上千次反射元数据查找」—— 该量级经反编译核对后
+        ///   不成立（详见 cacheFieldRef 的注释）。结论不变：必须用独立标志区分
+        ///   「查过」与「查到了」。
         /// </summary>
         private static bool authorFieldResolved;
 
@@ -344,8 +358,8 @@ namespace GNH.LocalFixes
                 // 拿字段本身是不是 null 当「查过」的标志，会让「原版改了字段名」
                 // 这种情形退化成**每次调用都重查一遍反射**。
                 // 而 AccessTools.Field 内部是 FindIncludingBaseTypes(...GetField...)，
-                // 毫无缓存（已用反编译核实）—— 这正是本文件 :113-118 自己指出过的坑，
-                // 只是先前只修了 authorField，把这两个漏了。
+                // 毫无缓存（已用反编译核实）—— 这正是本文件 cacheField / cacheFieldRef
+                // 那两段注释自己指出过的坑，只是先前只修了 authorField，把这两个漏了。
                 if (!hookFieldsResolved)
                 {
                     hookFieldsResolved = true;
@@ -370,13 +384,20 @@ namespace GNH.LocalFixes
                     // 这时就放弃接管，老老实实走游戏原本的路径。
                     // 注意这里用**独立的键**：这条比上面那条严重得多
                     //（回退到原版路径 = 回到会崩的状态），不能被上面的键吞掉。
+                    // 把「到底哪个字段没找到」一并写出来：
+                    // 只报「字段找不到」的话，将来游戏改版时根本无从下手。
+                    // （2026-10-08 顺带修掉一处笔误：原文末尾留了个悬空的 ": "，后面却什么都没有。）
                     Log.ErrorOnce("[GNH LocalFixes] Workshop hook fields not found; falling back to the "
-                        + "vanilla path, which may crash the mods page: ",
+                        + "vanilla path, which may crash the mods page. cacheField="
+                        + ((cacheField == null) ? "MISSING" : "ok")
+                        + ", ownerField=" + ((ownerField == null) ? "MISSING" : "ok"),
                         ErrorKeyHookFieldsMissing);
                     return true;
                 }
 
-                // 读缓存字段：优先走强类型委托（热路径，每秒上万次），没有就退回反射。
+                // 读缓存字段：优先走强类型委托，没有就退回反射。
+                // （原文这里接着写「热路径，每秒上万次」—— 那个量级 2026-10-08 已被推翻，
+                //   详见 cacheFieldRef 的注释。换强类型委托仍然只赚不亏，只是收益比原先写的小。）
                 WorkshopItemHook hook = (cacheFieldRef != null)
                     ? cacheFieldRef(__instance)
                     : (WorkshopItemHook)cacheField.GetValue(__instance);

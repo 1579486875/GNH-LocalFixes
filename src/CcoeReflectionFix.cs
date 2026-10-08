@@ -310,8 +310,14 @@ namespace GNH.LocalFixes
     // 已反编译确认它只被 PlayDataLoader 调用一次），那时 VariousDefOf 能正常初始化。
     // 本工程已有先例：VehicleFrameworkDebugFix 也是用这个特性装的。
     //
-    // 注意：这个特性由 CLR 保证只跑一次，所以本类**不需要**额外守卫；
-    // 而 CcoeReflectionFix.Install() 内部那个 `installed` 标记继续保留，
+    // 注意：本类**不需要**额外守卫。真正保证「只跑一次」的是 CLR 对静态构造函数的
+    // 语义（同一个类型的 .cctor 至多执行一次），而游戏那句
+    //     RuntimeHelpers.RunClassConstructor(...)
+    // 正是踩在这个语义上；[StaticConstructorOnStartup] **本身只是「被 CallAll 枚举到」
+    // 的标记，不是它在保证只跑一次**。
+    // ⚠ 本工程 LocalFixesMod.cs 里已经把「CLR 不会因为程序集被加载就去跑静态构造函数」
+    //   这条更正过了，两处口径必须一致 —— 别再退回旧说法。
+    // CcoeReflectionFix.Install() 内部那个 `installed` 标记继续保留，
     // 是为了万一将来又从别处调它时不至于重复打补丁。
     [StaticConstructorOnStartup]
     internal static class CcoeReflectionFixLateInstaller

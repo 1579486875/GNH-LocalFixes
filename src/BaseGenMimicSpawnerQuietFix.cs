@@ -303,9 +303,15 @@ namespace GNH.LocalFixes
                 }
 
                 // 参数必须正好是 SymbolStack 里那个嵌套的 Element。
-                // 两种名字写法（+ 与 .）都接受，免得被 .NET 的命名规则绊倒。
+                //
+                // ⚠ 只比对「+」这一种写法就够了 —— .NET 的 Type.FullName 对嵌套类型
+                //   一律是「外层+内层」，**永远不可能出现「.」的写法**（本文件上面已写明这点）。
+                //   这里原先还比对了 ElementTypeNameDot，那是一个永远不可能命中的死分支，
+                //   2026-10-08 清掉。
+                //   点号那个常量本身仍然留着 —— 它只用在「找不到目标」的日志文案里，
+                //   是打印给人看的，不是判据。
                 string declared = ps[0].ParameterType.FullName;
-                if (declared == ElementTypeNamePlus || declared == ElementTypeNameDot)
+                if (declared == ElementTypeNamePlus)
                 {
                     return m;
                 }
