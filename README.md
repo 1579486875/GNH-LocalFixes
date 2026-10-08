@@ -5,7 +5,7 @@
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`GNH-本地修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.23**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.3.24**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
 ## 构建与部署
 
@@ -37,11 +37,29 @@
 > 它们的签名里出现 `GUIContent`，少这两个就编不过。`tools\sync-refs.ps1` 已经把它们
 > 一起同步，csproj 里也加了「缺了就报错」的前置检查。
 
-## 十九项修复
+## 二十一项修复
 
-十九项互相独立，均为最小侵入，可整体或逐项停用。
+二十一项互相独立，均为最小侵入，可整体或逐项停用。
 
-> **本版（v1.3.23，2026-10-07）的重点变更**
+> **本版（v1.3.24，2026-10-08）的重点变更**
+> 
+> · **新增第 20 项 —— 一开殖民地就刷 `NullReferenceException`。**
+>   `Allies are Helpful`（盟友来帮忙）的 `PawnTendAndRescuePatch.Postfix`
+>   在校验「缓存里有没有目标」时，把本该是 `||` 的地方写成了 `&&`，
+>   而它的静态构造函数是空的、两个缓存字段从始至终都是 `null`；
+>   于是**每个殖民者每次 tick 都抛一次空引用**。
+>   本补丁在它的收尾函数前面垫一道「缓存为空就先塞空表」的保险，
+>   **不改动它的任何判断逻辑**，它原本想做的那件事照旧。
+> 
+> · **新增第 21 项 —— 日志被 `[RJW-Genes] multipreg checks` 刷爆。**
+>   RJW 基因核心在开发者模式下把同一句话打印了 **31,415 次**，
+>   占掉整份日志的 65%（2.16 MB 里的约 1.4 MB），而且**每行都是一次磁盘写入** ——
+>   这既是噪音也是实打实的性能负担。本补丁只拦这一句，其余日志一字不动；
+>   并且**第一次拦截时会打印一句说明**，不静默吞掉。
+> 
+> ---
+> 
+> **上一版（v1.3.23，2026-10-07）的重点变更**
 > 
 > · **第 3 项 VFEE 爵位补丁已重写。** 旧版按 `defName` 定位，命中的是「被 VFE 改成抽象模板的那几个原版 def」；
 >   真正生效的 def 没有 `defName`、靠 `ParentName` 继承出来，拿不到旧版写进去的值。
@@ -86,6 +104,8 @@
 | 17 | **Onahole 的 mimic 生成器刷「Could not find any RuleDef」**：模组把「1×1 小格子四边各内缩 2 格」得到的空矩形推给 `mimicSpawner` 符号，而 resolver 要求宽高 ≥ 1，于是必然拒绝。警告的字面意思（找不到 RuleDef）是误导的 —— 规则一直都在 | `src/BaseGenMimicSpawnerQuietFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
 | 18 | **金鸢尾兰「某不知名的沙皇」生成后变成智人**：`OASFC_BasePawn` 只写了 `race=Ratkin`、没有 `xenotypeSet`，生成时回退成默认的 Baseliner，鼠耳与尾巴全没了 | `Patches/OASFC_TsarXenotypeFix.xml` |
 | 19 | **打开「意识形态」页面刷 `Could not load Texture2D` + NRE**：雪兔纹身 `SR_HuoShu_Tattoo_Slot1` 的 `iconPath` 写成大写 `S`，磁盘上却是小写 `s`；RimWorld 查贴图走的是启动时建的内存字典、精确匹配字符串，**不看文件系统**，所以大小写不一致照样 miss | `Patches/SnowRabbitTattooIconFix.xml` |
+| 20 | **一开殖民地就刷 `Exception ticking ...: NullReferenceException`**：`Allies are Helpful`（盟友来帮忙）的 `PawnTendAndRescuePatch.Postfix` 校验缓存时 `&&` 写成了 `||`，而它的静态构造函数是空的、缓存字段恒为 `null` —— 于是每个殖民者每次 tick 都抛一次 | `src/AlliesAreHelpfulNullCacheFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
+| 21 | **日志被 `[RJW-Genes] multipreg checks` 刷爆**：开发者模式下这一句打印了 **31,415 次**（占整份日志的 65%、约 1.4 MB），每行还各带一次磁盘写入 | `src/RjwGenesSpamQuietFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
 
 ### 第 16 项：同一进程里连续开新局会卡死在殖民者生成（2026-10-06）
 

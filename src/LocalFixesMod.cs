@@ -238,6 +238,56 @@ namespace GNH.LocalFixes
             // 详见 BaseGenMimicSpawnerQuietFix.cs 的文件头注释（含完整的证据链）。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
             TryInstall("BaseGenMimicSpawnerQuietFix", BaseGenMimicSpawnerQuietFix.Install);
+
+            // 2026-10-08 新增：修「Allies are Helpful」的一处空引用笔误。
+            //
+            // 触发场景（本轮快速测试地图实测抓到）：一场帝国派系袭击落地之后，
+            // 日志里开始出现
+            //     Exception ticking <角色名> (at (x, 0, z)): System.NullReferenceException
+            //       at PawnTendAndRescuePatch.Postfix (Verse.Pawn __instance)
+            // 实测 4 条 + 51 条重复堆栈折叠，涉及的角色全是刚进场的帝国成员。
+            //
+            // 根因（已用反编译逐行核对，完整证据链见补丁类的文件头注释）：
+            // 该模组的两个私有静态缓存字段 _cachedTendTargets / _cachedRescueTargets
+            // 在静态构造函数里**没有被初始化**（.cctor 是空的），初始值就是 null；
+            // 而它的 UpdateCache() 与 Postfix() 里各有一处把 null 当成 List 去取 .Count
+            // 的笔误（该用 || 的地方写成了 &&）。只要在一次「缓存还没建起来」的窗口里
+            // 走进那段判断，就会抛空引用并中断该角色的 TickRare。
+            //
+            // 修法与安全性：只在这两个字段是 null 时把它们换成一个空列表 ——
+            // 而这正是作者本来想表达的状态（暂时没有需要照顾 / 救援的目标）；
+            // 缓存有内容时一个字节都不改动，下次 UpdateCache() 刷新时照常覆盖。
+            // 对第三方 dll 零编译期依赖（类型名与字段名全部走字符串 + 反射），
+            // 模组没装时只打一条 Message 就直接跳过。
+            // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
+            TryInstall("AlliesAreHelpfulNullCacheFix", AlliesAreHelpfulNullCacheFix.Install);
+
+            // 2026-10-08 新增：消掉「RJW 基因扩展」在开发者模式下每帧刷的那句调试输出。
+            //
+            // 现象：只要用 -debug 启动，日志里就会被
+            //     [RJW-Genes] multipreg checks
+            // 刷爆。实测一局 30 分钟刷了 31415 条，占整份日志的 65%（约 2.1 MB 里的 1.4 MB），
+            // 把真正要看的问题全埋掉了。
+            //
+            // 根因（该模组自带源码，直接读到，不用猜）：
+            //     1.6\Source\Genes\Patches\MultiplePregnancies.cs 第 26 行
+            //         if (RJWSettings.DevMode) RJW_Genes.ModLog.Message("multipreg checks");
+            // 它挂在 PawnExtensions.IsPregnant(Pawn, bool) 这个**每帧都会被问很多次**的
+            // 高频方法上，而这句调试输出既没有去重也没有节流 —— 于是问一次写一行。
+            //
+            // 注意：这句话外面包着 if (RJWSettings.DevMode)，所以**正常游玩不会出现**；
+            // 但深度测试必须开 -debug，一开就被它淹没。而且它每写一行都要落盘一次，
+            // 本身就在白白吃掉帧时间。
+            //
+            // 修法：patch 这句日志最终调用的 RJW_Genes.ModLog.Message(string)，
+            // 只在这个字符串正好是 "multipreg checks" 时跳过原方法，
+            // 其余参数一律放行。已用反编译确认该字符串在整个 Rjw-Genes.dll 里**只有一处**，
+            // 所以不可能误伤其它日志；该类另有 Error / Warning / Debug 三个方法，本补丁一个都不碰。
+            // 被拦掉的那行字不参与任何游戏逻辑，屏蔽它对游戏行为没有影响。
+            // 对第三方 dll 零编译期依赖（类型名与字符串全部走反射 / 常量），
+            // 模组没装时只打一条 Message 就直接跳过。
+            // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
+            TryInstall("RjwGenesSpamQuietFix", RjwGenesSpamQuietFix.Install);
         }
 
         // ======================================================================

@@ -8,7 +8,7 @@
     <LangVersion>9.0</LangVersion>
     <AssemblyName>GNH.LocalFixes</AssemblyName>
     <RootNamespace>GNH.LocalFixes</RootNamespace>
-    <Version>1.3.23</Version>
+    <Version>1.3.24</Version>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DebugType>none</DebugType>
     <!-- 编译产物不掺入 git 提交号：相同源码在任何机器上都编译出完全相同的 dll -->
