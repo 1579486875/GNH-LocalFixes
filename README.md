@@ -370,7 +370,40 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 二十二项互相独立，均为最小侵入，可整体或逐项停用。
 
-> **本版（v1.3.26，2026-10-08）的重点变更 —— 新增第 22 项：一个通用的「类型清单」安全网**
+> **本版（v1.3.27，2026-10-10）的重点变更 —— 新增第 23 项：三处「开发者模式专属」的配置自检噪音**
+> 
+> · **起因**：全量扫描日志时发现三条 `Config error`。它们只在开发者模式出现
+>   （`DoPlayLoad` 里 `if (Prefs.DevMode)` 那段 `ErrorCheckAllDefs`），
+>   本身不致命，却会把真正的问题埋在红字堆里。
+> 
+> · **三处，性质各不相同**：
+>   1. **[BLD] Quantum Cooling Redux 的大型量子冷却器 / 加热器** ——
+>      `passability=Impassable` 却 `fillPercent=0.50`。这一条**有实际玩法影响**：
+>      子弹能穿过它打中后面的人，敌人也能隔着它看见你。同文件里另外三台
+>      小型设备都是 `PassThroughOnly`，可见是「大型」这两台的疏漏。
+>   2. **Amor Tentaculum 的 `softresin`** —— 它写的是
+>      `ParentName="ResourceVerbBase"`，从**原版 Core** 的基类继承了
+>      `equipmentType`，自己却没有任何 verbs / tools。而它实际是材料
+>      （stuff，Woody）+ 植入体（techHediff），根本不是装备。
+>   3. **`Sex_MC_UAP` 的 label** —— 原版字段是干净的 `vaginal`，
+>      是**汉化**注入了 `面对面体位 [锁链牵颈]`。RimWorld 检查的是
+>      **注入之后**的 label，所以原版看不出来、注入后才炸。
+> 
+> · **修法**：一律补上原版**自己提供**的豁免字段
+>   （`disableImpassableShotOverConfigError` /
+>   `ignoreIllegalLabelCharacterConfigError` / `equipmentType=None`），
+>   **不碰翻译文本、不改游戏性**。每个 xpath 都带 `not(字段名)` 前置条件
+>   保证幂等，且全部**平铺**而非套进 `PatchOperationSequence`
+>   —— Sequence 的语义是「任一子操作失败即中止后续」，模组一旦没装，
+>   第一条失败就会连累后面全部不执行。
+> 
+> · **顺带修掉 3 个翻译文件里的描述首尾空白**：`ROBTRG_Milkyo` 尾随 CRLF、
+>   `RJW_Gastronomy_Bimbo_Icecream` 前导空格。这两处没法用 XML 补丁修 ——
+>   `PatchOperation` 只能改 `<Defs>`，够不到 `Languages` 下的翻译文件。
+> 
+> · 前 22 项一字未动。
+
+> **上一版（v1.3.26，2026-10-08）的重点变更 —— 新增第 22 项：一个通用的「类型清单」安全网**
 > 
 > · **起因**：日志里每次启动都有一条
 >   `Exception in post-load event 'Apply final patches': ReflectionTypeLoadException`，

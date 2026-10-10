@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+
+  <!--
+    消掉三处「只有开发者模式才会报」的 Config error。
+
+    ── 为什么要修这个 ──
+
+    RimWorld 的 Def.ConfigErrors() 是一套静态自检，只在 PlayDataLoader 的
+    `if (Prefs.DevMode)` 分支里被调用（见 DoPlayLoad 的 "Error check all defs." 段）。
+    所以这三条在普通玩家那里根本不出现 —— 但本机开着开发者模式，
+    它们会以红字把真正的问题埋掉。
+
+    这三条都不是「模组坏了」，而是「作者没写某个可选字段」。
+    修复方式一律是补上原版自己提供的那个字段，不改变任何游戏行为。
+
+    ── 判据来源（反编译 Verse 的 ConfigErrors，逐条核对过）──
+
+      ThingDef.ConfigErrors:
+        Fillage != Full && passability == Impassable && !IsDoor
+        && BuildableByPlayer && !disableImpassableShotOverConfigError
+        -> "impassable, player-buildable building that can be shot/seen over."
+
+      ThingDef.ConfigErrors:
+        equipmentType != EquipmentType.None && verbs.NullOrEmpty() && tools.NullOrEmpty()
+        -> "is equipment but has no verbs or tools"
+
+      Def.ConfigErrors:
+        label != null && !ignoreIllegalLabelCharacterConfigError
+        && DisallowedLabelCharsRegex.IsMatch(label)
+        -> "label contains illegal character(s): []{} ..."
+
+    ── 三个安全设计 ──
+
+    1. 全部平铺成独立 Operation，不套 PatchOperationSequence。
+       Sequence 的语义是「任一子操作失败即中止后续」，而本补丁每个 xpath
+       都带 not(...) 前置条件：作者自己补了字段、或模组没装时，xpath 会
+       匹配 0 个节点、该操作返回 false。若放进同一个 Sequence，第一条失败
+       就会连累后面全部不执行。平铺则互不影响 —— 这是踩过的坑，别再改回去。
+
+    2. 每个 xpath 都带 not(字段名)，本补丁幂等；作者修好后自动失效。
+
+    3. 每个 Operation 都带 success=Always：模组没装 / def 被删 / 结构变化时
+       安静地什么都不做，而不是反过来制造一条新红字。
+       xpath 已写死精确 defName，不会误伤别的模组，所以没有再用
+       PatchOperationFindMod —— 那个是按 ModMetaData.Name（显示名）匹配的
+       （已反编译确认：ModLister.HasActiveModWithName 里是 mod.Name == name），
+       显示名一改守卫就失效，不如不用。
+  -->
+
+  <!-- ================================================================
+       A. [BLD] Quantum Cooling Redux   (Alaestor.QuantumCooling)
+          工坊 2293503296
+
+          四台量子温控设备里，「大型」那两台用了
+              passability = Impassable      （不可通过）
+              fillPercent = 0.50            （却只填满一半）
+          而同文件的 Proto / Small / Generator 都是 PassThroughOnly，不报错。
+
+          真实影响（不只是红字）：3x1 的大冷却器「挡路却挡不住子弹和视线」——
+          子弹能穿过它打中后面的人，敌人也能隔着它看见你。原版专为此报错。
+
+          这里用原版豁免开关，而不是把 fillPercent 改成 1.0：
+          后者会把设备变成实心掩体，属于改动游戏性，超出打补丁的范围。
+          若你确实想让它挡子弹，把这两处换成 fillPercent 1.0 即可 ——
+          但那是你在改玩法，不是修 bug。
+       ================================================================ -->
+
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[defName="QC_QuantumCooler_Large" and not(disableImpassableShotOverConfigError)]</xpath>
+    <value>
+      <disableImpassableShotOverConfigError>true</disableImpassableShotOverConfigError>
+    </value>
+  </Operation>
+
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[defName="QC_QuantumHeater_Large" and not(disableImpassableShotOverConfigError)]</xpath>
+    <value>
+      <disableImpassableShotOverConfigError>true</disableImpassableShotOverConfigError>
+    </value>
+  </Operation>
+
+  <!-- ================================================================
+       B. Amor Tentaculum（RJW-玩法-爱神触手）
+          文件：1.6\Defs\Things\Resin.xml
+
+          defName = softresin 的 ThingDef 写的是
+              <ThingDef ParentName="ResourceVerbBase">
+          —— ResourceVerbBase 是原版 Core 的基类（只在 Core 里定义），
+          它带着 equipmentType（非 None）。而 softresin 自己没写任何
+          verbs / tools，于是继承来了「是装备」却不具备装备应有的攻击方式。
+
+          但它根本不是装备：它是 stuff（可当建材，categories=Woody）
+          + techHediff（可植入，techHediffsTags=Poor）。
+          所以正确修法就是显式声明它不是装备。
+
+          覆盖继承值必须写在这个 def 自己身上 —— PatchOperationAdd 正好把
+          字段挂到该 ThingDef 内，优先级高于 ParentName 继承，符合 RimWorld
+          的 XML 继承语义。
+       ================================================================ -->
+
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[defName="softresin" and not(equipmentType)]</xpath>
+    <value>
+      <equipmentType>None</equipmentType>
+    </value>
+  </Operation>
+
+  <!-- ================================================================
+       C. Sex_MC_UAP 的 label 非法字符 —— 注意：问题出在汉化，不在模组
+
+          defName = Sex_MC_UAP 的原版 label 是 "vaginal"，干净。
+          但汉化给它注入了带方括号的文本：
+              RJW_动画_兽耳屋动画支持\...\DefInjected\InteractionDef\
+                  Sex_Missionary [Chained].xml
+              -> <Sex_MC_UAP.label>面对面体位 [锁链牵颈]</Sex_MC_UAP.label>
+              RJW_动画_UAP终极动画包\... 同结构（注入 "阴道性交"，无方括号）
+
+          RimWorld 检查的是注入之后的 def.label（ConfigErrors 在
+          InjectIntoData_AfterImpliedDefs 之后才跑），所以原版字段看不出问题，
+          注入后才炸。汉化加方括号是有意为之（补充说明），不该去改翻译文本；
+          正确做法就是用原版为此提供的豁免开关。
+
+          两个模组各定义了一份同名 def，xpath 是全局匹配的，
+          同一条即可命中两份定义，无需区分来源。
+       ================================================================ -->
+
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/InteractionDef[defName="Sex_MC_UAP" and not(ignoreIllegalLabelCharacterConfigError)]</xpath>
+    <value>
+      <ignoreIllegalLabelCharacterConfigError>true</ignoreIllegalLabelCharacterConfigError>
+    </value>
+  </Operation>
+
+</Patch>
