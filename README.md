@@ -370,7 +370,36 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 二十二项互相独立，均为最小侵入，可整体或逐项停用。
 
-> **本版（v1.3.27，2026-10-10）的重点变更 —— 新增第 23 项：三处「开发者模式专属」的配置自检噪音**
+> **本版（v1.3.28，2026-10-10）的重点变更 —— 新增第 24 项：两个动物遗传模组抢同一批 defName**
+> 
+> · **症状**：同时启用「生物大师的ElToro Patches」与 telanda 的 RJW Animal Gene
+>   Inheritance 后，日志刷 `Adding duplicate RJW_BGS.RaceGeneDef name: ...`。
+> 
+> · **根因（比"报个错"严重得多）**：RimWorld 遇到重名 def **不是忽略后者，而是给它改随机名** ——
+>   `DefDatabase<T>.Add` 里是 `while (已存在同名) { def.defName += Rand(0..1000); }`。
+>   于是那 25 个基因**每次启动名字都不同**，所有按名引用它们的地方（存档、其它模组的
+>   XML）全部失配。
+> 
+> · **实测规模**：Mask 定义了 25 个，telanda 定义 39 个，**25 个完全重名**。
+>   Mask 作者其实写了 `DefaultRJWGenesRemoval.xml` 想处理，但只列了 7 个、漏了 18 个，
+>   而且其中一个 `Racoon` 还拼错了（telanda 写的是 `Raccoon`，两个 c）—— 那条从未命中。
+> 
+> · **修法**：hook `LoadedModManager.LoadModXML`，在 XML 合并成统一文档**之前**，
+>   把 **telanda 一侧**、名字落在重名名单里的 `RJW_BGS.RaceGeneDef` 节点剔掉。
+>   于是 25 个重名项只剩 Mask 那一份（它的改版数据生效），而 telanda 独有的 14 个
+>   原样保留 —— 尤其是 `FallbackGenes`（它的代码里有一句
+>   `GetNamed("FallbackGenes", true)`，第二个参数是找不到就报错，绝不能删）。
+> 
+> · **配套（双保险）**：还补了一份 `RJW_BGS.RaceGeneDef` /
+>   `BestialityGeneInheritanceDef` 的类型定义 —— 万一 telanda 没启用，那些引用它的
+>   XML（RJW-Genes 自己的 44 处 + Mask 的 25 处）也能正常加载、不再刷
+>   `Type RJW_BGS.RaceGeneDef is not a Def type`。为避免"两个程序集同名类型"
+>   导致解析到我们这份、反把 telanda 的 `DefDatabase<它的类型>` 变成空表，
+>   另加一个 `GenTypes.GetTypeInAnyAssembly` 前置补丁：**只要 telanda 在场就一律用它的类型**。
+> 
+> · 前 23 项一字未动。
+
+> **上一版（v1.3.27，2026-10-10）的重点变更 —— 新增第 23 项：三处「开发者模式专属」的配置自检噪音**
 > 
 > · **起因**：全量扫描日志时发现三条 `Config error`。它们只在开发者模式出现
 >   （`DoPlayLoad` 里 `if (Prefs.DevMode)` 那段 `ErrorCheckAllDefs`），

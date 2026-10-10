@@ -486,6 +486,8 @@ namespace GNH.LocalFixes
             "GNH.LocalFixes.Patch_ListerThings_Add_RejectMislabeledInstrument",
             "GNH.LocalFixes.Patch_IdeoFoundation_KeepLeaderTitle",
             "GNH.LocalFixes.Patch_VerbProperties_AdjustedRange",
+            "GNH.LocalFixes.Patch_GenTypes_PreferTelanda",
+            "GNH.LocalFixes.Patch_LoadModXML_FilterTelandaGenes",
         };
 
         private static Type[] LoadKnownPatchClassesTolerantly(Assembly assembly)
