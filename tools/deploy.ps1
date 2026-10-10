@@ -32,7 +32,7 @@
 
 param(
     [string]$ModsDir = 'D:\steam\steamapps\common\RimWorld\Mods',
-    [string]$DeployName = 'GNH-本地修复补丁',
+    [string]$DeployName = '模组兼容修复补丁',
     [string]$Configuration = 'Release',
     [switch]$Force
 )
@@ -146,10 +146,20 @@ foreach ($item in @('About', 'Assemblies', 'Patches')) {
     Write-Host ("  copied " + $item + "\")
 }
 
-$readme = Join-Path $src 'README.md'
-if (Test-Path -LiteralPath $readme) {
-    Copy-Item -LiteralPath $readme -Destination $dst -Force
-    Write-Host '  copied README.md'
+# ---- 根目录下的说明文件 ------------------------------------------------------
+#
+# 这三个文件从【工程根目录】取，不是从 bin\ 取：csproj 只为 README.md 配了
+# CopyToOutputDirectory，LICENSE 与 技术说明.md 根本不在构建输出里。
+# 若照旧写 Join-Path $src，会静默漏掉后两个（Test-Path 不成立就跳过），
+# 部署目录于是比仓库少东西 —— 这类「少文件」最难发现，日志里什么都不打印。
+foreach ($rf in @('README.md', 'LICENSE', '技术说明.md')) {
+    $p = Join-Path $root $rf
+    if (Test-Path -LiteralPath $p) {
+        Copy-Item -LiteralPath $p -Destination $dst -Force
+        Write-Host ("  copied " + $rf)
+    } else {
+        Write-Host ("  MISSING root file: " + $p) -ForegroundColor Yellow
+    }
 }
 
 # ---- 报告 -------------------------------------------------------------------

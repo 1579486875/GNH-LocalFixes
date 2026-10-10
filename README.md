@@ -1,4 +1,4 @@
-﻿# GNH 本地修复补丁（GNH.LocalFixes）
+﻿# 模组兼容修复补丁（GNH.LocalFixes）
 
 > **22 个针对性修复 —— 每一项都对应一次真实故障，每一项都独立生效。**
 
@@ -41,14 +41,14 @@
 
 ### 创意工坊订阅（推荐）
 
-在创意工坊搜「本地修复补丁」订阅即可。**记得同时订阅 Harmony**（如果还没装）。
+在创意工坊搜「模组兼容修复补丁」订阅即可。**记得同时订阅 Harmony**（如果还没装）。
 
 ### 手动安装
 
 **第 1 步**：确认已经装了 **Harmony**。
 绝大多数整合包都自带；没有的话去创意工坊订阅（搜 `Harmony`，作者 Andreas Pardeike）。
 
-**第 2 步**：把 `GNH-本地修复补丁` 这个文件夹整个放进 RimWorld 的模组目录：
+**第 2 步**：把 `模组兼容修复补丁` 这个文件夹整个放进 RimWorld 的模组目录：
 
 ```
 <你的 Steam 库>\steamapps\common\RimWorld\Mods\
@@ -58,7 +58,7 @@
 
 ```
 Mods\
-└── GNH-本地修复补丁\
+└── 模组兼容修复补丁\
     ├── About\
     │   └── About.xml
     ├── Assemblies\
@@ -67,7 +67,7 @@ Mods\
         └── （6 个 XML 补丁）
 ```
 
-**第 3 步**：启动游戏 → 主菜单点「模组」→ 找到「本地修复补丁」→ 勾选启用。
+**第 3 步**：启动游戏 → 主菜单点「模组」→ 找到「模组兼容修复补丁」→ 勾选启用。
 
 **排序**：把它放在**模组列表靠下的位置**（Harmony 之后，最好也在被它修复的那些模组之后）。
 About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理对；
@@ -83,7 +83,7 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 
 ### 唯一的设置项
 
-**选项 → 模组设置 → GNH 本地修复补丁**
+**选项 → 模组设置 → 模组兼容修复补丁**
 
 | 设置 | 默认 | 说明 |
 |---|---|---|
@@ -325,12 +325,12 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 >
 > **普通玩家不需要读这一部分。** 想快速了解修了什么，看上面的「22 项修复速览」就够了。
 
-## GNH 本地修复补丁（GNH.LocalFixes）
+## 模组兼容修复补丁（GNH.LocalFixes）
 
 > **📦 下载**：[最新版本（Release）](https://github.com/1579486875/GNH-LocalFixes/releases/latest) —— 下载 zip，解压后放进 `Mods\` 目录即可（内含编译好的 dll，需要 Harmony）。
 
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
-部署目录名：`GNH-本地修复补丁`（放进 RimWorld 的 `Mods\` 目录）
+部署目录名：`模组兼容修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
 - 模组版本：**1.3.26**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
@@ -342,12 +342,14 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
     bin\Release\
       About\About.xml                ← 模组元数据
+      About\Preview.png              ← 创意工坊封面图
+      About\ModIcon.png              ← 游戏内模组列表的小图标
       Assemblies\GNH.LocalFixes.dll  ← RimWorld 只从这个目录加载程序集
       Patches\*.xml                  ← 纯 XML 补丁
       README.md
       GNH.LocalFixes.dll             ← 编译器在根目录留的那一份，RimWorld 不读它，可无视
 
-整体复制到 `RimWorld\Mods\GNH-本地修复补丁\` 即可。也可以直接用 `tools\deploy.ps1`
+整体复制到 `RimWorld\Mods\模组兼容修复补丁\` 即可。也可以直接用 `tools\deploy.ps1`
 （备份旧文件后复制，并会先检查游戏是否正在运行）。
 
 > **`Assemblies\` 那一层不能少。** RimWorld 不读模组根目录下的 dll ——

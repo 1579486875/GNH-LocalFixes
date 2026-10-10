@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-  <name>本地修复补丁</name>
+  <name>模组兼容修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
@@ -55,7 +55,7 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 · 建议排在模组列表靠下的位置（Harmony 之后，最好也在它要修的那些模组之后）。
 · 想只保留一部分：Patches 目录下是 6 个 XML 补丁，Assemblies 目录里是一个 dll。
   两者互不依赖 —— 删掉哪一部分，就只有那一部分对应的修复不再生效，其余照常。
-· 「选项 → 模组设置 → GNH 本地修复补丁」里有一个开关：
+· 「选项 → 模组设置 → 模组兼容修复补丁」里有一个开关：
   保护自定义的领袖头衔（默认开启）。
 · 启动后在日志里搜 [GNH LocalFixes]。它会逐条打印
   「装上了什么 / 跳过了什么 / 哪一步失败了」—— 出问题第一时间看这里。
