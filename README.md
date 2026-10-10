@@ -1,4 +1,4 @@
-﻿# 模组兼容修复补丁（GNH.LocalFixes）
+# 模组兼容修复补丁（GNH.LocalFixes）
 
 > **22 个针对性修复 —— 每一项都对应一次真实故障，每一项都独立生效。**
 
@@ -370,7 +370,71 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 二十二项互相独立，均为最小侵入，可整体或逐项停用。
 
-> **本版（v1.3.28，2026-10-10）的重点变更 —— 新增第 24 项：两个动物遗传模组抢同一批 defName**
+> **本版（v1.3.29，2026-10-10）的重点变更 —— 撤回 v1.3.28 的「补类型」做法，改为分场景处理**
+> 
+> · **事故（v1.3.28 首次实测即卡死）**：日志精确停在第一个 `RJW_BGS.RaceGeneDef`
+>   节点（Mask 的 `Muffalo`）本该报 `Type ... is not a Def type` 的那一行，此后
+>   **24 分钟零输出**，内存却从 2.1 GB 一路涨到 4.3 GB，直到重启电脑才结束。
+>   与 v1.3.27 的完整日志逐行对齐即可看清：两轮在同一位置（因新增两行自检而偏移
+>   +26 行）分叉 —— v1.3.27 继续正常推进到 14745 行，v1.3.28 停在第 2365 行。
+> 
+> · **根因**：v1.3.28 为了消红字，给那两个类型名补了同名定义，于是那 25 个 def 从
+>   「解析不了、被安全跳过」变成「真的被构造并塞进 `DefDatabase`」—— 两轮唯一的
+>   行为差异就是这一处。
+> 
+> · **⚠ 一个关键认识**：**只把前置补丁改成「放行」是不够的**。
+>   `GenTypes.GetTypeInAnyAssembly` 的原版实现会遍历**所有已加载程序集**，
+>   只要本 DLL 里存在这个类型，它照样会被找到并解析成功。
+>   所以必须让类型**真的不存在**。
+> 
+> · **修法（三步）**：
+>   1. **删掉** `src\RaceGeneDefCompat.cs`（那份兜底类型定义）—— 类型不再存在；
+>   2. `Patch_GenTypes_PreferTelanda` 只保留「telanda 在场时定向到它的类型」，
+>      telanda 缺席时**不兜底**，交还原版逻辑；
+>   3. `Patch_LoadModXML_FilterTelandaGenes` 扩成两种场景 ——
+>      **两个都在场** → 只剔 telanda 那 25 个重名的（原逻辑不变）；
+>      **只有 Mask 在场** → 把它那批 `RJW_BGS.RaceGeneDef` **整批摘掉**。
+> 
+> · **为什么「不加载」才是对的**：那批数据在 telanda 缺席时**没有任何代码消费**
+>   （已反编译核对：1.6 的 `Rjw-Genes.dll` 里 `RJW_BGS` 出现 **0 次**）——
+>   让它们加载成功换不来任何功能，只会换来报错，以及这次的卡死。
+>   顺带一提，Mask 自带的 `DefaultRJWGenesRemoval.xml` 用的是绝对路径 xpath
+>   （`/Defs/RJW_BGS.RaceGeneDef[defName="Canine"]`）且**没有 FindMod 守卫**，
+>   telanda 缺席时它删的其实是 **Mask 自己**的 6 个 def（第 7 条 `Racoon` 因拼写
+>   错误从未命中）；一旦我们摘掉那些节点，它又会因「找不到节点」反过来刷红字 ——
+>   所以把这个补丁文件的文档元素一并清空。
+> 
+> · **想要那个功能怎么办**：启用 `telanda.rjw.animalgeneinheritance` 即可 ——
+>   那时走场景一，Mask 的改版数据胜出、双方独有内容一个不少。
+>   只用 Mask 而不装 telanda 时，该功能**本来就不存在**：实现它的 6 个 Harmony
+>   补丁全在 telanda 的 dll 里，那 25 份表只是给它准备的数据。
+> 
+> · **同期修掉的另一个隐藏 bug（packageId 大小写）**：本版实测发现
+>   `IsModActive("Mask.ElToro.Patches")` **永远返回 false** ——
+>   因为 RimWorld 会把 packageId 规范化成小写（ModsConfig.xml 里实际存的是
+>   `mask.eltoro.patches`，而模组自己的 About.xml 写的是 `Mask.ElToro.Patches`）。
+>   也就是说 **v1.3.28 那套「重名过滤」其实一次都没生效过**，
+>   只因当时 telanda 一直关着才没暴露。排查线索很明确：启动日志里
+>   **一条 `unloaded on purpose` 都没有**。
+>   现已把常量改成小写、比较统一改用 `OrdinalIgnoreCase`。
+> 
+> · **验证**：
+>   1. 新 dll 里 `RJW_BGS` 命名空间与 `RaceGeneDef` 类型均为 **0**（反编译核对），
+>      日志中自检仍列出 `Patch_GenTypes_PreferTelanda` 与
+>      `Patch_LoadModXML_FilterTelandaGenes` 两个补丁类；
+>   2. **卡死点已实测越过**：v1.3.28 的日志停在 2365 行（`Parsed 0.5 as int.`）再无输出，
+>      而 v1.3.29 在同一偏移下继续打印到 2367–2370 行（含那条 `not a Def type`），
+>      与 v1.3.27 的正常日志逐行吻合；
+>   3. 场景二生效后（packageId 修复），那条 `not a Def type` 也应随之消失 ——
+>      判据是启动日志里出现 `Left Mask.ElToro.Patches' ... unloaded on purpose`。
+> 
+> · 第 24 项已按上述改写；前 23 项一字未动。
+
+> **上一版（v1.3.28，2026-10-10）的重点变更 —— 新增第 24 项：两个动物遗传模组抢同一批 defName**
+>
+> ⚠ **注意：该版的「配套（双保险）」一段已被 v1.3.29 撤回** —— 补同名类型会让游戏卡死，
+> 实测证据与新的做法见上面 v1.3.29 那一段。下面的「修法」一段（剔 telanda 重名节点）
+> 仍然有效，且被 v1.3.29 原样保留为「场景一」。
 > 
 > · **症状**：同时启用「生物大师的ElToro Patches」与 telanda 的 RJW Animal Gene
 >   Inheritance 后，日志刷 `Adding duplicate RJW_BGS.RaceGeneDef name: ...`。
