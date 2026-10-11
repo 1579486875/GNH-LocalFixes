@@ -370,7 +370,35 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 二十二项互相独立，均为最小侵入，可整体或逐项停用。
 
-> **本版（v1.3.29，2026-10-10）的重点变更 —— 撤回 v1.3.28 的「补类型」做法，改为分场景处理**
+> **本版（v1.3.30，2026-10-11）的重点变更 —— 新增第 25 项：雪兔系列公共库的渲染并发缺陷**
+> 
+> · **症状**：一局日志被刷到 **12.8 MB / 199,045 行**，其中
+>   `System.IndexOutOfRangeException` **42,987** 次、`IndexOutOfRangeException` **28,655** 次，
+>   另有 1531 条 `Exception drawing <角色名>`；屏幕上部分角色（人与动物都有）
+>   每次绘制都抛异常、干脆不显示。
+> 
+> · **根因**：`SRCELib.dll`（由「雪兔商品扩展——花花兔子公司」提供，工坊 3748316169，
+>   packageId `SnowRabbit.CommodityExpansionPB`）里，`HediffComp_ChangeBodyRatio` 用两个
+>   **全游戏共享的静态容器**做缓存 —— 一个 `Dictionary<Pawn, …>`、一个 `HashSet<Pawn>`，
+>   而 `TryGetComp()` 会在「首次遇到某个角色」时往它们里写，**全程没有任何锁**。
+>   这个方法又被它自己的两个 Postfix 从**渲染路径**调用
+>   （`PawnRenderNodeWorker.OffsetFor` / `ScaleFor`），并行渲染下两个线程同时扩容
+>   同一个 `HashSet` 就会越界；`.NET` 甚至直接报了
+>   `A concurrent update was performed on this collection and corrupted its state`。
+> 
+> · **为什么时有时无**：它只在「某角色第一次进入渲染管线」那一瞬间、两个线程恰好
+>   同时决定要写它时才会撞上；写成功后都走只读路径。所以同一批角色会反复炸
+>   （异常时 `Add` 没完成，下次还会重试），换一局换一批角色就可能完全安静。
+> 
+> · **修法**：在它外面套一把锁 —— Prefix 进锁、**Finalizer** 出锁。
+>   用 Finalizer 而不是 Postfix 释放锁，是为了让「原方法抛异常时也一定解锁」，
+>   否则会从「偶尔刷屏」恶化成「必然死锁」。
+>   对第三方 dll **零编译期依赖**（类型名走字符串 + `AccessTools.TypeByName`），
+>   SRCELib 不在场时只打一条 Message 就跳过。
+> 
+> · 前 24 项一字未动。
+
+> **上一版（v1.3.29，2026-10-10）的重点变更 —— 撤回 v1.3.28 的「补类型」做法，改为分场景处理**
 > 
 > · **事故（v1.3.28 首次实测即卡死）**：日志精确停在第一个 `RJW_BGS.RaceGeneDef`
 >   节点（Mask 的 `Muffalo`）本该报 `Type ... is not a Def type` 的那一行，此后

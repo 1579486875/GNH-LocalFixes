@@ -330,6 +330,34 @@ namespace GNH.LocalFixes
             // 模组没装时只打一条 Message 就直接跳过。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
             TryInstall("RjwGenesSpamQuietFix", RjwGenesSpamQuietFix.Install);
+
+            // 2026-10-11 新增：修掉「雪兔系列」公共库 SRCELib 的并发缺陷。
+            //
+            // 现象：一局日志被刷到 12.8 MB / 199,045 行，其中
+            //     System.IndexOutOfRangeException   42,987 次
+            //     IndexOutOfRangeException          28,655 次
+            // 以及 1531 条 "Exception drawing <角色名>" —— 屏幕上部分角色（人和动物都有）
+            // 每次绘制都抛异常、干脆不显示，而日志被彻底淹没。
+            //
+            // 根因：SRCELib.dll（由模组「雪兔商品扩展——花花兔子公司」提供，
+            // 工坊 3748316169，packageId = SnowRabbit.CommodityExpansionPB）里，
+            // HediffComp_ChangeBodyRatio 用两个**全游戏共享的静态容器**做缓存：
+            //     static Dictionary<Pawn, HediffComp_ChangeBodyRatio> activeComps;
+            //     static HashSet<Pawn> pawnsWithoutComp;
+            // 而 TryGetComp() 会在「首次遇到某个角色」时往它们里写，全程没有任何锁。
+            // 这个方法又被它自己的两个 Postfix 从**渲染路径**调用
+            //（PawnRenderNodeWorker.OffsetFor / ScaleFor）—— 并行渲染下两个线程
+            // 同时扩容同一个 HashSet，就会抛 IndexOutOfRangeException。
+            // .NET 甚至直接报了 "A concurrent update was performed on this collection
+            // and corrupted its state"，等于官方认定这是并发写坏了集合。
+            //
+            // 修法：在它外面套一把锁（Prefix 进锁 + Finalizer 出锁）。
+            // 用 Finalizer 而不是 Postfix 释放锁，是为了让「原方法抛异常时也一定解锁」——
+            // 否则会从「偶尔刷屏」恶化成「必然死锁」，比原来的 bug 更糟。
+            // 对第三方 dll 零编译期依赖（类型名走字符串 + TypeByName），
+            // SRCELib 不在场时只打一条 Message 就直接跳过。
+            // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
+            TryInstall("SrceLibConcurrencyFix", SrceLibConcurrencyFix.Install);
         }
 
         // ======================================================================
