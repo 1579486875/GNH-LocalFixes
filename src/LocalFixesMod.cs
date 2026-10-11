@@ -675,13 +675,17 @@ namespace GNH.LocalFixes
         /// <summary>
         /// 取翻译；取不到就回退到写死的中文。
         ///
-        /// 【为什么要在 Translate() 外面再包一层】
-        ///   Verse 的 "键名".Translate() 在**找不到这个键**的时候，
-        ///   会把**键名本身**原样返回（同时往日志里记一条）。
-        ///   那样界面就会显示成 "GNH_LocalFixes_SettingsCategory"
-        ///   这种给机器看的东西 —— 比英文还难懂。
-        ///   所以这里把「返回值和键名一模一样」当作「没找到」，改用兜底中文：
-        ///   翻译文件丢了、目录名写错了、玩家选了第三种语言，界面都还是中文。
+        /// 【为什么用 TryTranslate 而不是 Translate】
+        ///   无参的 "键名".Translate() 在**找不到这个键**的时候，
+        ///   会把**键名本身**原样返回 —— 界面就会显示成
+        ///   "GNH_LocalFixes_SettingsCategory" 这种给机器看的东西，比英文还难懂。
+        ///   更麻烦的是：开发者模式下它还会把返回值交给 PseudoTranslated()
+        ///   逐字母"变音化"（GNH_LòçàlFìxéš_…），于是**连「返回值和键名相同」
+        ///   这个判断都会失效**（本机 Prefs.devMode = True，已按反编译确认）。
+        ///
+        ///   而 TryTranslate(out result) 给出的是一个明确的 bool：
+        ///   找到了才是 true；没找到时 result 是键名，并且**不做变音处理**。
+        ///   拿这个 bool 判断，既不依赖字符串比较，也不受开发者模式影响。
         ///
         /// 【为什么不直接抛异常】
         ///   本方法是在**绘制设置窗口**时被调用的。GUI 绘制流程里抛异常，
@@ -692,8 +696,12 @@ namespace GNH.LocalFixes
         {
             try
             {
-                string text = key.Translate();
-                return (string.IsNullOrEmpty(text) || text == key) ? chineseFallback : text;
+                TaggedString text;
+                if (key.TryTranslate(out text) && !text.RawText.NullOrEmpty())
+                {
+                    return text.RawText;
+                }
+                return chineseFallback;
             }
             catch
             {
