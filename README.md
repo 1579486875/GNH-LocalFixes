@@ -264,7 +264,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 ---
 
-## 📋 22 项修复速览
+## 📋 26 项修复速览
 
 （完整版见 [技术说明.md](技术说明.md)）
 
@@ -291,6 +291,11 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 19 | 雪兔纹身图标 | `iconPath` 大小写与磁盘文件名不符，文化界面刷红字 | 改回磁盘上真实的名字 |
 | 20 | Allies are Helpful 的空引用 | 角色「当前没有工作」时那道守卫失效，随后直接读空对象 | 把那几次读取改成 null 安全 |
 | 21 | RJW 基因扩展的调试刷屏 | 每帧问一次的「怀孕了吗」里留了无节流调试输出，开发者模式下一局刷 3 万行 | 只拦那一句，报错警告一条不少 |
+| 22 | 近战动画的补丁整批没装上 | 某个模组引用了不存在的程序集，「列类型清单」整体失败，把也在扫类型的模组一起打断 | 把失败的那几个跳过，让清单还能用 |
+| 23 | 三处「只有开发者模式才会报」的自检噪音 | 量子温控设备挡不住子弹与视线（有玩法影响）、树脂被当装备却没有攻击方式、汉化给交互标签加了方括号 | 各自补上原版自带的豁免字段，不改玩法 |
+| 24 | 两个动物遗传模组抢同一批 defName | 游戏遇重名不是忽略、而是给后来的追加随机数字，25 个基因名字每次启动都不同 | 按在场情况分两种处理，双方独有的定义一个不动 |
+| 25 | 雪兔系列公共库的渲染并发缺陷 | SRCELib 用两个全局静态容器做缓存却无锁，被自己的渲染补丁每帧调用 | 给那个方法套一把锁（前缀进锁、收尾器出锁） |
+| 26 | Guards For Me 的行为树节点复制转错类型 | DeepCopy 从原版复制时忘改强转目标，基类其实是兄弟类，每次加载三条红字且整棵子树没复制进来 | 用 Transpiler 只换两条 IL 指令的目标类型 |
 
 ---
 
@@ -366,10 +371,43 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 > 它们的签名里出现 `GUIContent`，少这两个就编不过。`tools\sync-refs.ps1` 已经把它们
 > 一起同步，csproj 里也加了「缺了就报错」的前置检查。
 
-## 二十二项修复
+## 二十六项修复
 
-二十二项互相独立，均为最小侵入，可整体或逐项停用。
+二十六项互相独立，均为最小侵入，可整体或逐项停用。
 
+> **本版（v1.3.31，2026-10-11）的重点变更 —— 新增第 26 项：Guards For Me 的 DeepCopy 类型转换错误**
+>
+> · **症状**：每次进游戏（Def 加载阶段）都留三条红字 ——
+>   `Error while resolving references for def Nivarian_ThinkTree:
+>   System.InvalidCastException: Specified cast is not valid.`，
+>   `Nivarian_MechUnit_ThinkTree` 与 `PAS_PoweredApparelMaintenance` 同样。
+>
+> · **根因**：`GuardsForMe.dll`（**Guards For Me**，作者 aRandomKiwi，工坊 **1855885448**，
+>   packageId `aRandomKiwi.GuardsForMe`，版本 3.0.10）里
+>   `JobGiver_IdleCombat.DeepCopy` 是从原版 `JobGiver_Idle.DeepCopy`
+>   **整段复制**来的 —— 连变量名都只把 `obj` 改成 `val`，
+>   **唯独忘了把强转的目标类型一起改**。而它的直接基类其实是
+>   `ThinkNode_JobGiver`（与 `JobGiver_Idle` 是**兄弟关系，不是父子关系**），
+>   所以 `(JobGiver_Idle)base.DeepCopy(resolve)` **必然**抛 `InvalidCastException`。
+>   更决定性的是原版 `ThinkNode.DeepCopy` 用的是
+>   `Activator.CreateInstance(GetType())` —— `GetType()` 取运行时类型，
+>   所以返回的实例**永远是** `JobGiver_IdleCombat`，这个强转没有任何成功可能。
+>
+> · **影响不只是日志噪音**：抛异常的位置在 `ResolveSubnodes`，
+>   而它的职责正是**把 Subtree 引用的节点深拷贝进来**。
+>   异常一抛，**整棵子树都没被复制成功** ——
+>   这三棵行为树是残缺的，用到它们的种族（涅瓦莲、PasserRace）的
+>   AI 行为会实实在在地缺失。
+>
+> · **修法**：用 **Transpiler 只替换两条 IL 指令的 operand**
+>   （`castclass` 与 `stfld` 的目标类型），改完即等价于作者本想写的那份代码。
+>   采用「**先整表扫描、两条都恰好命中一次才动手**」的两段式写法 ——
+>   作者哪天真把这个 bug 修好了，本补丁会**自动退化为什么都不做**，
+>   绝不会把已经正确的代码改坏。
+>
+> · **给作者的修复建议（源码级，改一个词）**：把 `DeepCopy` 里
+>   `val` 的声明类型与强转类型从 `JobGiver_Idle` 换成 `JobGiver_IdleCombat`，其余一个字都不用动。
+>
 > **本版（v1.3.30，2026-10-11）的重点变更 —— 新增第 25 项：雪兔系列公共库的渲染并发缺陷**
 > 
 > · **症状**：一局日志被刷到 **12.8 MB / 199,045 行**，其中

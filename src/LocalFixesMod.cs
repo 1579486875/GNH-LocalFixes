@@ -358,6 +358,31 @@ namespace GNH.LocalFixes
             // SRCELib 不在场时只打一条 Message 就直接跳过。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
             TryInstall("SrceLibConcurrencyFix", SrceLibConcurrencyFix.Install);
+
+            // ------------------------------------------------------------------
+            // 【26】Guards For Me（aRandomKiwi.GFM）的 DeepCopy 类型转换错误
+            // ------------------------------------------------------------------
+            // 现象：每次进游戏都留这几条红字 ——
+            //     Error while resolving references for def Nivarian_ThinkTree:
+            //         System.InvalidCastException: Specified cast is not valid.
+            //     ... Nivarian_MechUnit_ThinkTree / PAS_PoweredApparelMaintenance 同样
+            //
+            // 根因：GuardsForMe.dll（工坊 1855885448，版本 3.0.10）里的
+            // JobGiver_IdleCombat.DeepCopy 是从原版 JobGiver_Idle.DeepCopy 复制来的，
+            // 复制时只把变量名 obj 改成了 val，**忘了把强转的目标类型一起改**。
+            // 而它真正的直接基类是 ThinkNode_JobGiver（与原版 JobGiver_Idle 是兄弟关系，
+            // 不是父子关系），所以 (JobGiver_Idle)base.DeepCopy(resolve) 必然抛异常。
+            //
+            // 影响：抛异常的位置在 ResolveSubnodes —— 它的职责是把 Subtree 引用的
+            // 节点深拷贝进来。异常一抛，那整棵子树就没被复制，这三棵行为树是残缺的，
+            // 用到它们的种族（涅瓦莲、PasserRace）的 AI 行为会实实在在地缺失。
+            //
+            // 修法：Transpiler 只替换两条 IL 指令（castclass 与 stfld 的目标类型）。
+            // 采用「先整表扫描、两条都恰好命中一次才修改」的两段式写法，
+            // 所以作者哪天真修好了，本补丁会自动退化为什么都不做。
+            // 对 GuardsForMe.dll 零编译期依赖（类型 / 方法 / 字段全走反射查找）。
+            // 本步幂等：Install() 内部有自己的静态守卫。
+            TryInstall("GfmIdleCombatDeepCopyFix", GfmIdleCombatDeepCopyFix.Install);
         }
 
         // ======================================================================
