@@ -337,7 +337,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`模组兼容修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.26**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.3.31**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
 ## 构建与部署
 
