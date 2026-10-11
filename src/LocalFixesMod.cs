@@ -713,6 +713,22 @@ namespace GNH.LocalFixes
                     + "想给某个文化换一个头衔：把头衔清空（或临时关掉本开关）再点一次「随机符号」即可。");
             settings.keepLeaderTitle = keepLeaderTitle;
 
+            listing.Gap(12f);
+
+            bool fixVfeeInstrumentSpace = settings.fixVfeeInstrumentSpace;
+            listing.CheckboxLabeled(
+                "修复 VFE Empire「乐器空间」的空引用崩溃",
+                ref fixVfeeInstrumentSpace,
+                "开启时：给 VFE Empire 那句会崩的判断补上空值保护。"
+                    + "九个用到「乐器空间」的爵位（Archcount / Marquess / Archduke / "
+                    + "Magister / Despot / HighStellarch 等）的房间需求才能正常工作。\n\n"
+                    + "关闭后：完全交还原版逻辑。\n\n"
+                    + "★ 多数情况下不需要手动关这一项：本补丁会先探测"
+                    + "「原版那句判断现在还崩不崩」，一旦发现它已经安全"
+                    + "（多半是 VFE Empire 自己修好了），就会自动让路、什么都不做。"
+                    + "这个开关只在「作者改了判断逻辑本身的写法」时才用得上。");
+            settings.fixVfeeInstrumentSpace = fixVfeeInstrumentSpace;
+
             listing.End();
         }
     }

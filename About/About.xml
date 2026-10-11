@@ -4,7 +4,7 @@
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.3.31</modVersion>
+  <modVersion>1.3.32</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
@@ -28,7 +28,7 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 【2】CeleTech 智能切换武器 —— 原版射程计算不判空，每 15 tick 崩一次 —— 加空值守卫
 【3】VFE Empire 爵位层级 —— 另一个模组把爵位扩展整片清空，16 个爵位在层级里全塌成同一档 —— 按「实际生效的 def」逐条补回
 【4】Vehicle Framework 开发者面板 —— 拿「显示名{defName}」整串去查 Def，成片红字 —— 先解析出纯 defName 再查
-【5】VFE Empire 乐器空间 —— placeWorkers 为 null 时直接 Contains，静态构造崩 —— 只替换那句判断
+【5】VFE Empire 乐器空间 —— placeWorkers 为 null 时直接 Contains，静态构造崩 —— 只替换那句判断。★ 它自带「自动让路」：先探测原版那句判断还崩不崩，不崩了就什么都不做（VFE Empire 修好即自动失效）；另有独立开关可手动关闭
 【6】打开「模组配置」页即崩溃 —— CrossPromotion 调了 Steam 已废弃接口 —— 让这处调用不再被挂上那个前缀
 【7】RJW 动物动画悬空引用 —— 模组删了 Rotti，动画定义里还列着 —— 摘掉那两处死条目
 【8】被「禁用房间要求」连累而失效的功能 —— 前一步补丁失败，后面的全被跳过 —— 补做 VFE 的钢琴、营火、石棺

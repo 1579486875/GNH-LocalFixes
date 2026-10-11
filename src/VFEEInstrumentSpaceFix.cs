@@ -64,6 +64,115 @@ namespace GNH.LocalFixes
 
         private static bool installed;
 
+        // ── 「作者修好后自动让路」的实现（2026-10-11 加）─────────────────
+        //
+        // 探测结果缓存：null = 还没探测过。
+        // 只探测一次 —— 它要遍历几万个 ThingDef，而调用方在 VFEE 的静态构造
+        // 期间会对每一个 def 各问一次，不缓存就等于重复做几万次全表扫描。
+        private static bool? originalIsSafe;
+
+        /// <summary>
+        /// 用户在「模组设置」里的开关。
+        ///
+        /// 每次都现读、不缓存：设置对象是在模组构造函数里建起来的，
+        /// 而静态构造可能比它更早，缓存会读到 null。
+        /// 读不到设置对象时按「开启」处理 —— 宁可多修，也不要因为设置
+        /// 还没就绪就把保护悄悄撤掉。
+        /// </summary>
+        private static bool FeatureEnabled
+        {
+            get
+            {
+                GNHLocalFixesSettings settings = LocalFixesMod.Settings;
+                return (settings == null) || settings.fixVfeeInstrumentSpace;
+            }
+        }
+
+        /// <summary>
+        /// 探测「原版那句判断现在还会不会崩」。
+        ///
+        /// 【原版为什么会崩】
+        ///   VFE Empire 的写法是：先把 def.placeWorkers 取出来，再对它调用
+        ///   「有没有包含某某」。而从没声明过 placeWorkers 的 ThingDef，
+        ///   那个字段是 **null**（不是空列表）—— 对着 null 调方法就抛空引用异常。
+        ///   另外列表里若混进 null 元素，同样会出问题。
+        ///
+        /// 【本探测做什么】
+        ///   把全部 ThingDef 扫一遍，看还有没有上面这两种情况：
+        ///     · 找到任何一个  → 原版仍会崩 → 我们继续接管（保持现状）；
+        ///     · 一个都没有    → 原版已经安全（多半是作者自己修好了）
+        ///                     → 我们 **return true 让路**，什么都不做。
+        ///
+        ///   这就是本项修复的「自动停用」：**VFE Empire 修好之后，本补丁自动失效。**
+        ///
+        /// 【保守原则】
+        ///   探测本身出任何差错（Def 库没就绪、抛异常），一律当作「原版不安全」，
+        ///   继续由我们保护 —— 绝不因为探测代码自己的问题把保护撤掉。
+        /// </summary>
+        private static bool OriginalPredicateIsSafe()
+        {
+            if (originalIsSafe.HasValue)
+            {
+                return originalIsSafe.Value;
+            }
+
+            bool safe = true;
+            try
+            {
+                List<ThingDef> all = DefDatabase<ThingDef>.AllDefsListForReading;
+                if (all == null || all.Count == 0)
+                {
+                    // Def 库还没准备好：当作不安全，继续保护。
+                    originalIsSafe = false;
+                    return false;
+                }
+
+                for (int i = 0; i < all.Count; i++)
+                {
+                    ThingDef def = all[i];
+                    if (def == null)
+                    {
+                        continue;
+                    }
+
+                    List<Type> workers = def.placeWorkers;
+                    if (workers == null)
+                    {
+                        safe = false;   // 原版会对 null 调方法 → 必崩
+                        break;
+                    }
+
+                    for (int j = 0; j < workers.Count; j++)
+                    {
+                        if (workers[j] == null)
+                        {
+                            safe = false;   // 列表里有空元素 → 也可能出问题
+                            break;
+                        }
+                    }
+
+                    if (!safe)
+                    {
+                        break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("[GNH LocalFixes] InstrumentSpace safety probe failed;"
+                    + " keeping the protective patch active (conservative): " + ex.Message);
+                safe = false;
+            }
+
+            originalIsSafe = safe;
+            Log.Message(safe
+                ? "[GNH LocalFixes] InstrumentSpace probe: the vanilla predicate is now null-safe"
+                    + " (VFE Empire appears to have fixed it), so this fix stands down and does nothing."
+                : "[GNH LocalFixes] InstrumentSpace probe: the vanilla predicate is still not null-safe,"
+                    + " so this fix stays active.");
+            return safe;
+        }
+
         internal static void Install()
         {
             if (installed)
@@ -167,15 +276,35 @@ namespace GNH.LocalFixes
         // 这个方法顶替掉原来那句判断：
         //     原来：直接查 placeWorkers 里有没有包含跳舞地板（碰到空值会崩）
         //     现在：先看是不是空，是空就直接返回「不是」，否则再正常查
+        //
+        // 【两种情况下我们什么都不做、把原版放回去（2026-10-11 加）】
+        //   1. 用户在模组设置里关掉了这一项；
+        //   2. 探测发现原版那句判断**已经不会崩**了
+        //      —— 多半是 VFE Empire 自己修好了。
+        //   第 2 条就是「作者修好后本补丁自动失效」，不必等本补丁包更新。
         private static bool PredicatePrefix(ThingDef def, ref bool __result)
         {
+            if (!FeatureEnabled || OriginalPredicateIsSafe())
+            {
+                return true;   // 交还原版
+            }
+
             __result = HasDanceFloorWorker(def);
             return false;
         }
 
         // 保底方案：跳过那个会崩的初始化，由我们自己把列表填好。
+        //
+        // 与方案一同样受「用户开关」和「原版是否已安全」这两道约束：
+        // 任一条件成立就让原版自己跑。否则作者把初始化修好之后，
+        // 这条保底路径反而会把作者修好的那套初始化整个抢掉。
         private static bool InitializerPrefix()
         {
+            if (!FeatureEnabled || OriginalPredicateIsSafe())
+            {
+                return true;   // 交还原版
+            }
+
             try
             {
                 Type outer = AccessTools.TypeByName(OuterTypeName);
