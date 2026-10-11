@@ -72,6 +72,13 @@ namespace GNH.LocalFixes
         private static bool? originalIsSafe;
 
         /// <summary>
+        /// 探测结论要可信，至少得看到这么多 ThingDef。
+        /// 取 100 是刻意保守：任何真实环境（纯原版 + 少量 DLC）的 ThingDef 数量都远超它，
+        /// 所以不会误伤正常环境；只有「库还没装载完」这种异常时刻才会拦住结论。
+        /// </summary>
+        private const int MinDefsForTrustworthyProbe = 100;
+
+        /// <summary>
         /// 用户在「模组设置」里的开关。
         ///
         /// 每次都现读、不缓存：设置对象是在模组构造函数里建起来的，
@@ -120,10 +127,22 @@ namespace GNH.LocalFixes
             try
             {
                 List<ThingDef> all = DefDatabase<ThingDef>.AllDefsListForReading;
-                if (all == null || all.Count == 0)
+                if (all == null || all.Count < MinDefsForTrustworthyProbe)
                 {
-                    // Def 库还没准备好：当作不安全，继续保护。
+                    // Def 库还没装载完（本类的探测是在 VFE 的静态构造里被顺带触发的，
+                    // 那个时机未必等于「全部 def 都已就位」）。
+                    // 这次只看到一部分 def，「没发现问题」这个结论就不能作数 ——
+                    // 漏掉的恰恰可能是真正会崩的那些。所以一律当作不安全，继续保护。
+                    //
+                    // 这个结论照常缓存：它偏向保守（继续保护），即使库随后补齐，
+                    // 代价也只是我们多保护一段（本补丁本身就是修 bug 的，无害）；
+                    // 反过来若不缓存，而 PredicatePrefix 会被调用几万次
+                    //（VFE 的静态构造对每个 def 各问一次），就会退化成几万次全表扫描。
                     originalIsSafe = false;
+                    LocalFixesMod.SafeLogWarning(
+                        "[GNH LocalFixes] InstrumentSpace probe deferred: only "
+                        + all.Count + " ThingDefs visible so far (need at least "
+                        + MinDefsForTrustworthyProbe + "); keeping the protective patch active.");
                     return false;
                 }
 
@@ -159,13 +178,13 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Warning("[GNH LocalFixes] InstrumentSpace safety probe failed;"
+                LocalFixesMod.SafeLogWarning("[GNH LocalFixes] InstrumentSpace safety probe failed;"
                     + " keeping the protective patch active (conservative): " + ex.Message);
                 safe = false;
             }
 
             originalIsSafe = safe;
-            Log.Message(safe
+            LocalFixesMod.SafeLogMessage(safe
                 ? "[GNH LocalFixes] InstrumentSpace probe: the vanilla predicate is now null-safe"
                     + " (VFE Empire appears to have fixed it), so this fix stands down and does nothing."
                 : "[GNH LocalFixes] InstrumentSpace probe: the vanilla predicate is still not null-safe,"
@@ -257,10 +276,20 @@ namespace GNH.LocalFixes
             }
 
             // 上面那个方法名是编译器自动生成的，将来可能变。
-            // 兜底做法：在那个内部类里找「任何一个接受 ThingDef、返回 bool 的静态方法」。
+            // 兜底做法：在那个内部类里找「任何一个接受 ThingDef、返回 bool 的方法」。
+            //
+            // ⚠ 这里**不能**再要求 IsStatic（2026-10-11 修正，第 5 项审计发现）：
+            //   C# 编译器为「静态构造函数里的 lambda」生成的方法，其实挂着
+            //   **实例**签名 —— 真实签名是
+            //       internal bool <.cctor>b__1_0(ThingDef)
+            //   它被放在编译器生成的闭包类 VFEEmpire.RoomRequirement_InstrumentSpace+<>c 上，
+            //   靠该类的单例实例来调用。所以加 IsStatic 会把唯一的目标筛掉，
+            //   这条兜底路径等于「永远找不到方法」—— 一旦作者改了那个自动生成的方法名，
+            //   精确匹配失败之后就再也没有第二条路，修复会静默失效。
+            //   （精确匹配那条路本来就没查 IsStatic，所以过去看起来是好的。）
             foreach (MethodInfo candidate in host.GetMethods(AccessTools.all))
             {
-                if (!candidate.IsStatic || candidate.ReturnType != typeof(bool))
+                if (candidate.ReturnType != typeof(bool))
                 {
                     continue;
                 }
@@ -305,27 +334,47 @@ namespace GNH.LocalFixes
                 return true;   // 交还原版
             }
 
+            Type outer = AccessTools.TypeByName(OuterTypeName);
+            FieldInfo field = (outer != null) ? AccessTools.Field(outer, InstrumentsFieldName) : null;
+            if (field == null)
+            {
+                // 找不到那个列表字段（多半是 VFE Empire 改了字段名）。
+                //
+                // 【为什么这里必须 return true，而不是继续 return false】
+                //   return false 的含义是「拦住原版的初始化，改由我们自己填列表」。
+                //   可我们现在**没有**那个字段，也就**填不了**。
+                //   如果仍然 return false 跑下去，结果会是：
+                //       原版初始化被跳过 → Instruments 一直是 null
+                //       → 而 Met() 里直接拿它去查有没有包含某个 def
+                //       → 每一次房间判定都抛空引用异常。
+                //   那就从「原版本来会怎样」变成了「比原版更糟」。
+                //   所以这里交还给原版：最坏也只是回到原版自己的行为。
+                LocalFixesMod.SafeLogWarning(
+                    "[GNH LocalFixes] RoomRequirement_InstrumentSpace.Instruments field not found;"
+                    + " handing the initializer back to the original mod.");
+                return true;
+            }
+
             try
             {
-                Type outer = AccessTools.TypeByName(OuterTypeName);
-                FieldInfo field = (outer != null) ? AccessTools.Field(outer, InstrumentsFieldName) : null;
-                if (field != null)
+                List<ThingDef> instruments = new List<ThingDef>();
+                foreach (ThingDef def in DefDatabase<ThingDef>.AllDefs)
                 {
-                    List<ThingDef> instruments = new List<ThingDef>();
-                    foreach (ThingDef def in DefDatabase<ThingDef>.AllDefs)
+                    if (HasDanceFloorWorker(def))
                     {
-                        if (HasDanceFloorWorker(def))
-                        {
-                            instruments.Add(def);
-                        }
+                        instruments.Add(def);
                     }
-                    field.SetValue(null, instruments);
-                    Log.Message("[GNH LocalFixes] Rebuilt RoomRequirement_InstrumentSpace.Instruments (count=" + instruments.Count + ").");
                 }
+                field.SetValue(null, instruments);
+                LocalFixesMod.SafeLogMessage("[GNH LocalFixes] Rebuilt RoomRequirement_InstrumentSpace.Instruments (count=" + instruments.Count + ").");
             }
             catch (Exception ex)
             {
-                Log.Warning("[GNH LocalFixes] Error while rebuilding the InstrumentSpace list: " + ex.Message);
+                // 重建失败（字段是实例字段、或列表被别处锁住等）：同上，
+                // 交还原版也比留一个 null 列表给别人用要安全。
+                LocalFixesMod.SafeLogWarning("[GNH LocalFixes] Error while rebuilding the InstrumentSpace list,"
+                    + " handing the initializer back to the original mod: " + ex.Message);
+                return true;
             }
             return false;
         }

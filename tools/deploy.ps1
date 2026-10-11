@@ -7,7 +7,7 @@
 #       「新 About + 旧 dll」这种半套状态，比不部署更难排查 —— 所以默认直接拒绝；
 #    2. 把目标目录里现有的版本**整个备份**到工程目录下
 #       _backup\<名字>.backup-<时间戳>\ —— 刻意不放在 Mods\ 里，原因见下面「⚠ 备份放哪」；
-#    3. 复制 About\ / Assemblies\ / Patches\ / README.md；
+#    3. 复制 About\ / Assemblies\ / Patches\ / Languages\ / README.md；
 #    4. 打印部署后的目录树和 dll 的 SHA256，方便和 bin\ 下的对一下。
 #
 #  【怎么用】—— 在本工程根目录下
@@ -116,16 +116,28 @@ if (Test-Path -LiteralPath $dst) {
 # 游戏照样会加载它 —— 表现为「明明删了却还在生效」，极难排查。
 # 所以这里先把「bin 里已不存在、但部署目录里还有」的文件摘掉。
 #（上面已经整目录备份过，误删也能从 _backup\ 拿回来。）
+# 要同步的目录清单：每一项都写清「从哪儿取」。
+#   About / Assemblies / Patches —— 构建输出 bin\Release 里就有；
+#   Languages                   —— v1.3.33 起新加（模组设置界面的中/英翻译），
+#                                 它**不在** bin\Release 里，所以从工程根目录取。
+# 漏掉 Languages 的后果：部署目录里没有翻译文件，英文环境下设置界面会回退成
+# 代码里写死的中文 —— 不会崩，但「英文环境显示英文」这个目标就落空了。
+$dirMap = @(
+    @{ From = $src;  Name = 'About' },
+    @{ From = $src;  Name = 'Assemblies' },
+    @{ From = $src;  Name = 'Patches' },
+    @{ From = $root; Name = 'Languages' }
+)
 $staleRemoved = 0
-foreach ($item in @('About', 'Assemblies', 'Patches')) {
-    $sItem = Join-Path $src $item
-    $dItem = Join-Path $dst $item
+foreach ($entry in $dirMap) {
+    $sItem = Join-Path $entry.From $entry.Name
+    $dItem = Join-Path $dst $entry.Name
     if (-not (Test-Path -LiteralPath $dItem)) { continue }
     Get-ChildItem -LiteralPath $dItem -Recurse -File | ForEach-Object {
         $rel = $_.FullName.Substring($dItem.Length).TrimStart('\')
         if (-not (Test-Path -LiteralPath (Join-Path $sItem $rel))) {
             Remove-Item -LiteralPath $_.FullName -Force
-            Write-Host ("  removed stale: " + $item + '\' + $rel)
+            Write-Host ("  removed stale: " + $entry.Name + '\' + $rel)
             $staleRemoved++
         }
     }
@@ -137,13 +149,16 @@ if ($staleRemoved -gt 0) {
 # ---- 复制 -------------------------------------------------------------------
 New-Item -ItemType Directory -Path $dst -Force | Out-Null
 
-foreach ($item in @('About', 'Assemblies', 'Patches')) {
-    $s = Join-Path $src $item
-    if (-not (Test-Path -LiteralPath $s)) { continue }
-    $d = Join-Path $dst $item
+foreach ($entry in $dirMap) {
+    $s = Join-Path $entry.From $entry.Name
+    if (-not (Test-Path -LiteralPath $s)) {
+        Write-Host ("  MISSING dir: " + $s) -ForegroundColor Yellow
+        continue
+    }
+    $d = Join-Path $dst $entry.Name
     New-Item -ItemType Directory -Path $d -Force | Out-Null
     Copy-Item -Path (Join-Path $s '*') -Destination $d -Recurse -Force
-    Write-Host ("  copied " + $item + "\")
+    Write-Host ("  copied " + $entry.Name + "\")
 }
 
 # ---- 根目录下的说明文件 ------------------------------------------------------

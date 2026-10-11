@@ -64,7 +64,7 @@ Mods\
     ├── Assemblies\
     │   └── GNH.LocalFixes.dll
     └── Patches\
-        └── （6 个 XML 补丁）
+        └── （7 个 XML 补丁）
 ```
 
 **第 3 步**：启动游戏 → 主菜单点「模组」→ 找到「模组兼容修复补丁」→ 勾选启用。
@@ -143,7 +143,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 | 位置 | 内容 | 删掉的后果 |
 |---|---|---|
-| `Patches\` | 6 个 XML 补丁（只改 Def 数据） | 对应的 6 个问题不再修 |
+| `Patches\` | 7 个 XML 补丁（只改 Def 数据） | 对应的 7 个问题不再修 |
 | `Assemblies\` | 一个 dll（代码级修复） | 其余修复全部失效 |
 
 删掉不想要的那部分即可，剩下部分照常工作。
@@ -412,7 +412,7 @@ return false;
 > ⚠️ **以下内容是给开发者和排查者看的**：每一项修复的根因分析、反编译证据、
 > 验证方法，以及本仓库的构建、审计与事故记录。
 >
-> **普通玩家不需要读这一部分。** 想快速了解修了什么，看上面的「22 项修复速览」就够了。
+> **普通玩家不需要读这一部分。** 想快速了解修了什么，看上面的「26 项修复速览」就够了。
 
 ## 模组兼容修复补丁（GNH.LocalFixes）
 
@@ -421,7 +421,7 @@ return false;
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`模组兼容修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.32**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.3.33**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
 
 ## 构建与部署
 
@@ -1072,7 +1072,7 @@ NRE 发生在 `partsMoney -= thingDef.BaseMarketValue`（`thingDef` 为 null）�
 
 ### 审计通过项（未改动）
 
-`refs\` 8 个 DLL 与游戏本体 **SHA256 全部一致**；6 个 XML 补丁的语法 / 编码 / 启停保护 /
+`refs\` 8 个 DLL 与游戏本体 **SHA256 全部一致**；7 个 XML 补丁的语法 / 编码 / 启停保护 /
 部署一致性全部通过；**27 项 def 与类型引用在 1.6 加载集内逐一确认可用**（含 `Rotti` 只在 1.5、
 `VFESecurity.CompProperties_LongRangeArtillery` 只在 1.4/1.5 这类「按全版本扫会误判」的项）；
 `NmmIdeoTrackerNullFix` 的性能经实测确认可忽略（`UpdateIdeo` 对每个 Pawn 最多每 600 tick 一次）。

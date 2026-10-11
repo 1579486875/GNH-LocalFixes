@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <!--
+    ═══════════════════════════════════════════════════════════════
+    Mod settings window — English
+    ═══════════════════════════════════════════════════════════════
+    Only used by "Options -> Mod settings -> this mod".
+    The C# side calls "Key".Translate(); if a key is missing it falls back to
+    the Chinese text baked into the code, so the UI never shows a raw key name.
+  -->
+  <GNH_LocalFixes_SettingsCategory>GNH Local Fixes</GNH_LocalFixes_SettingsCategory>
+  <GNH_LocalFixes_SettingsUnavailable>Could not read the settings. This patch keeps working with its built-in defaults (all fixes on).</GNH_LocalFixes_SettingsUnavailable>
+  <GNH_LocalFixes_KeepLeaderTitle>Protect custom leader titles</GNH_LocalFixes_KeepLeaderTitle>
+  <GNH_LocalFixes_KeepLeaderTitleDesc>On: leader titles that are already set (Chairman, Pontiff, ...) are no longer re-rolled by the game. Changing memes or clicking "Randomize symbols" will not touch them. The very first generation of a brand-new ideoligion is unaffected.\n\nOff: fully vanilla behaviour - changing memes or clicking "Randomize symbols" re-rolls the leader title.\n\nTo give an ideoligion a different title: clear the title (or temporarily turn this off), then click "Randomize symbols" once.</GNH_LocalFixes_KeepLeaderTitleDesc>
+  <GNH_LocalFixes_FixVfeeInstrumentSpace>Fix the VFE Empire "InstrumentSpace" null-reference crash</GNH_LocalFixes_FixVfeeInstrumentSpace>
+  <GNH_LocalFixes_FixVfeeInstrumentSpaceDesc>On: adds a null guard to the VFE Empire check that would otherwise throw. The room requirements of the nine titles that use "instrument space" (Archcount / Marquess / Archduke / Magister / Despot / HighStellarch, ...) can then work normally.\n\nOff: fully vanilla behaviour.\n\n★ You normally never need to turn this off: the patch first probes whether the vanilla check is still crash-prone and, once it is safe (usually because VFE Empire fixed it), it stands down and does nothing. This switch only matters if the author rewrites the check itself.</GNH_LocalFixes_FixVfeeInstrumentSpaceDesc>
+</LanguageData>

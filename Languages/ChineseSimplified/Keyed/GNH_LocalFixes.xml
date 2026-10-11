@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LanguageData>
+  <!--
+    ═══════════════════════════════════════════════════════════════
+    模组设置界面 —— 简体中文
+    ═══════════════════════════════════════════════════════════════
+    这些键只在「选项 → 模组设置 → 本模组」这一个界面里用到。
+    C# 那边用 "键名".Translate() 取；取不到时会回退到代码里写好的中文，
+    所以即使这个文件丢了，中文玩家看到的也还是中文，不会变成键名。
+  -->
+  <GNH_LocalFixes_SettingsCategory>模组兼容修复补丁</GNH_LocalFixes_SettingsCategory>
+  <GNH_LocalFixes_SettingsUnavailable>设置读取失败。本补丁按内置默认值（保护开启）继续工作。</GNH_LocalFixes_SettingsUnavailable>
+  <GNH_LocalFixes_KeepLeaderTitle>保护自定义的领袖头衔</GNH_LocalFixes_KeepLeaderTitle>
+  <GNH_LocalFixes_KeepLeaderTitleDesc>开启时：已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，改模因、点「随机符号」都不会动它。新建文化时的第一次生成不受影响。\n\n关闭后：完全恢复原版行为 —— 改模因或点「随机符号」会把领袖头衔重新掷一次。\n\n想给某个文化换一个头衔：把头衔清空（或临时关掉本开关）再点一次「随机符号」即可。</GNH_LocalFixes_KeepLeaderTitleDesc>
+  <GNH_LocalFixes_FixVfeeInstrumentSpace>修复 VFE Empire「乐器空间」的空引用崩溃</GNH_LocalFixes_FixVfeeInstrumentSpace>
+  <GNH_LocalFixes_FixVfeeInstrumentSpaceDesc>开启时：给 VFE Empire 那句会崩的判断补上空值保护。九个用到「乐器空间」的爵位（Archcount / Marquess / Archduke / Magister / Despot / HighStellarch 等）的房间需求才能正常工作。\n\n关闭后：完全交还原版逻辑。\n\n★ 多数情况下不需要手动关这一项：本补丁会先探测「原版那句判断现在还崩不崩」，一旦发现它已经安全（多半是 VFE Empire 自己修好了），就会自动让路、什么都不做。这个开关只在「作者改了判断逻辑本身的写法」时才用得上。</GNH_LocalFixes_FixVfeeInstrumentSpaceDesc>
+</LanguageData>

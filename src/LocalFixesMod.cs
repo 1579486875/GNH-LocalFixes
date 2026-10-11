@@ -672,19 +672,52 @@ namespace GNH.LocalFixes
         // 我们不必操心。反过来，如果在 DoSettingsWindowContents 里顺手写一次，
         // 那就会变成**每帧写一次配置文件**（这个方法每帧都被调用），
         // 白白磨损磁盘还掉帧 —— 所以这里一行写盘代码都不放。
+        /// <summary>
+        /// 取翻译；取不到就回退到写死的中文。
+        ///
+        /// 【为什么要在 Translate() 外面再包一层】
+        ///   Verse 的 "键名".Translate() 在**找不到这个键**的时候，
+        ///   会把**键名本身**原样返回（同时往日志里记一条）。
+        ///   那样界面就会显示成 "GNH_LocalFixes_SettingsCategory"
+        ///   这种给机器看的东西 —— 比英文还难懂。
+        ///   所以这里把「返回值和键名一模一样」当作「没找到」，改用兜底中文：
+        ///   翻译文件丢了、目录名写错了、玩家选了第三种语言，界面都还是中文。
+        ///
+        /// 【为什么不直接抛异常】
+        ///   本方法是在**绘制设置窗口**时被调用的。GUI 绘制流程里抛异常，
+        ///   轻则这一帧画不出来，重则整个设置窗口报错关不掉。
+        ///   宁可退化成一句能看懂的中文，也不能让玩家打不开设置。
+        /// </summary>
+        private static string Translated(string key, string chineseFallback)
+        {
+            try
+            {
+                string text = key.Translate();
+                return (string.IsNullOrEmpty(text) || text == key) ? chineseFallback : text;
+            }
+            catch
+            {
+                return chineseFallback;
+            }
+        }
+
         public override string SettingsCategory()
         {
             // 这个名字会直接显示在「选项 → 模组设置」的列表里。
             //
-            // 为什么这里写中文、而不是走 "Key".Translate() 那一套：
-            //   语言包文件夹名是「ChineseSimplified (简体中文)」这种带括号的写法，
-            //   把翻译放进 Languages\ 就得死死依赖这个名字，语言包一改名翻译就静默失效。
-            //   而本包界面只有下面这一行控件 —— 直接写死中文最不容易出错。
+            // 【为什么要走翻译】这样英文环境显示英文、中文环境显示中文。
+            //   早先这里写死中文，理由写在注释里说是「放进 Languages\ 就得依赖
+            //   语言包文件夹名（含括号那种），一改名翻译就静默失效」——
+            //   那个顾虑**不成立**：RimWorld 认的是 ChineseSimplified / English
+            //   这种**不带括号**的目录名，而且这份语言文件是**本模组自己提供**的，
+            //   跟外部语言包改不改名毫无关系。（2026-10-11 审计后改正。）
             //
-            // ⚠ 这个名字必须与 About\About.xml 的 <name> 保持一致。
+            // 取不到翻译时回退成写死的中文，见 Translated()。
+            //
+            // ⚠ 中文名必须与 About\About.xml 的 <name> 保持一致。
             //   两者是分开的两处：游戏内【模组列表】读 About.xml 的 <name>，
-            //   【模组设置】读这里的返回值。改名时漏掉这里，设置界面就会一直显示旧名。
-            return "模组兼容修复补丁";
+            //   【模组设置】读这里的返回值。改名时两处都要改。
+            return Translated("GNH_LocalFixes_SettingsCategory", "模组兼容修复补丁");
         }
 
         public override void DoSettingsWindowContents(Rect inRect)
@@ -693,7 +726,8 @@ namespace GNH.LocalFixes
             if (settings == null)
             {
                 // 设置对象没取到（理论上不会发生）：给一句提示，别让窗口一片空白。
-                Widgets.Label(inRect, "设置读取失败。本补丁按内置默认值（保护开启）继续工作。");
+                Widgets.Label(inRect, Translated("GNH_LocalFixes_SettingsUnavailable",
+                    "设置读取失败。本补丁按内置默认值（保护开启）继续工作。"));
                 return;
             }
 
@@ -703,30 +737,36 @@ namespace GNH.LocalFixes
             // CheckboxLabeled 会**直接改写**传进去的那个 bool，
             // 所以先复制一份出来，点完再把结果同步回设置对象 ——
             // 这样「有没有变化」一目了然，也不会因为中途异常改坏设置。
+            //
+            // 两个开关的标题与说明都走 Translated()：英文环境显示英文，
+            // 取不到翻译时回退成下面那段中文（理由见 Translated 的注释）。
             bool keepLeaderTitle = settings.keepLeaderTitle;
             listing.CheckboxLabeled(
-                "保护自定义的领袖头衔",
+                Translated("GNH_LocalFixes_KeepLeaderTitle", "保护自定义的领袖头衔"),
                 ref keepLeaderTitle,
-                "开启时：已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，"
+                Translated("GNH_LocalFixes_KeepLeaderTitleDesc",
+                    "开启时：已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，"
                     + "改模因、点「随机符号」都不会动它。新建文化时的第一次生成不受影响。\n\n"
                     + "关闭后：完全恢复原版行为 —— 改模因或点「随机符号」会把领袖头衔重新掷一次。\n\n"
-                    + "想给某个文化换一个头衔：把头衔清空（或临时关掉本开关）再点一次「随机符号」即可。");
+                    + "想给某个文化换一个头衔：把头衔清空（或临时关掉本开关）再点一次「随机符号」即可。"));
             settings.keepLeaderTitle = keepLeaderTitle;
 
             listing.Gap(12f);
 
             bool fixVfeeInstrumentSpace = settings.fixVfeeInstrumentSpace;
             listing.CheckboxLabeled(
-                "修复 VFE Empire「乐器空间」的空引用崩溃",
+                Translated("GNH_LocalFixes_FixVfeeInstrumentSpace",
+                    "修复 VFE Empire「乐器空间」的空引用崩溃"),
                 ref fixVfeeInstrumentSpace,
-                "开启时：给 VFE Empire 那句会崩的判断补上空值保护。"
+                Translated("GNH_LocalFixes_FixVfeeInstrumentSpaceDesc",
+                    "开启时：给 VFE Empire 那句会崩的判断补上空值保护。"
                     + "九个用到「乐器空间」的爵位（Archcount / Marquess / Archduke / "
                     + "Magister / Despot / HighStellarch 等）的房间需求才能正常工作。\n\n"
                     + "关闭后：完全交还原版逻辑。\n\n"
                     + "★ 多数情况下不需要手动关这一项：本补丁会先探测"
                     + "「原版那句判断现在还崩不崩」，一旦发现它已经安全"
                     + "（多半是 VFE Empire 自己修好了），就会自动让路、什么都不做。"
-                    + "这个开关只在「作者改了判断逻辑本身的写法」时才用得上。");
+                    + "这个开关只在「作者改了判断逻辑本身的写法」时才用得上。"));
             settings.fixVfeeInstrumentSpace = fixVfeeInstrumentSpace;
 
             listing.End();
