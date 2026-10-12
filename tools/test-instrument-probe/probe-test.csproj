@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    InstrumentSpaceProbe 的离线判据测试。
+
+    【它测什么】
+      给 InstrumentSpaceProbe.HasNullGuardBeforeFirstUse 一批「已知答案」的小方法，
+      看它判得对不对。探针如果自己判错，方向恰好是「错误地宣布安全、撤掉保护」，
+      比没有探针更糟，所以这个测试是这项修复的一部分，不是可选项。
+
+    【为什么要单独一个工程】
+      判据只依赖 System.Reflection，不碰游戏类型；单独编译它就不需要
+      Assembly-CSharp.dll / Harmony / RJW 那一堆引用，随时能跑。
+
+    【怎么跑】
+      见本目录的 README.md：在工程根目录下用 dotnet run 指定本工程即可。
+      期望输出 PASS=10 / FAIL=0、退出码 0。
+      （XML 注释里不允许出现两个连续的减号，所以这里不把命令行原样抄进来；
+        完整命令行写在 README.md 里。）
+
+    【注意】
+      下面用**相对路径**直接编译产品里的那一份源文件（不是复制粘贴）：
+      测的就是将要发出去的那份代码。挪动 src\InstrumentSpaceProbe.cs 时，
+      记得同步改这一行。
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>probe-test</AssemblyName>
+    <RootNamespace>GNH.LocalFixes</RootNamespace>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <LangVersion>9.0</LangVersion>
+    <NoWarn>CS0168;CS0219;CS0649</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="..\..\src\InstrumentSpaceProbe.cs" />
+  </ItemGroup>
+
+</Project>

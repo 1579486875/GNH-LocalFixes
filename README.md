@@ -368,18 +368,44 @@ __result = HasDanceFloorWorker(def);
 return false;
 ```
 
-**探测的判据**（很直白）：把全部 `ThingDef` 扫一遍，看还有没有
-「从没声明过 `placeWorkers`（此时它是 `null` 而不是空列表）」或「`placeWorkers` 里混着 `null` 元素」的 def。
+**探测的判据**（2026-10-12 修正后）：**读原版那句判断自己的 IL**，看它在
+「读 `placeWorkers`」与「拿读到的值去调方法」之间，有没有一条**判空分支**。
 
-- **找到任何一个** → 原版仍会崩 → 本补丁继续接管；
-- **一个都没有** → 原版已经安全（多半就是作者修好了）→ **本补丁什么都不做**。
+> ⚠ 修正前的判据是「把全部 `ThingDef` 扫一遍，看还有没有 `placeWorkers` 为 `null` 的 def」。
+> 那个判据**永远得不出「安全」这个结论**：`placeWorkers` 为 `null` 是绝大多数 ThingDef 的
+> **正常状态**（实测原版 Core 的 997 个 ThingDef 里只有 85 处声明了它），所以它必然判「不安全」，
+> 「自动让路」一次也没有触发过。根因是它测的是**数据**，而要回答的是**代码**。
 
-探测只做一次（结果缓存），而且**出错时一律保守地当作「原版不安全」**，绝不因为探测代码自己的问题把保护撤掉。
-启动日志里会明确写出结论，形如：
+原版没修的时候，IL 长这样（本机 VFE Empire 1.6 实测，22 字节 6 条指令）：
 
 ```
-[GNH LocalFixes] InstrumentSpace probe: the vanilla predicate is still not null-safe, so this fix stays active.
+IL_0000: ldarg.1
+IL_0001: ldfld     Verse.BuildableDef.placeWorkers   ← 读字段（注意：是字段，不是属性）
+IL_0006: ldtoken   VFEEmpire.Placeworker_DanceFloorArea
+IL_000B: call      System.Type.GetTypeFromHandle
+IL_0010: callvirt  typespec.Contains                 ← 直接消费，中间没有任何分支
+IL_0015: ret
 ```
+
+作者补上判空之后，`ldfld` 与 `Contains` 之间会多出一条 `brfalse` / `brtrue`（`?.` 那种写法是 `dup` + `brtrue`）。
+判据认的就是这条分支：
+
+- **有分支** → 作者已经修好 → **本补丁什么都不做（让路）**；
+- **没有分支** → 原版仍会崩 → 本补丁继续接管。
+
+探测只做一次（结果缓存）。**只要探测本身有任何不确定**（找不到那个方法、IL 读不出来、判据抛异常），
+一律当作「原版不安全」继续保护 —— 撤掉保护远比多保护一段危险。
+启动日志会明确写出是三种结论里的哪一种：
+
+```
+[GNH LocalFixes] InstrumentSpace probe: the vanilla predicate is still not null-safe — so this fix stays active.
+[GNH LocalFixes] InstrumentSpace probe: the vanilla predicate is already null-safe — VFE Empire appears to have fixed it, so this fix stands down and does nothing.
+[GNH LocalFixes] InstrumentSpace probe: probe unavailable (InvalidOperationException: …) — probe could not answer, so this fix conservatively stays active.
+```
+
+判据本身的正确性有一组**离线测试**兜着（`tools\test-instrument-probe\`）：它直接编译
+`src\InstrumentSpaceProbe.cs` 这一份源文件，拿 10 个已知答案的小方法跑一遍，
+其中包含「用 `Reflection.Emit` 逐条复刻上面那段真实 IL」的用例 —— 10/10 通过才算数。
 
 ---
 

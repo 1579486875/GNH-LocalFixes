@@ -103,6 +103,13 @@
     <None Include="About\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Patches\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="README.md" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 2026-10-12 复审补：Languages\ 也要复制到 bin\<配置>\。
+         在此之前只有 tools\deploy.ps1 单独从工程根复制它，后果是
+         「bin\Release 里根本没有翻译文件」—— 直接用 bin\Release 部署
+         （或绕过 deploy.ps1）就会丢掉模组设置界面的中/英翻译。
+         不会崩（代码里有写死的中文兜底），但英文环境会被显示成中文。
+         补上之后，deploy.ps1 与「直接复制 bin」两条路都成立。 -->
+    <None Include="Languages\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Assembly-CSharp"><HintPath>refs\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>

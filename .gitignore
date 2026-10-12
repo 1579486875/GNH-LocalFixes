@@ -17,3 +17,5 @@ refs/
 # About\About.xml 的子目录当成一个模组，备份留在那儿会凭空多出一个同 packageId
 # 的副本，RimCrow 的「处理重复模组」就会报冲突。
 _backup/
+# ���/�޸��ڵĴ�ʱ������ݣ�����⣩
+_backup/

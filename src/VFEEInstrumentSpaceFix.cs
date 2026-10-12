@@ -64,19 +64,12 @@ namespace GNH.LocalFixes
 
         private static bool installed;
 
-        // ── 「作者修好后自动让路」的实现（2026-10-11 加）─────────────────
+        // ── 「作者修好后自动让路」的实现 ──────────────────────────────────
         //
         // 探测结果缓存：null = 还没探测过。
-        // 只探测一次 —— 它要遍历几万个 ThingDef，而调用方在 VFEE 的静态构造
-        // 期间会对每一个 def 各问一次，不缓存就等于重复做几万次全表扫描。
+        // 只探测一次 —— 调用方在 VFEE 的静态构造期间会对**每一个 def** 各问一次，
+        // 不缓存就等于把同一段 IL 反复读几万遍。
         private static bool? originalIsSafe;
-
-        /// <summary>
-        /// 探测结论要可信，至少得看到这么多 ThingDef。
-        /// 取 100 是刻意保守：任何真实环境（纯原版 + 少量 DLC）的 ThingDef 数量都远超它，
-        /// 所以不会误伤正常环境；只有「库还没装载完」这种异常时刻才会拦住结论。
-        /// </summary>
-        private const int MinDefsForTrustworthyProbe = 100;
 
         /// <summary>
         /// 用户在「模组设置」里的开关。
@@ -96,25 +89,27 @@ namespace GNH.LocalFixes
         }
 
         /// <summary>
-        /// 探测「原版那句判断现在还会不会崩」。
+        /// 探测「VFE Empire 那句判断现在还会不会崩」。
         ///
-        /// 【原版为什么会崩】
-        ///   VFE Empire 的写法是：先把 def.placeWorkers 取出来，再对它调用
-        ///   「有没有包含某某」。而从没声明过 placeWorkers 的 ThingDef，
-        ///   那个字段是 **null**（不是空列表）—— 对着 null 调方法就抛空引用异常。
-        ///   另外列表里若混进 null 元素，同样会出问题。
+        /// 【早期版本为什么永远判「不安全」（2026-10-12 修）】
+        ///   旧实现扫的是**数据**：遍历全部 ThingDef，只要有一个 placeWorkers 为 null
+        ///   就判「原版仍不安全」。而 placeWorkers 为 null 是绝大多数 ThingDef 的
+        ///   **正常状态** —— 实测原版 Core 的 997 个 ThingDef 里只有 85 处声明了
+        ///   placeWorkers —— 于是这个探针**必然**在第一个 def 上就下结论，
+        ///   「自动让路」一次也不会发生。它测错了对象：要回答的是**代码**会不会崩，
+        ///   而不是**数据**里有没有 null。
         ///
-        /// 【本探测做什么】
-        ///   把全部 ThingDef 扫一遍，看还有没有上面这两种情况：
-        ///     · 找到任何一个  → 原版仍会崩 → 我们继续接管（保持现状）；
-        ///     · 一个都没有    → 原版已经安全（多半是作者自己修好了）
-        ///                     → 我们 **return true 让路**，什么都不做。
+        /// 【现在的判据】
+        ///   直接读 VFE Empire 那个判断方法（编译器生成的 predicate lambda）自己的 IL，
+        ///   看「读 placeWorkers」与「第一次拿它调成员」之间有没有条件分支（判空短路）。
+        ///   判据的实现与能力边界见 InstrumentSpaceProbe.cs。
         ///
-        ///   这就是本项修复的「自动停用」：**VFE Empire 修好之后，本补丁自动失效。**
+        /// 【保守原则（最重要的一条）】
+        ///   只要探测本身有任何不确定 —— 找不到宿主类型、找不到那个方法、IL 读不出来、
+        ///   判据抛异常 —— 一律当作「原版不安全」，继续由我们保护。
+        ///   **撤掉保护比多保护一段危险得多。**
         ///
-        /// 【保守原则】
-        ///   探测本身出任何差错（Def 库没就绪、抛异常），一律当作「原版不安全」，
-        ///   继续由我们保护 —— 绝不因为探测代码自己的问题把保护撤掉。
+        /// 结论照常缓存，理由见上面 originalIsSafe 的说明。
         /// </summary>
         private static bool OriginalPredicateIsSafe()
         {
@@ -123,72 +118,63 @@ namespace GNH.LocalFixes
                 return originalIsSafe.Value;
             }
 
-            bool safe = true;
+            bool safe;
+            bool probeUnavailable;
+            string verdict;
+
             try
             {
-                List<ThingDef> all = DefDatabase<ThingDef>.AllDefsListForReading;
-                if (all == null || all.Count < MinDefsForTrustworthyProbe)
+                MethodInfo lambda = FindPredicate();
+                if (lambda == null)
                 {
-                    // Def 库还没装载完（本类的探测是在 VFE 的静态构造里被顺带触发的，
-                    // 那个时机未必等于「全部 def 都已就位」）。
-                    // 这次只看到一部分 def，「没发现问题」这个结论就不能作数 ——
-                    // 漏掉的恰恰可能是真正会崩的那些。所以一律当作不安全，继续保护。
-                    //
-                    // 这个结论照常缓存：它偏向保守（继续保护），即使库随后补齐，
-                    // 代价也只是我们多保护一段（本补丁本身就是修 bug 的，无害）；
-                    // 反过来若不缓存，而 PredicatePrefix 会被调用几万次
-                    //（VFE 的静态构造对每个 def 各问一次），就会退化成几万次全表扫描。
-                    originalIsSafe = false;
-                    LocalFixesMod.SafeLogWarning(
-                        "[GNH LocalFixes] InstrumentSpace probe deferred: only "
-                        + all.Count + " ThingDefs visible so far (need at least "
-                        + MinDefsForTrustworthyProbe + "); keeping the protective patch active.");
-                    return false;
+                    // 宿主类型在、但那个判断方法找不到（多半是作者改了写法，或编译器换了名字）。
+                    // 探测拿不到对象 → 保守：继续保护。
+                    safe = false;
+                    probeUnavailable = true;
+                    verdict = "probe unavailable (predicate method not found)";
                 }
-
-                for (int i = 0; i < all.Count; i++)
+                else if (InstrumentSpaceProbe.HasNullGuardBeforeFirstUse(lambda))
                 {
-                    ThingDef def = all[i];
-                    if (def == null)
-                    {
-                        continue;
-                    }
-
-                    List<Type> workers = def.placeWorkers;
-                    if (workers == null)
-                    {
-                        safe = false;   // 原版会对 null 调方法 → 必崩
-                        break;
-                    }
-
-                    for (int j = 0; j < workers.Count; j++)
-                    {
-                        if (workers[j] == null)
-                        {
-                            safe = false;   // 列表里有空元素 → 也可能出问题
-                            break;
-                        }
-                    }
-
-                    if (!safe)
-                    {
-                        break;
-                    }
+                    // 确凿看到判空分支 → 作者已经修好 → 让路。
+                    safe = true;
+                    probeUnavailable = false;
+                    verdict = "the vanilla predicate is already null-safe";
+                }
+                else
+                {
+                    // 确凿看不到判空分支 → 作者还没修 → 继续保护。
+                    safe = false;
+                    probeUnavailable = false;
+                    verdict = "the vanilla predicate is still not null-safe";
                 }
             }
             catch (Exception ex)
             {
-                LocalFixesMod.SafeLogWarning("[GNH LocalFixes] InstrumentSpace safety probe failed;"
-                    + " keeping the protective patch active (conservative): " + ex.Message);
+                // 探测自己出问题（IL 解析失败、方法没有方法体……）绝不能撤掉保护。
                 safe = false;
+                probeUnavailable = true;
+                verdict = "probe unavailable (" + ex.GetType().Name + ": " + ex.Message + ")";
             }
 
             originalIsSafe = safe;
-            LocalFixesMod.SafeLogMessage(safe
-                ? "[GNH LocalFixes] InstrumentSpace probe: the vanilla predicate is now null-safe"
-                    + " (VFE Empire appears to have fixed it), so this fix stands down and does nothing."
-                : "[GNH LocalFixes] InstrumentSpace probe: the vanilla predicate is still not null-safe,"
-                    + " so this fix stays active.");
+
+            // 三种结论各打一条不同的日志，排查时一眼能分清「作者修了」「作者没修」
+            // 和「我们自己的探针没跑起来」。
+            string tail;
+            if (safe)
+            {
+                tail = " — VFE Empire appears to have fixed it, so this fix stands down and does nothing.";
+            }
+            else if (probeUnavailable)
+            {
+                tail = " — probe could not answer, so this fix conservatively stays active.";
+            }
+            else
+            {
+                tail = " — so this fix stays active.";
+            }
+            LocalFixesMod.SafeLogMessage("[GNH LocalFixes] InstrumentSpace probe: " + verdict + tail);
+
             return safe;
         }
 
@@ -287,6 +273,8 @@ namespace GNH.LocalFixes
             //   这条兜底路径等于「永远找不到方法」—— 一旦作者改了那个自动生成的方法名，
             //   精确匹配失败之后就再也没有第二条路，修复会静默失效。
             //   （精确匹配那条路本来就没查 IsStatic，所以过去看起来是好的。）
+            //
+            // 同一个方法也是「自动让路」探针的入口：探针读它的 IL 判断作者修没修。
             foreach (MethodInfo candidate in host.GetMethods(AccessTools.all))
             {
                 if (candidate.ReturnType != typeof(bool))
@@ -306,10 +294,10 @@ namespace GNH.LocalFixes
         //     原来：直接查 placeWorkers 里有没有包含跳舞地板（碰到空值会崩）
         //     现在：先看是不是空，是空就直接返回「不是」，否则再正常查
         //
-        // 【两种情况下我们什么都不做、把原版放回去（2026-10-11 加）】
+        // 【两种情况下我们什么都不做、把原版放回去】
         //   1. 用户在模组设置里关掉了这一项；
         //   2. 探测发现原版那句判断**已经不会崩**了
-        //      —— 多半是 VFE Empire 自己修好了。
+        //      —— 多半是 VFE Empire 自己修好了（判据见 InstrumentSpaceProbe.cs）。
         //   第 2 条就是「作者修好后本补丁自动失效」，不必等本补丁包更新。
         private static bool PredicatePrefix(ThingDef def, ref bool __result)
         {

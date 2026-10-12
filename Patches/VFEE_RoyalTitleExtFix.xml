@@ -195,7 +195,22 @@
       </value>
     </match>
   </Operation>
-  <!-- 【07】恢复 Emperor -->
+  <!-- 【07】恢复 Emperor —— ⚠ 这一条是**防御性保留**，正常情况下永不命中。
+
+       disroom.mashiro 的 PatchOperationReplace 只覆盖这四个 ParentName：
+           DukeBase / BaseEmpireTitle / ConsulBase / StellarchBase
+       而原版 Emperor 的 ParentName 是 **BaseEmpireTitleNPC**
+       （实测：Data\Royalty\Defs\RoyalTitles\RoyalTitles_Empire.xml），
+       不在覆盖范围内 —— 它的 modExtensions 从来没被清空过，VFE 写的扩展还在，
+       所以下面这条 not(...) 条件恒为假，补丁安静地什么都不做
+       （success="Always"，不会报错，也不会重复添加）。
+
+       2026-10-12 复审的链式模拟（Royalty → VFE patch → disroom → 本补丁）：
+         7 条原版爵位里 #01~#06 命中、#07 Emperor 不命中。
+       也就是说实际补回的是 15 个爵位（VFE 侧 9 个 + 原版 6 个），不是 16 个。
+
+       留着的理由：万一将来 disroom 扩大 xpath 范围、或 VFE / 原版改了 ParentName
+       结构，这条会自动补上；删掉则要等出事时再想起来加。保留成本为零。 -->
   <Operation Class="PatchOperationFindMod">
     <mods>
       <li>Vanilla Factions Expanded - Empire</li>

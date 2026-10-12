@@ -117,17 +117,32 @@ if (Test-Path -LiteralPath $dst) {
 # 所以这里先把「bin 里已不存在、但部署目录里还有」的文件摘掉。
 #（上面已经整目录备份过，误删也能从 _backup\ 拿回来。）
 # 要同步的目录清单：每一项都写清「从哪儿取」。
-#   About / Assemblies / Patches —— 构建输出 bin\Release 里就有；
-#   Languages                   —— v1.3.33 起新加（模组设置界面的中/英翻译），
-#                                 它**不在** bin\Release 里，所以从工程根目录取。
-# 漏掉 Languages 的后果：部署目录里没有翻译文件，英文环境下设置界面会回退成
-# 代码里写死的中文 —— 不会崩，但「英文环境显示英文」这个目标就落空了。
+#   Assemblies / Patches —— 从构建输出 bin\Release 取（它们本身就是构建产物）；
+#   About                —— ⚠ **必须从工程根目录取**，不能从 bin\Release 取。
+#                           bin 里的 About 是「上一次构建时」复制过去的**快照**：
+#                           改了 About.xml / 换了封面但还没重新构建就跑部署，
+#                           会把刚做的改动**静默回退**成旧版。
+#                           2026-10-12 实测：bin\Release\About\About.xml 比工程根
+#                           少 11 字节、Preview.png 少 702 字节 —— 一次部署就等于
+#                           撤销上一轮的全部文案/封面改动，而且日志里一个字都不提。
+#   Languages            —— 同样从工程根目录取（模组设置界面的中/英翻译）。
+#                           漏掉它的后果：部署目录里没有翻译文件，英文环境下设置
+#                           界面会回退成代码里写死的中文 —— 不会崩，但「英文环境
+#                           显示英文」这个目标就落空了。
 $dirMap = @(
-    @{ From = $src;  Name = 'About' },
+    @{ From = $root; Name = 'About' },
     @{ From = $src;  Name = 'Assemblies' },
     @{ From = $src;  Name = 'Patches' },
     @{ From = $root; Name = 'Languages' }
 )
+# ⚠ 保留白名单：这些文件**只在部署目录里存在**，源侧永远没有 —— 绝不能当成
+#   「幽灵文件」删掉。
+#     About\PublishedFileId.txt —— Steam 工坊的发布凭据（内容 3818289834，
+#     用户本人的工坊项）。删掉它，游戏就认不出本模组对应哪个工坊项，
+#     工坊更新会失效，而且要重新走一遍上传流程才能找回这个 ID。
+#     2026-10-12 起它也已纳入仓库（工程根 About\ 下有一份），但白名单仍然保留：
+#     万一以后有人把它从仓库里移走，这里也不该顺手把部署侧那份删了。
+$keepRelPaths = @('About\PublishedFileId.txt')
 $staleRemoved = 0
 foreach ($entry in $dirMap) {
     $sItem = Join-Path $entry.From $entry.Name
@@ -135,6 +150,13 @@ foreach ($entry in $dirMap) {
     if (-not (Test-Path -LiteralPath $dItem)) { continue }
     Get-ChildItem -LiteralPath $dItem -Recurse -File | ForEach-Object {
         $rel = $_.FullName.Substring($dItem.Length).TrimStart('\')
+        $relKey = $entry.Name + '\' + $rel
+        if ($keepRelPaths -contains $relKey) {
+            # 白名单文件不参与「幽灵文件」清理（原因见上面那段注释）。
+            # 这里用 return 而不是 continue：在 ForEach-Object 的脚本块里，
+            # return 表示「跳过当前这个对象、继续下一个」，正是我们要的语义。
+            return
+        }
         if (-not (Test-Path -LiteralPath (Join-Path $sItem $rel))) {
             Remove-Item -LiteralPath $_.FullName -Force
             Write-Host ("  removed stale: " + $entry.Name + '\' + $rel)

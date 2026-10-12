@@ -123,13 +123,25 @@ namespace GNH.LocalFixes
         internal static void SafeLogWarning(string message)
         {
             try { Log.Warning(message); }
-            catch (Exception) { }
+            catch (Exception)
+            {
+                // 必须吞：这里唯一现实的失败原因就是「日志子系统自己坏了」
+                //（磁盘写满 / 日志文件被占用 / 被别的模组打坏了 Log）。
+                // 本方法跑在补丁安装的关键路径上，让异常从这里漏出去 =
+                // 把一次日志故障升级成「模组构造函数抛异常 → 下次重入 → 补丁叠层」。
+                // 没打出这条日志可以接受，因此崩掉不可以。
+            }
         }
 
         internal static void SafeLogError(string message)
         {
             try { Log.Error(message); }
-            catch (Exception) { }
+            catch (Exception)
+            {
+                // 必须吞，理由同 SafeLogWarning：安装路径上的日志失败只能放弃这条日志。
+                // 特别注意调用方那边：catch 块里之所以必须用 SafeLogError 而不是裸的
+                // Log.Error，就是为了不让异常从这里二次抛出、穿到模组构造函数里去。
+            }
         }
 
         public LocalFixesMod(ModContentPack content) : base(content)
