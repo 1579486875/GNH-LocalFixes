@@ -86,6 +86,10 @@ namespace GNH.LocalFixes
         // 同时绝不重复安装已经装好的那些（Harmony 补丁叠加会造成越玩越卡）。
         private static readonly HashSet<Type> installedPatchClasses = new HashSet<Type>();
 
+        // 设置界面那张长列表的滚动位置。做成静态字段：关掉窗口再打开还停在原处
+        // （二十多项平铺下来要滚好几屏，每次重开都跳回顶部会很难用）。
+        private static Vector2 settingsScroll;
+
         // ======================================================================
         // 安全日志：日志系统自己也会坏，坏的时候不许拖累补丁安装
         // ======================================================================
@@ -219,15 +223,15 @@ namespace GNH.LocalFixes
             // 于是「一整份清单作废」变成「少几个类但清单还能用」。
             // 完整推导与安全性论证见 AssemblyGetTypesFallbackFix.cs 的文件头注释。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            TryInstall("AssemblyGetTypesFallbackFix", AssemblyGetTypesFallbackFix.Install);
+            TryInstall("assemblyGetTypesFallback", "AssemblyGetTypesFallbackFix", AssemblyGetTypesFallbackFix.Install);
 
-            TryInstall("VFEEInstrumentSpaceFix", VFEEInstrumentSpaceFix.Install);
-            TryInstall("SteamWorkshopHookFix", SteamWorkshopHookFix.Install);
-            TryInstall("CrossPromotionUnpatch", CrossPromotionUnpatch.Install);
+            TryInstall("fixVfeeInstrumentSpace", "VFEEInstrumentSpaceFix", VFEEInstrumentSpaceFix.Install);
+            TryInstall("steamWorkshopHook", "SteamWorkshopHookFix", SteamWorkshopHookFix.Install);
+            TryInstall("crossPromotionUnpatch", "CrossPromotionUnpatch", CrossPromotionUnpatch.Install);
 
             // 下面这个是 2026-10-04 根据游戏日志新增的修复，详见它的文件头注释。
             // 安装方式是「按类型名去找，找不到就置位跳过」。
-            TryInstall("TechHediffsZeroBudgetFix", TechHediffsZeroBudgetFix.Install);
+            TryInstall("techHediffsZeroBudget", "TechHediffsZeroBudgetFix", TechHediffsZeroBudgetFix.Install);
 
             // ⚠ CcoeReflectionFix 曾经也在这里装，2026-10-06 移走了。
             //
@@ -243,7 +247,7 @@ namespace GNH.LocalFixes
             // 强行当成乐器建筑用，结果分组里混进了真实类型不是乐器的对象（def 与实际类型对不上）。
             // 详见 MusicManagerFadeoutFix.cs 的文件头注释（含原版源码与 IL 证据）。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            TryInstall("MusicManagerFadeoutFix", MusicManagerFadeoutFix.Install);
+            TryInstall("musicManagerFadeout", "MusicManagerFadeoutFix", MusicManagerFadeoutFix.Install);
 
             // 2026-10-04 新增：修 XmlExtensions 自己的 <FindMod> 判定。
             //
@@ -257,7 +261,7 @@ namespace GNH.LocalFixes
             // 而模组作者写的是英文短名，字符串比对必然失败。
             // 详见 XmlExtensionsFindModFix.cs 的文件头注释（含反编译证据与安全设计）。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            TryInstall("XmlExtensionsFindModFix", XmlExtensionsFindModFix.Install);
+            TryInstall("xmlExtensionsFindMod", "XmlExtensionsFindModFix", XmlExtensionsFindModFix.Install);
 
             // 2026-10-06 新增：NudityMattersMore 的 CoverBody.UpdateIdeo 会因为
             // 「调用方传 null + 它自己的静态字典里已有一条同号残留」而解引用空引用，
@@ -266,7 +270,7 @@ namespace GNH.LocalFixes
             // 详见 NmmIdeoTrackerNullFix.cs 的文件头注释（含 IL 偏移与时间线证据）。
             // 目标类型来自第三方 dll，所以本步走反射：NMM 没装时只打一条 Message 就跳过。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            TryInstall("NmmIdeoTrackerNullFix", NmmIdeoTrackerNullFix.Install);
+            TryInstall("nmmIdeoTrackerNull", "NmmIdeoTrackerNullFix", NmmIdeoTrackerNullFix.Install);
 
             // 2026-10-07 新增：消掉古代神殿生成时固定刷的那几十条
             //     Could not find any RuleDef for symbol "mimicSpawner" with any resolver ...
@@ -283,7 +287,7 @@ namespace GNH.LocalFixes
             //
             // 详见 BaseGenMimicSpawnerQuietFix.cs 的文件头注释（含完整的证据链）。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            TryInstall("BaseGenMimicSpawnerQuietFix", BaseGenMimicSpawnerQuietFix.Install);
+            TryInstall("baseGenMimicSpawnerQuiet", "BaseGenMimicSpawnerQuietFix", BaseGenMimicSpawnerQuietFix.Install);
 
             // 2026-10-08 新增：修「Allies are Helpful」的一处空引用。
             //
@@ -314,7 +318,7 @@ namespace GNH.LocalFixes
             // 对第三方 dll 零编译期依赖（类型名走字符串 + 反射），
             // 模组没装时只打一条 Message 就直接跳过。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            TryInstall("AlliesAreHelpfulCurJobNullFix", AlliesAreHelpfulCurJobNullFix.Install);
+            TryInstall("alliesAreHelpfulCurJobNull", "AlliesAreHelpfulCurJobNullFix", AlliesAreHelpfulCurJobNullFix.Install);
 
             // 2026-10-08 新增：消掉「RJW 基因扩展」在开发者模式下每帧刷的那句调试输出。
             //
@@ -341,7 +345,7 @@ namespace GNH.LocalFixes
             // 对第三方 dll 零编译期依赖（类型名与字符串全部走反射 / 常量），
             // 模组没装时只打一条 Message 就直接跳过。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            TryInstall("RjwGenesSpamQuietFix", RjwGenesSpamQuietFix.Install);
+            TryInstall("rjwGenesSpamQuiet", "RjwGenesSpamQuietFix", RjwGenesSpamQuietFix.Install);
 
             // 2026-10-11 新增：修掉「雪兔系列」公共库 SRCELib 的并发缺陷。
             //
@@ -369,7 +373,7 @@ namespace GNH.LocalFixes
             // 对第三方 dll 零编译期依赖（类型名走字符串 + TypeByName），
             // SRCELib 不在场时只打一条 Message 就直接跳过。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            TryInstall("SrceLibConcurrencyFix", SrceLibConcurrencyFix.Install);
+            TryInstall("srceLibConcurrency", "SrceLibConcurrencyFix", SrceLibConcurrencyFix.Install);
 
             // ------------------------------------------------------------------
             // 【26】Guards For Me（aRandomKiwi.GFM）的 DeepCopy 类型转换错误
@@ -394,7 +398,7 @@ namespace GNH.LocalFixes
             // 所以作者哪天真修好了，本补丁会自动退化为什么都不做。
             // 对 GuardsForMe.dll 零编译期依赖（类型 / 方法 / 字段全走反射查找）。
             // 本步幂等：Install() 内部有自己的静态守卫。
-            TryInstall("GfmIdleCombatDeepCopyFix", GfmIdleCombatDeepCopyFix.Install);
+            TryInstall("gfmIdleCombatDeepCopy", "GfmIdleCombatDeepCopyFix", GfmIdleCombatDeepCopyFix.Install);
         }
 
         // ======================================================================
@@ -622,6 +626,20 @@ namespace GNH.LocalFixes
                     return false;
                 }
 
+                // 玩家把这一项关掉了就跳过。
+                // ⚠ 只有「本补丁类确实有对应开关项」时才跳过：IdForPatchClass 返回 null
+                //   表示这一类不受开关管辖（将来新增但忘了登记的补丁类会落到这里），
+                //   此时应当**照常安装** —— 漏装的后果是「修复静默消失」，比多装严重得多。
+                // 跳过时不写 installedPatchClasses：玩家中途把开关打开、下一次（切语言 /
+                //   热重载）触发本方法时，它就能立刻装上。
+                string toggleId = FixToggles.IdForPatchClass(type.FullName);
+                if (toggleId != null && !IsFixEnabled(toggleId))
+                {
+                    SafeLogMessage("[GNH LocalFixes] Patch class skipped, turned off in mod settings: "
+                        + type.Name + " [" + toggleId + "].");
+                    return false;
+                }
+
                 try
                 {
                     List<MethodInfo> patched = HarmonyInstance.CreateClassProcessor(type).Patch();
@@ -659,8 +677,43 @@ namespace GNH.LocalFixes
         // ⚠ catch 里必须是 SafeLogError：裸的 Log.Error 在「日志系统自己抛异常」时
         //    会让异常从这个 catch 里漏出去，把「这一步没装上」变成「构造函数抛异常」。
         //    （2026-10-07 极端场景测试实测确证，细节见 SafeLog* 那段注释。）
-        private static void TryInstall(string name, Action install)
+        /// <summary>
+        /// 某一项修复是否被玩家开启。
+        ///
+        /// 【读不到设置时返回 true】
+        ///   保守方向是「宁可多修」：本补丁包存在的意义就是兜住那些会让玩家崩掉的问题，
+        ///   因为一次配置读取失败就把二十多项修复全关掉，比不装这个模组还糟。
+        ///   （设置对象为空只在极端情况下出现，见构造函数里那段 try/catch。）
+        /// </summary>
+        internal static bool IsFixEnabled(string toggleId)
         {
+            try
+            {
+                GNHLocalFixesSettings settings = Settings;
+                if (settings == null)
+                {
+                    return true;
+                }
+                return settings.IsOn(toggleId);
+            }
+            catch (Exception)
+            {
+                // IsOn 本身只是几次字典查找，理论上不会抛。真抛了也按「开启」处理，理由同上。
+                return true;
+            }
+        }
+
+        // 装一步补丁。toggleId 对应 FixToggles 里的一项；玩家在设置界面里关掉它，
+        // 这一步就整段跳过，并且**在日志里留一条记录** ——
+        // 「明明装了这个模组却没修」是排查时最费解的情形，必须能从日志一眼看出来是玩家自己关的。
+        private static void TryInstall(string toggleId, string name, Action install)
+        {
+            if (!IsFixEnabled(toggleId))
+            {
+                SafeLogMessage("[GNH LocalFixes] Skipped, turned off in mod settings: " + name
+                    + " [" + toggleId + "].");
+                return;
+            }
             try
             {
                 install();
@@ -747,49 +800,162 @@ namespace GNH.LocalFixes
             {
                 // 设置对象没取到（理论上不会发生）：给一句提示，别让窗口一片空白。
                 Widgets.Label(inRect, Translated("GNH_LocalFixes_SettingsUnavailable",
-                    "设置读取失败。本补丁按内置默认值（保护开启）继续工作。"));
+                    "设置读取失败。本补丁按内置默认值（全部开启）继续工作。"));
                 return;
             }
 
-            Listing_Standard listing = new Listing_Standard();
-            listing.Begin(inRect);
+            // ---- 顶部：批量按钮 + 当前状态 + 重启提示 ----
+            const float headerHeight = 86f;
+            DrawSettingsHeader(new Rect(inRect.x, inRect.y, inRect.width, headerHeight), settings);
 
-            // CheckboxLabeled 会**直接改写**传进去的那个 bool，
-            // 所以先复制一份出来，点完再把结果同步回设置对象 ——
-            // 这样「有没有变化」一目了然，也不会因为中途异常改坏设置。
+            // ---- 下面：可滚动的开关列表 ----
             //
-            // 两个开关的标题与说明都走 Translated()：英文环境显示英文，
-            // 取不到翻译时回退成下面那段中文（理由见 Translated 的注释）。
-            bool keepLeaderTitle = settings.keepLeaderTitle;
-            listing.CheckboxLabeled(
-                Translated("GNH_LocalFixes_KeepLeaderTitle", "保护自定义的领袖头衔"),
-                ref keepLeaderTitle,
-                Translated("GNH_LocalFixes_KeepLeaderTitleDesc",
-                    "开启时：已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，"
-                    + "改模因、点「随机符号」都不会动它。新建文化时的第一次生成不受影响。\n\n"
-                    + "关闭后：完全恢复原版行为 —— 改模因或点「随机符号」会把领袖头衔重新掷一次。\n\n"
-                    + "想给某个文化换一个头衔：把头衔清空（或临时关掉本开关）再点一次「随机符号」即可。"));
-            settings.keepLeaderTitle = keepLeaderTitle;
+            // 为什么用 ScrollView 而不是直接平铺：二十多项、每项还带一行说明，
+            // 高度远超设置窗口，不滚动的话下面一大半永远看不见
+            //（而且玩家不会知道"下面还有"，只会觉得"就这几项"）。
+            float listTop = inRect.y + headerHeight + 6f;
+            Rect outer = new Rect(inRect.x, listTop, inRect.width,
+                Mathf.Max(120f, inRect.height - headerHeight - 6f));
+            float innerWidth = outer.width - 22f;   // 给右侧滚动条留出位置
+            Rect view = new Rect(0f, 0f, innerWidth, MeasureListHeight(innerWidth));
 
-            listing.Gap(12f);
-
-            bool fixVfeeInstrumentSpace = settings.fixVfeeInstrumentSpace;
-            listing.CheckboxLabeled(
-                Translated("GNH_LocalFixes_FixVfeeInstrumentSpace",
-                    "修复 VFE Empire「乐器空间」的空引用崩溃"),
-                ref fixVfeeInstrumentSpace,
-                Translated("GNH_LocalFixes_FixVfeeInstrumentSpaceDesc",
-                    "开启时：给 VFE Empire 那句会崩的判断补上空值保护。"
-                    + "九个用到「乐器空间」的爵位（Archcount / Marquess / Archduke / "
-                    + "Magister / Despot / HighStellarch 等）的房间需求才能正常工作。\n\n"
-                    + "关闭后：完全交还原版逻辑。\n\n"
-                    + "★ 多数情况下不需要手动关这一项：本补丁会先探测"
-                    + "「原版那句判断现在还崩不崩」，一旦发现它已经安全"
-                    + "（多半是 VFE Empire 自己修好了），就会自动让路、什么都不做。"
-                    + "这个开关只在「作者改了判断逻辑本身的写法」时才用得上。"));
-            settings.fixVfeeInstrumentSpace = fixVfeeInstrumentSpace;
-
+            Widgets.BeginScrollView(outer, ref settingsScroll, view);
+            Listing_Standard listing = new Listing_Standard();
+            listing.Begin(view);
+            DrawToggleList(listing, settings, innerWidth);
             listing.End();
+            Widgets.EndScrollView();
+        }
+
+        // 分组标题占的高度。测量与绘制共用同一个常数 ——
+        // 两处不一致的后果是「滚不到底」或者「底部空一大片」，而且很难看出是哪边错了。
+        private const float GroupHeaderHeight = 34f;
+
+        /// <summary>
+        /// 顶部那一行：三个批量按钮 + 当前状态 + 「要重启才生效」的提示。
+        /// </summary>
+        private static void DrawSettingsHeader(Rect rect, GNHLocalFixesSettings settings)
+        {
+            float buttonWidth = (rect.width - 16f) / 3f;
+            Rect row = new Rect(rect.x, rect.y, rect.width, 30f);
+
+            if (Widgets.ButtonText(new Rect(row.x, row.y, buttonWidth, 30f),
+                    Translated("GNH_LocalFixes_EnableAll", "全部开启（默认）")))
+            {
+                settings.SetAll(true);
+            }
+            if (Widgets.ButtonText(new Rect(row.x + buttonWidth + 8f, row.y, buttonWidth, 30f),
+                    Translated("GNH_LocalFixes_DisableAll", "全部关闭")))
+            {
+                settings.SetAll(false);
+            }
+            if (Widgets.ButtonText(new Rect(row.x + (buttonWidth + 8f) * 2f, row.y, buttonWidth, 30f),
+                    Translated("GNH_LocalFixes_OnlyCrashes", "只留「崩溃与卡死」")))
+            {
+                // 实用预设：把「日志刷屏」与「兼容与判定」两类关掉，只留下不修就会崩的那些。
+                // 「行为与设置」两项是玩家偏好（不是修 bug），保持原样不动，免得顺手改掉别人的选择。
+                for (int i = 0; i < FixToggles.All.Length; i++)
+                {
+                    FixToggles.Entry e = FixToggles.All[i];
+                    if (e.Group != FixToggles.GroupBehaviour)
+                    {
+                        settings.SetOn(e.Id, e.Group == FixToggles.GroupCrash);
+                    }
+                }
+            }
+
+            int disabled = settings.CountDisabled();
+            string status = (disabled == 0)
+                ? Translated("GNH_LocalFixes_StatusAllOn", "当前状态：全部修复项均已开启。")
+                : string.Format(Translated("GNH_LocalFixes_StatusSomeOff",
+                    "当前状态：共 {0} 项，其中 {1} 项已关闭。"), FixToggles.All.Length, disabled);
+            Widgets.Label(new Rect(rect.x, rect.y + 36f, rect.width, 22f), status);
+
+            Color prevColor = GUI.color;
+            GUI.color = new Color(1f, 0.85f, 0.45f);
+            Widgets.Label(new Rect(rect.x, rect.y + 58f, rect.width, 26f),
+                Translated("GNH_LocalFixes_RestartHint",
+                    "★ 改动要重启游戏才生效 —— 补丁一旦挂上就没法中途摘掉，这里决定的是「下次启动装哪几项」。"));
+            GUI.color = prevColor;
+        }
+
+        /// <summary>
+        /// 列表总高度。必须与 DrawToggleList 里实际用掉的高度**逐项一致**。
+        /// </summary>
+        private static float MeasureListHeight(float width)
+        {
+            float total = 0f;
+            string lastGroup = null;
+            for (int i = 0; i < FixToggles.All.Length; i++)
+            {
+                FixToggles.Entry e = FixToggles.All[i];
+                if (e.Group != lastGroup)
+                {
+                    lastGroup = e.Group;
+                    if (i > 0)
+                    {
+                        total += 8f;      // 与 DrawToggleList 里的 listing.Gap(8f) 对应
+                    }
+                    total += GroupHeaderHeight;
+                }
+                total += EntryHeight(e, width);
+            }
+            return total + 8f;            // 底部留一点余量，免得最后一行贴着边
+        }
+
+        private static float EntryHeight(FixToggles.Entry entry, float width)
+        {
+            string desc = Translated(FixToggles.DescKeyOf(entry.Id), entry.Desc);
+            // 26f = 复选框那一行；说明文本按实际换行后的高度算；10f = 项与项之间的间隔。
+            return 26f + Text.CalcHeight(desc, width - 26f) + 10f;
+        }
+
+        /// <summary>
+        /// 把 FixToggles.All 画成一条条开关。顺序、分组、文案全部来自那张表 ——
+        /// 界面上能看到的项，就是安装侧会去查的那些项，不存在「有界面没接线」的假开关。
+        /// </summary>
+        private static void DrawToggleList(Listing_Standard listing, GNHLocalFixesSettings settings, float width)
+        {
+            string lastGroup = null;
+            for (int i = 0; i < FixToggles.All.Length; i++)
+            {
+                FixToggles.Entry entry = FixToggles.All[i];
+
+                if (entry.Group != lastGroup)
+                {
+                    lastGroup = entry.Group;
+                    if (i > 0)
+                    {
+                        listing.Gap(8f);
+                    }
+                    Rect headerRect = listing.GetRect(GroupHeaderHeight);
+                    GameFont prevFont = Text.Font;
+                    Text.Font = GameFont.Medium;
+                    Widgets.Label(headerRect, entry.Group);
+                    Text.Font = prevFont;
+                    Widgets.DrawLineHorizontal(headerRect.x, headerRect.yMax - 6f, headerRect.width);
+                }
+
+                // CheckboxLabeled 会**直接改写**传进去的那个 bool，
+                // 所以先复制一份、比完再写回设置对象 —— 这样「有没有变化」一目了然，
+                // 也不会因为中途异常把设置改坏。
+                bool value = settings.IsOn(entry.Id);
+                bool before = value;
+                Widgets.CheckboxLabeled(listing.GetRect(26f),
+                    Translated(FixToggles.LabelKeyOf(entry.Id), entry.Label), ref value);
+                if (value != before)
+                {
+                    settings.SetOn(entry.Id, value);
+                }
+
+                // 说明单独一行、缩进对齐到标题文字下面。
+                string desc = Translated(FixToggles.DescKeyOf(entry.Id), entry.Desc);
+                float descHeight = Text.CalcHeight(desc, width - 26f);
+                Rect descRect = listing.GetRect(descHeight);
+                Widgets.Label(new Rect(descRect.x + 26f, descRect.y, descRect.width - 26f, descHeight), desc);
+
+                listing.Gap(10f);
+            }
         }
     }
 }

@@ -5,13 +5,62 @@
     模组设置界面 —— 简体中文
     ═══════════════════════════════════════════════════════════════
     这些键只在「选项 → 模组设置 → 本模组」这一个界面里用到。
-    C# 那边用 "键名".Translate() 取；取不到时会回退到代码里写好的中文，
-    所以即使这个文件丢了，中文玩家看到的也还是中文，不会变成键名。
+    C# 那边用 "键名".Translate() 取；取不到时会回退到 FixToggles.cs 里
+    写好的文本，所以即使这个文件丢了，界面也不会显示成键名。
+
+    ⚠ 新增一个开关时要同时改三处：FixToggles.cs、本文件、English 那份。
+    （改动清单写在 FixToggles.cs 顶部的注释里。）
   -->
   <GNH_LocalFixes_SettingsCategory>模组兼容修复补丁</GNH_LocalFixes_SettingsCategory>
-  <GNH_LocalFixes_SettingsUnavailable>设置读取失败。本补丁按内置默认值（保护开启）继续工作。</GNH_LocalFixes_SettingsUnavailable>
-  <GNH_LocalFixes_KeepLeaderTitle>保护自定义的领袖头衔</GNH_LocalFixes_KeepLeaderTitle>
-  <GNH_LocalFixes_KeepLeaderTitleDesc>开启时：已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，改模因、点「随机符号」都不会动它。新建文化时的第一次生成不受影响。\n\n关闭后：完全恢复原版行为 —— 改模因或点「随机符号」会把领袖头衔重新掷一次。\n\n想给某个文化换一个头衔：把头衔清空（或临时关掉本开关）再点一次「随机符号」即可。</GNH_LocalFixes_KeepLeaderTitleDesc>
-  <GNH_LocalFixes_FixVfeeInstrumentSpace>修复 VFE Empire「乐器空间」的空引用崩溃</GNH_LocalFixes_FixVfeeInstrumentSpace>
-  <GNH_LocalFixes_FixVfeeInstrumentSpaceDesc>开启时：给 VFE Empire 那句会崩的判断补上空值保护。九个用到「乐器空间」的爵位（Archcount / Marquess / Archduke / Magister / Despot / HighStellarch 等）的房间需求才能正常工作。\n\n关闭后：完全交还原版逻辑。\n\n★ 多数情况下不需要手动关这一项：本补丁会先探测「原版那句判断现在还崩不崩」，一旦发现它已经安全（多半是 VFE Empire 自己修好了），就会自动让路、什么都不做。这个开关只在「作者改了判断逻辑本身的写法」时才用得上。</GNH_LocalFixes_FixVfeeInstrumentSpaceDesc>
+  <GNH_LocalFixes_SettingsUnavailable>设置读取失败。本补丁按内置默认值（全部开启）继续工作。</GNH_LocalFixes_SettingsUnavailable>
+  <GNH_LocalFixes_EnableAll>全部开启（默认）</GNH_LocalFixes_EnableAll>
+  <GNH_LocalFixes_DisableAll>全部关闭</GNH_LocalFixes_DisableAll>
+  <GNH_LocalFixes_OnlyCrashes>只留「崩溃与卡死」</GNH_LocalFixes_OnlyCrashes>
+  <GNH_LocalFixes_StatusAllOn>当前状态：全部修复项均已开启。</GNH_LocalFixes_StatusAllOn>
+  <GNH_LocalFixes_StatusSomeOff>当前状态：共 {0} 项，其中 {1} 项已关闭。</GNH_LocalFixes_StatusSomeOff>
+  <GNH_LocalFixes_RestartHint>★ 改动要重启游戏才生效 —— 补丁一旦挂上就没法中途摘掉，这里决定的是「下次启动装哪几项」。</GNH_LocalFixes_RestartHint>
+  <GNH_LocalFixes_Toggle_assemblyGetTypesFallback>坏程序集不再拖垮整批补丁</GNH_LocalFixes_Toggle_assemblyGetTypesFallback>
+  <GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>某个模组的 dll 引用了根本不存在的程序集时，游戏枚举「所有类」会整体失败，排在后面的模组就全部扫不到。本项把「整份清单作废」降级成「少几个类，但清单还能用」。</GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>
+  <GNH_LocalFixes_Toggle_techHediffsZeroBudget>植入体预算为 0 时的空引用崩溃</GNH_LocalFixes_Toggle_techHediffsZeroBudget>
+  <GNH_LocalFixes_Toggle_techHediffsZeroBudget_Desc>原版在「植入体预算恰好为 0」时会以 0 权重抽到 null 然后解引用崩溃。本项补上空值保护。</GNH_LocalFixes_Toggle_techHediffsZeroBudget_Desc>
+  <GNH_LocalFixes_Toggle_musicManagerFadeout>音乐淡出每帧报错</GNH_LocalFixes_Toggle_musicManagerFadeout>
+  <GNH_LocalFixes_Toggle_musicManagerFadeout_Desc>「乐器」分组里混进真实类型不是乐器的对象时，音乐淡出会每帧抛 InvalidCastException。本项在源头拦截并附带一层兜底。</GNH_LocalFixes_Toggle_musicManagerFadeout_Desc>
+  <GNH_LocalFixes_Toggle_nmmIdeoTrackerNull>开新局卡死在生成阶段</GNH_LocalFixes_Toggle_nmmIdeoTrackerNull>
+  <GNH_LocalFixes_Toggle_nmmIdeoTrackerNull_Desc>NudityMattersMore 的 CoverBody.UpdateIdeo 会在「静态表里残留同号记录」时解引用空引用，把整条角色生成流程掀翻——表现就是同一个进程里连续开新局会卡死。本项在它之前清掉残留。</GNH_LocalFixes_Toggle_nmmIdeoTrackerNull_Desc>
+  <GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull>Allies are Helpful 的角色空引用</GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull>
+  <GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull_Desc>该模组在「角色当前没有工作」这个常见情形下没有拦住，会读空对象并中断 TickRare。本项把那几处读 Job 字段的地方改成 null 安全写法。</GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull_Desc>
+  <GNH_LocalFixes_Toggle_srceLibConcurrency>雪兔公共库的并发崩溃</GNH_LocalFixes_Toggle_srceLibConcurrency>
+  <GNH_LocalFixes_Toggle_srceLibConcurrency_Desc>SRCELib 的两个静态缓存全程没有锁，并行渲染下会同时扩容、写坏集合，导致部分角色每次绘制都抛异常、干脆不显示。本项给它套一把锁。</GNH_LocalFixes_Toggle_srceLibConcurrency_Desc>
+  <GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy>Guards For Me 的行为树残缺</GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy>
+  <GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy_Desc>该模组的 DeepCopy 是从原版复制来的，忘了把强转的目标类型一起改，必然抛 InvalidCastException，导致三棵行为树没被复制、用到它们的种族 AI 行为缺失。本项只改那两条 IL 指令。</GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy_Desc>
+  <GNH_LocalFixes_Toggle_ccoeReflection>CCOE 的反射异常红字</GNH_LocalFixes_Toggle_ccoeReflection>
+  <GNH_LocalFixes_Toggle_ccoeReflection_Desc>CCOE 有三个前缀方法在「角色没有对应组件」时会抛 System.Reflection.TargetException，让月经结算流程失败并刷红字。本项把三处都改成安全写法。</GNH_LocalFixes_Toggle_ccoeReflection_Desc>
+  <GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace>修复 VFE Empire「乐器空间」的空引用崩溃</GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace>
+  <GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace_Desc>给 VFE Empire 那句会崩的判断补上空值保护：不补的话，九个用到「乐器空间」的爵位（Archcount / Marquess / Archduke 等）的房间需求无法正常工作。★ 多数情况下不必手动关：本项自带探测，一旦发现原版那句判断已经安全（多半是作者自己修好了），会自动让路、什么都不做。</GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace_Desc>
+  <GNH_LocalFixes_Toggle_crossPromotionUnpatch>打开「模组」页面崩溃</GNH_LocalFixes_Toggle_crossPromotionUnpatch>
+  <GNH_LocalFixes_Toggle_crossPromotionUnpatch_Desc>CrossPromotion 在模组页面里去取 Steam 信息，会调用 Steam 官方早已废弃的接口，导致一打开「模组」页面就崩。本项把它那段前置处理摘掉。</GNH_LocalFixes_Toggle_crossPromotionUnpatch_Desc>
+  <GNH_LocalFixes_Toggle_steamWorkshopHook>Steam 工坊信息崩溃（第二道保险）</GNH_LocalFixes_Toggle_steamWorkshopHook>
+  <GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>与上一项是同一场崩溃的另一条路：把「取工坊信息」这条链路上的空值与异常接住。两项都开着最稳。</GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>
+  <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>古代神殿警告刷屏</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>
+  <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>生成古代神殿时，每个小格子都会刷一条「找不到 mimicSpawner 规则」的警告（实测一次开局 34 条）。原版那条路径本来就是「拒绝 + 什么都不做」，所以本项只是不再刷警告，行为完全等价。</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>
+  <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>RJW-Genes 调试刷屏</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>
+  <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>开发者模式下每帧都写一行 [RJW-Genes] multipreg checks（实测一局 3 万条、占整份日志 65%），把真正要看的问题全埋掉。本项只拦这一句，该模组的报错与警告照常输出。</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>
+  <GNH_LocalFixes_Toggle_vehicleFrameworkDebug>Vehicle Framework 调试菜单报错</GNH_LocalFixes_Toggle_vehicleFrameworkDebug>
+  <GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>打开开发者生成菜单后，该模组找不到对应的 PawnKind 会报错。本项把「找不到就报错」改成「查不到就静默跳过」。</GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>
+  <GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>射程计算空引用</GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>
+  <GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange_Desc>原版算射程时有两处直接使用「攻击者」却没有先判空，特定情况下会刷空引用。本项补上判空。</GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange_Desc>
+  <GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>XML 补丁按名字判定 DLC 失效</GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>
+  <GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName_Desc>中文环境里 DLC 的显示名会被语言包翻译（Royalty → 皇权），于是补丁里写 &lt;li&gt;Royalty&lt;/li&gt; 的判定会静默失败、整块补丁被跳过（而且一条日志都不打）。本项让英文短名与中文显示名都能匹配。</GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName_Desc>
+  <GNH_LocalFixes_Toggle_xmlExtensionsFindMod>XmlExtensions 的 FindMod 判定失效</GNH_LocalFixes_Toggle_xmlExtensionsFindMod>
+  <GNH_LocalFixes_Toggle_xmlExtensionsFindMod_Desc>同样是「按名字判定 DLC」的毛病，但走的是 XmlExtensions 自己那条代码路径（与本补丁包另一处修复互不重叠，两者都要开才完整）。</GNH_LocalFixes_Toggle_xmlExtensionsFindMod_Desc>
+  <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>RaceGeneDef 类型名解析到正确的一份</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>
+  <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>本补丁包为了避免刷红字自带了一份同名兼容定义，当 telanda 的动物遗传模组在场时，同一个类型名会同时存在于两个程序集。本项保证解析到 telanda 的那一份。</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>
+  <GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>ElToro Patches 与 telanda 抢 defName</GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>
+  <GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes_Desc>两个模组各自定义了一整套 RaceGeneDef，而且 25 个完全重名、互相覆盖。本项让它们不再互抢；telanda 缺席时还会顺手把无人消费的那批数据表安静地摘掉。</GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes_Desc>
+  <GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>非乐器不许进「乐器」分组（源头拦截）</GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>
+  <GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument_Desc>在物品登记进分组的那一刻检查「def 说是乐器、真实类型却不是」的对象并挡回去，于是根本不会有东西混进去。与「音乐淡出每帧报错」那一项配套，建议一起开。</GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument_Desc>
+  <GNH_LocalFixes_Toggle_keepLeaderTitle>保护自定义的领袖头衔</GNH_LocalFixes_Toggle_keepLeaderTitle>
+  <GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>开启时：你已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，改模因、点「随机符号」都不会动它。关闭后：完全恢复原版行为。想给某个文化换头衔，把头衔清空（或临时关掉本开关）再点一次「随机符号」即可。</GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>
+  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore>抵消「月经体液」强制关闭 Cumpilation 设置</GNH_LocalFixes_Toggle_cumpilationSettingsRestore>
+  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>「RJW Menstruation Fluids」每次启动都会把 Cumpilation 的 9 个开关无条件写成关闭，你在设置界面里打开也没用（下次启动又被按回去，而且它只改内存、从不写盘）。本项在它之后按**你自己存过的值**恢复，不写死任何开关。GNH_LocalFixes_Toggle_GNH_LocalFixes_Toggle__Desc</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
 </LanguageData>

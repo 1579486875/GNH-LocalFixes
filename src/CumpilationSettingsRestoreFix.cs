@@ -50,6 +50,13 @@ namespace GNH.LocalFixes
 
         static CumpilationSettingsRestoreFix()
         {
+            // 玩家在设置界面里把这一项关掉时整段跳过（理由同 CcoeReflectionFix）。
+            if (!LocalFixesMod.IsFixEnabled("cumpilationSettingsRestore"))
+            {
+                LocalFixesMod.SafeLogMessage("[GNH LocalFixes] Skipped, turned off in mod settings: "
+                    + "CumpilationSettingsRestoreFix [cumpilationSettingsRestore].");
+                return;
+            }
             Install();
         }
 

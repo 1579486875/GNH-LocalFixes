@@ -2,16 +2,65 @@
 <LanguageData>
   <!--
     ═══════════════════════════════════════════════════════════════
-    Mod settings window — English
+    模组设置界面 —— English
     ═══════════════════════════════════════════════════════════════
-    Only used by "Options -> Mod settings -> this mod".
-    The C# side calls "Key".Translate(); if a key is missing it falls back to
-    the Chinese text baked into the code, so the UI never shows a raw key name.
+    这些键只在「选项 → 模组设置 → 本模组」这一个界面里用到。
+    C# 那边用 "键名".Translate() 取；取不到时会回退到 FixToggles.cs 里
+    写好的文本，所以即使这个文件丢了，界面也不会显示成键名。
+
+    ⚠ 新增一个开关时要同时改三处：FixToggles.cs、本文件、English 那份。
+    （改动清单写在 FixToggles.cs 顶部的注释里。）
   -->
   <GNH_LocalFixes_SettingsCategory>GNH Local Fixes</GNH_LocalFixes_SettingsCategory>
-  <GNH_LocalFixes_SettingsUnavailable>Could not read the settings. This patch keeps working with its built-in defaults (all fixes on).</GNH_LocalFixes_SettingsUnavailable>
-  <GNH_LocalFixes_KeepLeaderTitle>Protect custom leader titles</GNH_LocalFixes_KeepLeaderTitle>
-  <GNH_LocalFixes_KeepLeaderTitleDesc>On: leader titles that are already set (Chairman, Pontiff, ...) are no longer re-rolled by the game. Changing memes or clicking "Randomize symbols" will not touch them. The very first generation of a brand-new ideoligion is unaffected.\n\nOff: fully vanilla behaviour - changing memes or clicking "Randomize symbols" re-rolls the leader title.\n\nTo give an ideoligion a different title: clear the title (or temporarily turn this off), then click "Randomize symbols" once.</GNH_LocalFixes_KeepLeaderTitleDesc>
-  <GNH_LocalFixes_FixVfeeInstrumentSpace>Fix the VFE Empire "InstrumentSpace" null-reference crash</GNH_LocalFixes_FixVfeeInstrumentSpace>
-  <GNH_LocalFixes_FixVfeeInstrumentSpaceDesc>On: adds a null guard to the VFE Empire check that would otherwise throw. The room requirements of the nine titles that use "instrument space" (Archcount / Marquess / Archduke / Magister / Despot / HighStellarch, ...) can then work normally.\n\nOff: fully vanilla behaviour.\n\n★ You normally never need to turn this off: the patch first probes whether the vanilla check is still crash-prone and, once it is safe (usually because VFE Empire fixed it), it stands down and does nothing. This switch only matters if the author rewrites the check itself.</GNH_LocalFixes_FixVfeeInstrumentSpaceDesc>
+  <GNH_LocalFixes_SettingsUnavailable>Could not read settings. The pack keeps working with its built-in defaults (everything on).</GNH_LocalFixes_SettingsUnavailable>
+  <GNH_LocalFixes_EnableAll>Enable all (default)</GNH_LocalFixes_EnableAll>
+  <GNH_LocalFixes_DisableAll>Disable all</GNH_LocalFixes_DisableAll>
+  <GNH_LocalFixes_OnlyCrashes>Crashes only</GNH_LocalFixes_OnlyCrashes>
+  <GNH_LocalFixes_StatusAllOn>All fixes are currently enabled.</GNH_LocalFixes_StatusAllOn>
+  <GNH_LocalFixes_StatusSomeOff>Status: {1} of {0} fixes are turned off.</GNH_LocalFixes_StatusSomeOff>
+  <GNH_LocalFixes_RestartHint>★ Changes take effect after restarting the game - patches cannot be removed mid-session; this screen decides what gets installed on the next launch.</GNH_LocalFixes_RestartHint>
+  <GNH_LocalFixes_Toggle_assemblyGetTypesFallback>One broken assembly no longer kills every patch</GNH_LocalFixes_Toggle_assemblyGetTypesFallback>
+  <GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>When a mod's dll references an assembly that is not installed, enumerating all types fails for everyone, and mods later in the list get skipped entirely. This turns 'the whole list is void' into 'a few types missing, the list is still usable'.</GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>
+  <GNH_LocalFixes_Toggle_techHediffsZeroBudget>Implant generator crash at zero budget</GNH_LocalFixes_Toggle_techHediffsZeroBudget>
+  <GNH_LocalFixes_Toggle_techHediffsZeroBudget_Desc>Vanilla picks from a zero-weight list when the implant budget is exactly 0, gets null and crashes. This adds the missing null check.</GNH_LocalFixes_Toggle_techHediffsZeroBudget_Desc>
+  <GNH_LocalFixes_Toggle_musicManagerFadeout>Music fadeout error every frame</GNH_LocalFixes_Toggle_musicManagerFadeout>
+  <GNH_LocalFixes_Toggle_musicManagerFadeout_Desc>When an object that only claims to be an instrument ends up in the instruments group, music fadeout throws InvalidCastException every frame. This blocks it at the source and adds a safety net.</GNH_LocalFixes_Toggle_musicManagerFadeout_Desc>
+  <GNH_LocalFixes_Toggle_nmmIdeoTrackerNull>New-game generation freeze</GNH_LocalFixes_Toggle_nmmIdeoTrackerNull>
+  <GNH_LocalFixes_Toggle_nmmIdeoTrackerNull_Desc>NudityMattersMore's CoverBody.UpdateIdeo dereferences null when a stale entry with the same id is still cached, which breaks pawn generation - starting new games repeatedly freezes. This clears the stale entries first.</GNH_LocalFixes_Toggle_nmmIdeoTrackerNull_Desc>
+  <GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull>Allies are Helpful pawn null reference</GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull>
+  <GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull_Desc>That mod does not guard the common case where a pawn has no current job, so it reads a null object and aborts TickRare. This makes those Job reads null-safe.</GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull_Desc>
+  <GNH_LocalFixes_Toggle_srceLibConcurrency>Snow Rabbit library concurrency crash</GNH_LocalFixes_Toggle_srceLibConcurrency>
+  <GNH_LocalFixes_Toggle_srceLibConcurrency_Desc>SRCELib's two static caches have no lock at all; concurrent rendering corrupts them, and some pawns throw on every draw and never appear. This wraps it in a lock.</GNH_LocalFixes_Toggle_srceLibConcurrency_Desc>
+  <GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy>Guards For Me think-tree damage</GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy>
+  <GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy_Desc>That mod's DeepCopy was copied from vanilla without changing the cast target, so it always throws InvalidCastException and three think-trees are never copied. This fixes just those two IL instructions.</GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy_Desc>
+  <GNH_LocalFixes_Toggle_ccoeReflection>CCOE reflection exception spam</GNH_LocalFixes_Toggle_ccoeReflection>
+  <GNH_LocalFixes_Toggle_ccoeReflection_Desc>Three CCOE prefix methods throw TargetException when the pawn has no matching component, failing menstruation settlement and spamming red text. This makes all three safe.</GNH_LocalFixes_Toggle_ccoeReflection_Desc>
+  <GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace>VFE Empire 'instrument space' null crash</GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace>
+  <GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace_Desc>Adds the missing null guard to VFE Empire's crashing check: without it the room requirements of nine noble titles (Archcount / Marquess / Archduke ...) do not work. Usually you do not need to turn this off - it probes the vanilla code and steps aside once the author fixes it.</GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace_Desc>
+  <GNH_LocalFixes_Toggle_crossPromotionUnpatch>Crash when opening the Mods page</GNH_LocalFixes_Toggle_crossPromotionUnpatch>
+  <GNH_LocalFixes_Toggle_crossPromotionUnpatch_Desc>CrossPromotion calls a long-deprecated Steam interface while drawing the mods page, so opening it crashes. This removes that prefix.</GNH_LocalFixes_Toggle_crossPromotionUnpatch_Desc>
+  <GNH_LocalFixes_Toggle_steamWorkshopHook>Steam workshop info crash (second safety net)</GNH_LocalFixes_Toggle_steamWorkshopHook>
+  <GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>The other path of the same crash: catches nulls and exceptions along the 'get workshop info' chain. Keeping both on is safest.</GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>
+  <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>Ancient shrine warning spam</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>
+  <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>Generating ancient shrines logs a 'no RuleDef for mimicSpawner' warning per tile (34 per map in testing). Vanilla's path already rejects and does nothing, so this only stops the spam.</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>
+  <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>RJW-Genes debug spam</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>
+  <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>In dev mode it logs '[RJW-Genes] multipreg checks' every frame (30k lines, 65 percent of the log in one session), burying real problems. This blocks only that one string.</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>
+  <GNH_LocalFixes_Toggle_vehicleFrameworkDebug>Vehicle Framework debug menu error</GNH_LocalFixes_Toggle_vehicleFrameworkDebug>
+  <GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>After building the dev spawn menu, that mod errors out when a PawnKind is not found. This turns 'error out' into 'silently skip'.</GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>
+  <GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>Range calculation null reference</GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>
+  <GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange_Desc>Vanilla uses the attacker without checking for null in two places, which spams null references in some cases. This adds the missing checks.</GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange_Desc>
+  <GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>XML patch mod-name checks fail in Chinese</GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>
+  <GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName_Desc>In Chinese the DLC display names are translated (Royalty becomes the localized name), so patches testing for the English short name silently fail and whole patch blocks are skipped with no log line. This accepts both forms.</GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName_Desc>
+  <GNH_LocalFixes_Toggle_xmlExtensionsFindMod>XmlExtensions FindMod check fails</GNH_LocalFixes_Toggle_xmlExtensionsFindMod>
+  <GNH_LocalFixes_Toggle_xmlExtensionsFindMod_Desc>The same 'match DLC by name' problem, but on XmlExtensions' own code path (separate from the other fix here; both must be on).</GNH_LocalFixes_Toggle_xmlExtensionsFindMod_Desc>
+  <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>RaceGeneDef resolves to the right assembly</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>
+  <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>This pack ships a same-named compatibility definition to avoid red text; when telanda's animal gene mod is present the type name exists in two assemblies. This makes the telanda one win.</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>
+  <GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>ElToro Patches vs telanda defName clash</GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>
+  <GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes_Desc>Both mods define a full set of RaceGeneDefs and 25 names collide exactly, overwriting each other. This stops the clash; when telanda is absent it also quietly drops the unconsumed tables.</GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes_Desc>
+  <GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>Non-instruments kept out of the instruments group</GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>
+  <GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument_Desc>Checks at registration time whether an object claims to be an instrument but is not, and rejects it - so nothing can get in. Pairs with the music fadeout fix.</GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument_Desc>
+  <GNH_LocalFixes_Toggle_keepLeaderTitle>Keep custom leader titles</GNH_LocalFixes_Toggle_keepLeaderTitle>
+  <GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>On: leader titles you set (Chairman, Pope, ...) are never re-rolled by randomize-symbols or meme changes. Off: fully back to vanilla behaviour. To change a title, clear it (or turn this off), then randomize once.</GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>
+  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore>Counteract Menstruation Fluids forcing Cumpilation settings off</GNH_LocalFixes_Toggle_cumpilationSettingsRestore>
+  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>'RJW Menstruation Fluids' unconditionally writes 9 Cumpilation settings to false on every launch, so turning them on in the settings UI does not stick (it only changes memory, never disk). This restores the values you saved.</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
 </LanguageData>

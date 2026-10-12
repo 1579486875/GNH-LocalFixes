@@ -324,6 +324,15 @@ namespace GNH.LocalFixes
     {
         static CcoeReflectionFixLateInstaller()
         {
+            // 玩家在设置界面里把这一项关掉时整段跳过。
+            // 本类由游戏（StaticConstructorOnStartupUtility.CallAll）触发，
+            // 那时 LocalFixesMod 的构造函数早已跑完，设置一定已经读进来了。
+            if (!LocalFixesMod.IsFixEnabled("ccoeReflection"))
+            {
+                LocalFixesMod.SafeLogMessage("[GNH LocalFixes] Skipped, turned off in mod settings: "
+                    + "CcoeReflectionFix [ccoeReflection].");
+                return;
+            }
             CcoeReflectionFix.Install();
         }
     }
