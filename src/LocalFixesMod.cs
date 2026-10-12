@@ -633,6 +633,16 @@ namespace GNH.LocalFixes
                 // 跳过时不写 installedPatchClasses：玩家中途把开关打开、下一次（切语言 /
                 //   热重载）触发本方法时，它就能立刻装上。
                 string toggleId = FixToggles.IdForPatchClass(type.FullName);
+                if (toggleId == null)
+                {
+                    // 这个补丁类没在 FixToggles 里登记 —— 不受任何开关管辖，照常安装。
+                    // 之所以不「拒绝安装」：漏装的后果（修复静默消失）比多装严重得多。
+                    // 但必须留一条日志，否则将来新增补丁类时忘了登记，
+                    // 玩家看到的现象会是「设置界面里没有这一项，可它一直生效」，
+                    // 排查时完全找不到线索。
+                    SafeLogWarning("[GNH LocalFixes] Patch class has no toggle entry in FixToggles; "
+                        + "installing it unconditionally: " + type.Name);
+                }
                 if (toggleId != null && !IsFixEnabled(toggleId))
                 {
                     SafeLogMessage("[GNH LocalFixes] Patch class skipped, turned off in mod settings: "
@@ -804,6 +814,12 @@ namespace GNH.LocalFixes
                 return;
             }
 
+            // 先把字体钉死再测量。Text.CalcHeight 用的是**当前字体**，
+            // 而下面测量与绘制之间隔着 Widgets.ButtonText / CheckboxLabeled 等控件；
+            // 只要有一个改了 Text.Font 又不还原，两处算出的高度就会不一致
+            // （表现是滚不到底或底部留白）。显式设一次最省心。
+            Text.Font = GameFont.Small;
+
             // ---- 顶部：批量按钮 + 当前状态 + 重启提示 ----
             const float headerHeight = 86f;
             DrawSettingsHeader(new Rect(inRect.x, inRect.y, inRect.width, headerHeight), settings);
@@ -849,7 +865,16 @@ namespace GNH.LocalFixes
             {
                 settings.SetAll(false);
             }
-            if (Widgets.ButtonText(new Rect(row.x + (buttonWidth + 8f) * 2f, row.y, buttonWidth, 30f),
+            Rect onlyCrashRect = new Rect(row.x + (buttonWidth + 8f) * 2f, row.y,
+                buttonWidth, 30f);
+            // 悬停提示：光看按钮文字容易以为「行为与设置」也被关掉了，
+            // 这里明说它不动 —— 那两项是玩家偏好（保不保护领袖头衔之类），不是故障修复，
+            // 顺手替玩家改掉不合适。
+            TooltipHandler.TipRegion(onlyCrashRect,
+                Translated("GNH_LocalFixes_OnlyCrashes_Tip",
+                    "把「日志刷屏」与「兼容与判定」两类关掉，只留下不修就会崩的那些。\n"
+                    + "「行为与设置」两项不动 —— 那是你自己的偏好，不是故障修复。"));
+            if (Widgets.ButtonText(onlyCrashRect,
                     Translated("GNH_LocalFixes_OnlyCrashes", "只留「崩溃与卡死」")))
             {
                 // 实用预设：把「日志刷屏」与「兼容与判定」两类关掉，只留下不修就会崩的那些。
@@ -879,16 +904,60 @@ namespace GNH.LocalFixes
             GUI.color = prevColor;
         }
 
-        /// <summary>
-        /// 列表总高度。必须与 DrawToggleList 里实际用掉的高度**逐项一致**。
-        /// </summary>
-        private static float MeasureListHeight(float width)
+        // ──────────────────────────────────────────────────────────────
+        // 界面文本缓存
+        // ──────────────────────────────────────────────────────────────
+        //
+        // 【为什么要有这一段】
+        //   DoSettingsWindowContents 是 OnGUI 回调，**每帧都会跑**
+        //   （一帧通常有 Layout 与 Repaint 两次）。而滚动区要先知道总高度，
+        //   于是每帧都得对 22 项各做一次 Text.CalcHeight；绘制时又要再来一遍。
+        //   不缓存就是每帧几十次文字度量 —— 纯白烧，而且随开关数量线性增长。
+        //
+        //   所以「翻译 + 度量」的结果算一次存下来，测量与绘制**共用同一份**，
+        //   顺带也让两处不会因为各算各的而对不上（对不上的后果是滚不到底或底部留白）。
+        //
+        // 【什么时候必须重算】
+        //   宽度变了（换分辨率、改 UI 缩放）、当前语言变了、开关项数变了。
+        //   三者任一不同就整体重算；其余情况直接用旧的。
+        private static float cacheWidth = -1f;
+        private static string cacheLangFolder;
+        private static int cacheCount = -1;
+        private static string[] cacheLabel;
+        private static string[] cacheDesc;
+        private static string[] cacheGroup;
+        private static float[] cacheDescHeight;
+        private static float cacheTotalHeight;
+
+        private static void BuildUiCacheIfNeeded(float width)
         {
+            string langFolder = (LanguageDatabase.activeLanguage != null)
+                ? LanguageDatabase.activeLanguage.folderName : "?";
+            if (cacheCount == FixToggles.All.Length
+                && cacheLangFolder == langFolder
+                && Mathf.Abs(cacheWidth - width) < 0.01f
+                && cacheTotalHeight > 0f)
+            {
+                return;
+            }
+
+            int n = FixToggles.All.Length;
+            cacheLabel = new string[n];
+            cacheDesc = new string[n];
+            cacheGroup = new string[n];
+            cacheDescHeight = new float[n];
+
             float total = 0f;
             string lastGroup = null;
-            for (int i = 0; i < FixToggles.All.Length; i++)
+            for (int i = 0; i < n; i++)
             {
                 FixToggles.Entry e = FixToggles.All[i];
+                cacheLabel[i] = Translated(FixToggles.LabelKeyOf(e.Id), e.Label);
+                cacheDesc[i] = Translated(FixToggles.DescKeyOf(e.Id), e.Desc);
+                cacheGroup[i] = Translated(e.Group, FixToggles.GroupFallback(e.Group));
+                // 26f = 复选框那一行；说明文本按实际换行后的高度算；10f = 项与项之间的间隔。
+                cacheDescHeight[i] = Text.CalcHeight(cacheDesc[i], width - 26f);
+
                 if (e.Group != lastGroup)
                 {
                     lastGroup = e.Group;
@@ -898,16 +967,22 @@ namespace GNH.LocalFixes
                     }
                     total += GroupHeaderHeight;
                 }
-                total += EntryHeight(e, width);
+                total += 26f + cacheDescHeight[i] + 10f;
             }
-            return total + 8f;            // 底部留一点余量，免得最后一行贴着边
+
+            cacheTotalHeight = total + 8f;    // 底部留一点余量，免得最后一行贴着边
+            cacheWidth = width;
+            cacheLangFolder = langFolder;
+            cacheCount = n;
         }
 
-        private static float EntryHeight(FixToggles.Entry entry, float width)
+        /// <summary>
+        /// 列表总高度。与 DrawToggleList 共用同一份缓存，所以两边必然一致。
+        /// </summary>
+        private static float MeasureListHeight(float width)
         {
-            string desc = Translated(FixToggles.DescKeyOf(entry.Id), entry.Desc);
-            // 26f = 复选框那一行；说明文本按实际换行后的高度算；10f = 项与项之间的间隔。
-            return 26f + Text.CalcHeight(desc, width - 26f) + 10f;
+            BuildUiCacheIfNeeded(width);
+            return cacheTotalHeight;
         }
 
         /// <summary>
@@ -916,6 +991,10 @@ namespace GNH.LocalFixes
         /// </summary>
         private static void DrawToggleList(Listing_Standard listing, GNHLocalFixesSettings settings, float width)
         {
+            // 文本与高度都取自缓存 —— 与 MeasureListHeight 用的是同一份，
+            // 所以「测量的高度」与「实际画出来的高度」不可能对不上。
+            BuildUiCacheIfNeeded(width);
+
             string lastGroup = null;
             for (int i = 0; i < FixToggles.All.Length; i++)
             {
@@ -931,7 +1010,9 @@ namespace GNH.LocalFixes
                     Rect headerRect = listing.GetRect(GroupHeaderHeight);
                     GameFont prevFont = Text.Font;
                     Text.Font = GameFont.Medium;
-                    Widgets.Label(headerRect, entry.Group);
+                    // 分组标题也走翻译：entry.Group 是语言键（见 FixToggles），
+                    // 取不到就回退到写死的中文。
+                    Widgets.Label(headerRect, cacheGroup[i]);
                     Text.Font = prevFont;
                     Widgets.DrawLineHorizontal(headerRect.x, headerRect.yMax - 6f, headerRect.width);
                 }
@@ -941,18 +1022,17 @@ namespace GNH.LocalFixes
                 // 也不会因为中途异常把设置改坏。
                 bool value = settings.IsOn(entry.Id);
                 bool before = value;
-                Widgets.CheckboxLabeled(listing.GetRect(26f),
-                    Translated(FixToggles.LabelKeyOf(entry.Id), entry.Label), ref value);
+                Widgets.CheckboxLabeled(listing.GetRect(26f), cacheLabel[i], ref value);
                 if (value != before)
                 {
                     settings.SetOn(entry.Id, value);
                 }
 
                 // 说明单独一行、缩进对齐到标题文字下面。
-                string desc = Translated(FixToggles.DescKeyOf(entry.Id), entry.Desc);
-                float descHeight = Text.CalcHeight(desc, width - 26f);
+                float descHeight = cacheDescHeight[i];
                 Rect descRect = listing.GetRect(descHeight);
-                Widgets.Label(new Rect(descRect.x + 26f, descRect.y, descRect.width - 26f, descHeight), desc);
+                Widgets.Label(new Rect(descRect.x + 26f, descRect.y, descRect.width - 26f, descHeight),
+                    cacheDesc[i]);
 
                 listing.Gap(10f);
             }

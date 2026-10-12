@@ -38,11 +38,34 @@ namespace GNH.LocalFixes
     //   本补丁包的定位就是「装上就别管」，默认关闭会让玩家莫名其妙地继续崩。
     internal static class FixToggles
     {
-        // 界面上的分节标题。保持这个顺序：越靠前越是「不修就会崩」的项。
-        internal const string GroupCrash = "崩溃与卡死";
-        internal const string GroupSpam = "日志刷屏";
-        internal const string GroupCompat = "兼容与判定";
-        internal const string GroupBehaviour = "行为与设置";
+        // 界面上的分节标题。**值是语言键**，不是显示文本 ——
+        //   界面上走 Translated(键, GroupFallback(键)) 取词。
+        //
+        // 为什么用键而不是直接写中文（2026-10-12 复审改正）：
+        //   原先这四个常量直接写中文，而 About.xml / README 都声称「设置界面中英双语」。
+        //   实际效果是：英文客户端里 22 个开关的标题与说明都是英文，
+        //   四个分组小标题却仍是中文 —— 宣称与实现不符。
+        //   现在四个标题各有一个语言键，取不到时才回退到 GroupFallback() 里的中文。
+        //
+        // 顺序有意义：越靠前越是「不修就会崩」的项，界面按这个顺序分节。
+        internal const string GroupCrash = "GNH_LocalFixes_Group_Crash";
+        internal const string GroupSpam = "GNH_LocalFixes_Group_Spam";
+        internal const string GroupCompat = "GNH_LocalFixes_Group_Compat";
+        internal const string GroupBehaviour = "GNH_LocalFixes_Group_Behaviour";
+
+        /// <summary>
+        /// 分组键 → 取不到翻译时显示的中文。
+        /// 语言文件丢了、或将来新增分组忘了加键时，界面上至少是一句能看懂的中文，
+        /// 而不是把 "GNH_LocalFixes_Group_Xxx" 这种机器串画出来。
+        /// </summary>
+        internal static string GroupFallback(string groupKey)
+        {
+            if (groupKey == GroupCrash) return "崩溃与卡死";
+            if (groupKey == GroupSpam) return "日志刷屏";
+            if (groupKey == GroupCompat) return "兼容与判定";
+            if (groupKey == GroupBehaviour) return "行为与设置";
+            return groupKey;
+        }
 
         internal sealed class Entry
         {

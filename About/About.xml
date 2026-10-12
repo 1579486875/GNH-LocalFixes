@@ -4,7 +4,7 @@
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.4.0</modVersion>
+  <modVersion>1.4.1</modVersion>
   <supportedVersions>
     <li>1.6</li>
   </supportedVersions>
@@ -60,9 +60,13 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 · 建议排在模组列表靠下的位置（Harmony 之后，最好也在它要修的那些模组之后）。
 · 想只保留一部分：Patches 目录下是 7 个 XML 补丁，Assemblies 目录里是一个 dll。
   两者互不依赖 —— 删掉哪一部分，就只有那一部分对应的修复不再生效，其余照常。
-· 「选项 → 模组设置 → 模组兼容修复补丁」里有 22 个开关，
-  每一项修复都能单独关掉（默认全开）。
-  顶部三个批量按钮：全部开启（默认）/ 全部关闭 / 只留「崩溃与卡死」。
+· 「选项 → 模组设置 → 模组兼容修复补丁」里有 22 个开关（默认全开），
+  覆盖 **dll 侧的全部 22 项安装动作** —— 上面《修复速览》里由程序做的那 19 条
+  （其中 3 条各占 2 个开关：模组配置页崩溃、乐器分组、telanda 争用）。
+  ⚠ 上面 27 条里有 8 条**不在**这个界面上：7 条是 `Patches\` 下的 XML 补丁
+  （删掉对应文件即可关掉，见上一条）、1 条是类型补齐（【1】，随 dll 一起生效）。
+  顶部三个批量按钮：全部开启（默认）/ 全部关闭 / 只留「崩溃与卡死」
+  （最后一个**不动**「行为与设置」两项，那是玩家偏好而非故障修复）。
   ★ 开关改动要【重启游戏】才生效 —— 补丁一旦挂上就没法中途摘掉，
     这个界面决定的是「下次启动装哪几项」。
 · 启动后在日志里搜 [GNH LocalFixes]。它会逐条打印
@@ -109,26 +113,47 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
     <li>TOT.CeleTech.MKIII</li>
     <li>OskarPotocki.VFE.Empire</li>
     <!-- VFE 核心（Vanilla Expanded Framework 的本体 Def 都在这里）。
-         我们的 Patches/VFEPianoFirepitRestore.xml 改的就是 VFECore 的
-         Joy_Piano / Play_Piano 等 Def，必须排在它之后。
-         这一条不只是「更整齐」：原先没声明它时，本补丁能否正确「补做」
-         完全取决于 disroom.mashiro 恰好也排在后面（见文件末尾那段长注释），
-         属于碰运气。补上之后顺序才有保证。
+         我们的 Patches/VFEPianoFirepitRestore.xml 给 VFECore 的
+         Joy_Piano / Play_Piano 等 Def 补做被清掉的效果。
+
+         ⚠ 2026-10-12 复审纠正：本条原先写「必须排在它之后」并归因于
+           「xpath 要能查到这些 Def」。按上面说过的机制（def 先全部合并、
+           补丁后统一应用），对**定义者**的顺序**不是必须**的。
+           这个补丁真正需要的硬约束是排在 **disroom.mashiro 之后** ——
+           那个模组把爵位的 modExtensions 整个替换成空表，连累到这批家具效果；
+           那一条已在本列表末尾声明。
          （2026-10-06 审计发现原先漏了这一条。） -->
     <li>VanillaExpanded.VFECore</li>
     <li>Gugustar.SnowRabbitRaceBeta</li>
     <!-- [OA]脚踩花糕（ww.oberoniaaurea.steppedflowercake，工坊 3379736801）：
-         它是 OASFC_BasePawn 的定义者，而 OASFC_Pawn_Shubing（「某不知名的沙皇」）
+         它是 OASFC_BasePawn 的定义者，而 OASFC_Pawn_Shubing（「不知名的沙皇」）
          继承自它。我们的 Patches/OASFC_TsarXenotypeFix.xml 用
-         PatchOperationConditional 的 xpath 去查这个 Def 是否已就位 ——
-         xpath 问的是「现在有没有」，不是「装了没」，所以【必须】排在定义者之后。
-         排在前面的话 xpath 匹配不到，补丁会安静地什么都不做，
-         而且日志里一条线索都不留，排查时极难想到是顺序问题。
+         PatchOperationConditional 给那个 Def 补字段。
 
-         ⚠ 有个容易搞混的点：该补丁外层的 FindMod 守卫写的是
-         「[OA]Ratkin Faction: Oberonia aurea」（金鸢尾兰帝国，工坊 3159926804），
-         因为补丁里用到的 Ratkin_OA 异种人定义在那边；但要改的 Def 在本模组。
-         守卫通过 ≠ 目标已加载，这是两件事。
+         ⚠ 2026-10-12 复审**纠正了一处说反了的机制**（原文本条写的正好相反）：
+           原先写的是「xpath 问的是『现在有没有』……所以【必须】排在定义者之后，
+           排在前面的话 xpath 匹配不到，补丁会安静地什么都不做」。**这是错的。**
+
+           反编译 Verse.LoadedModManager 可证，加载分两步：
+             ① CombineIntoUnifiedXML —— 先把**所有已启用模组**的 def
+                合并进同一个 XmlDocument；
+             ② ApplyPatches —— 再遍历 runningMods，依次应用所有补丁。
+           补丁执行时，**所有 def 早已在同一份文档里**，与定义它的模组排第几无关。
+           所以顺序**不影响我们的 xpath 能否命中**；它只决定
+           「补丁与补丁之间」谁后应用。
+
+           因此这一条 loadAfter 的实际作用是「排序更整齐、意图更清楚」，
+           删掉也不会导致静默失效 —— 但它成本为零，保留即可。
+           别再从这条推断「排错顺序会静默失效」，那会把人引到错误的方向。
+
+         ⚠ 真正**必须**靠 loadAfter 的是「补丁打补丁」：见本文件末尾
+           disroom.mashiro 那条 —— 它用 PatchOperationReplace 把爵位的
+           modExtensions 整个换空，我们必须排在它之后才能把扩展补回来。那种才是硬约束。
+
+         ⚠ 另一个仍然成立的易混点：该补丁外层的 FindMod 守卫写的是
+           「[OA]Ratkin Faction: Oberonia aurea」（金鸢尾兰帝国，工坊 3159926804），
+           因为补丁里用到的 Ratkin_OA 异种人定义在那边；但要改的 Def 在本模组。
+           守卫通过 ≠ 目标已加载，这是两件事。
 
          （2026-10-07 复审发现原先漏了这一条，与 2026-10-06 漏掉
            vanillaexpanded.vfecore 属于同一类问题：新增补丁时容易忘记配顺序。） -->

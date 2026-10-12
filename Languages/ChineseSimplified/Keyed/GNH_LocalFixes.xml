@@ -11,11 +11,23 @@
     ⚠ 新增一个开关时要同时改三处：FixToggles.cs、本文件、English 那份。
     （改动清单写在 FixToggles.cs 顶部的注释里。）
   -->
+  <!-- ── 分组标题（设置界面里的四个小节名）─────────────────────────
+       这四行原先不存在：标题是硬编码在 FixToggles.cs 里的中文，
+       英文客户端里会出现「22 个开关都是英文、四个分组标题却是中文」的混搭。
+       2026-10-12 复审改正 —— 现在标题也走语言键，取不到才回退到 FixToggles.GroupFallback()。
+  -->
+  <GNH_LocalFixes_Group_Crash>崩溃与卡死</GNH_LocalFixes_Group_Crash>
+  <GNH_LocalFixes_Group_Spam>日志刷屏</GNH_LocalFixes_Group_Spam>
+  <GNH_LocalFixes_Group_Compat>兼容与判定</GNH_LocalFixes_Group_Compat>
+  <GNH_LocalFixes_Group_Behaviour>行为与设置</GNH_LocalFixes_Group_Behaviour>
+
   <GNH_LocalFixes_SettingsCategory>模组兼容修复补丁</GNH_LocalFixes_SettingsCategory>
   <GNH_LocalFixes_SettingsUnavailable>设置读取失败。本补丁按内置默认值（全部开启）继续工作。</GNH_LocalFixes_SettingsUnavailable>
   <GNH_LocalFixes_EnableAll>全部开启（默认）</GNH_LocalFixes_EnableAll>
   <GNH_LocalFixes_DisableAll>全部关闭</GNH_LocalFixes_DisableAll>
   <GNH_LocalFixes_OnlyCrashes>只留「崩溃与卡死」</GNH_LocalFixes_OnlyCrashes>
+  <GNH_LocalFixes_OnlyCrashes_Tip>把「日志刷屏」与「兼容与判定」两类关掉，只留下不修就会崩的那些。
+「行为与设置」两项不动 —— 那是你自己的偏好，不是故障修复。</GNH_LocalFixes_OnlyCrashes_Tip>
   <GNH_LocalFixes_StatusAllOn>当前状态：全部修复项均已开启。</GNH_LocalFixes_StatusAllOn>
   <GNH_LocalFixes_StatusSomeOff>当前状态：共 {0} 项，其中 {1} 项已关闭。</GNH_LocalFixes_StatusSomeOff>
   <GNH_LocalFixes_RestartHint>★ 改动要重启游戏才生效 —— 补丁一旦挂上就没法中途摘掉，这里决定的是「下次启动装哪几项」。</GNH_LocalFixes_RestartHint>
@@ -62,5 +74,5 @@
   <GNH_LocalFixes_Toggle_keepLeaderTitle>保护自定义的领袖头衔</GNH_LocalFixes_Toggle_keepLeaderTitle>
   <GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>开启时：你已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，改模因、点「随机符号」都不会动它。关闭后：完全恢复原版行为。想给某个文化换头衔，把头衔清空（或临时关掉本开关）再点一次「随机符号」即可。</GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>
   <GNH_LocalFixes_Toggle_cumpilationSettingsRestore>抵消「月经体液」强制关闭 Cumpilation 设置</GNH_LocalFixes_Toggle_cumpilationSettingsRestore>
-  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>「RJW Menstruation Fluids」每次启动都会把 Cumpilation 的 9 个开关无条件写成关闭，你在设置界面里打开也没用（下次启动又被按回去，而且它只改内存、从不写盘）。本项在它之后按**你自己存过的值**恢复，不写死任何开关。GNH_LocalFixes_Toggle_GNH_LocalFixes_Toggle__Desc</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
+  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>「RJW Menstruation Fluids」每次启动都会把 Cumpilation 的 9 个开关无条件写成关闭，你在设置界面里打开也没用（下次启动又被按回去，而且它只改内存、从不写盘）。本项在它之后按**你自己存过的值**恢复，不写死任何开关。</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
 </LanguageData>

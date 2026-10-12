@@ -4,7 +4,7 @@
 它回答三个问题（全部不依赖游戏）：
   ① FixToggles.All 里声明的每一项，安装侧是否真的接了线？
   ② 安装侧有没有「接了线但没声明」的孤儿？
-  ③ 中英语言文件里，每一项的标题与说明键是否齐全？代码引用的界面键是否都在？
+  ③ 中英语言文件里，每一项的标题与说明键是否齐全？代码引用的界面键、分组标题键是否都在？
 
 「界面上有开关、实际没接线」这种假开关光看代码很难发现（两处离得远），
 所以把这张表与安装点做成自动比对。
@@ -34,6 +34,10 @@ entry_blocks = toggles.split('new Entry("')[1:]
 class_ids = [b.split('"', 1)[0] for b in entry_blocks if 'GNH.LocalFixes.Patch_' in b]
 try_ids = re.findall(r'TryInstall\("([a-zA-Z]+)",', mod)
 
+# 分组标题键（FixToggles.cs 里 internal const string GroupXxx = "键"）
+group_keys = re.findall(r'internal const string Group\w+ = "(GNH_LocalFixes_Group_\w+)";',
+                        toggles)
+
 scc_ids = []
 for fn in ('CcoeReflectionFix.cs', 'VehicleFrameworkDebugFix.cs',
            'CumpilationSettingsRestoreFix.cs'):
@@ -59,9 +63,10 @@ for lang, path in (('中文', os.path.join(REPO, 'Languages', 'ChineseSimplified
     keys = set(el.tag for el in ET.fromstring(open(path, 'rb').read()))
     miss_l = [i for i in ids if ('GNH_LocalFixes_Toggle_%s' % i) not in keys]
     miss_d = [i for i in ids if ('GNH_LocalFixes_Toggle_%s_Desc' % i) not in keys]
-    print('%s语言文件：%d 键；缺标题 %s；缺说明 %s'
-          % (lang, len(keys), miss_l or '无', miss_d or '无'))
-    bad += len(miss_l) + len(miss_d)
+    miss_g = [k for k in group_keys if k not in keys]
+    print('%s语言文件：%d 键；缺标题 %s；缺说明 %s；缺分组键 %s'
+          % (lang, len(keys), miss_l or '无', miss_d or '无', miss_g or '无'))
+    bad += len(miss_l) + len(miss_d) + len(miss_g)
 
 code_ui = set(re.findall(r'Translated\("(GNH_LocalFixes_\w+)"', mod))
 zh_keys = set(el.tag for el in ET.fromstring(open(
@@ -69,7 +74,22 @@ zh_keys = set(el.tag for el in ET.fromstring(open(
     'rb').read()))
 miss_ui = sorted(code_ui - zh_keys)
 print('代码引用的界面键 %d 个，语言文件缺 %s' % (len(code_ui), miss_ui or '无'))
+print('分组标题键 %d 个：%s' % (len(group_keys), group_keys or '（无）'))
 
-ok = not (missing_wire or extra_wire or dup or bad or miss_ui)
+# 值里混进键名（历史脚本替换留下的残渣）—— 玩家能在界面上直接看到
+garbage = []
+for lang, path in (('中文', os.path.join(REPO, 'Languages', 'ChineseSimplified', 'Keyed',
+                                         'GNH_LocalFixes.xml')),
+                   ('英文', os.path.join(REPO, 'Languages', 'English', 'Keyed',
+                                         'GNH_LocalFixes.xml'))):
+    for el in ET.fromstring(open(path, 'rb').read()):
+        if el.text and 'GNH_LocalFixes_' in el.text:
+            garbage.append('%s:%s' % (lang, el.tag))
+if garbage:
+    print('★ 值里混进键名（会显示在界面上）：%s' % garbage)
+else:
+    print('值里混进键名：无')
+
+ok = not (missing_wire or extra_wire or dup or bad or miss_ui or garbage)
 print('\n结论：%s' % ('全部对上' if ok else '★ 有问题'))
 sys.exit(0 if ok else 1)

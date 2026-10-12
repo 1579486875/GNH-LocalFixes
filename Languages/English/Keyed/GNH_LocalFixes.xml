@@ -11,11 +11,22 @@
     ⚠ 新增一个开关时要同时改三处：FixToggles.cs、本文件、English 那份。
     （改动清单写在 FixToggles.cs 顶部的注释里。）
   -->
+  <!-- Section headers shown in the mod settings window.
+       These keys did not exist before: the four group titles were hard-coded
+       Chinese literals in FixToggles.cs, so an English client showed 22 English
+       toggles under four Chinese headings. Fixed 2026-10-12. -->
+  <GNH_LocalFixes_Group_Crash>Crashes &amp; freezes</GNH_LocalFixes_Group_Crash>
+  <GNH_LocalFixes_Group_Spam>Log spam</GNH_LocalFixes_Group_Spam>
+  <GNH_LocalFixes_Group_Compat>Compatibility &amp; detection</GNH_LocalFixes_Group_Compat>
+  <GNH_LocalFixes_Group_Behaviour>Behaviour &amp; settings</GNH_LocalFixes_Group_Behaviour>
+
   <GNH_LocalFixes_SettingsCategory>GNH Local Fixes</GNH_LocalFixes_SettingsCategory>
   <GNH_LocalFixes_SettingsUnavailable>Could not read settings. The pack keeps working with its built-in defaults (everything on).</GNH_LocalFixes_SettingsUnavailable>
   <GNH_LocalFixes_EnableAll>Enable all (default)</GNH_LocalFixes_EnableAll>
   <GNH_LocalFixes_DisableAll>Disable all</GNH_LocalFixes_DisableAll>
   <GNH_LocalFixes_OnlyCrashes>Crashes only</GNH_LocalFixes_OnlyCrashes>
+  <GNH_LocalFixes_OnlyCrashes_Tip>Turns off the "Log spam" and "Compatibility" groups, keeping only the ones that crash or freeze when unfixed.
+The two "Behaviour &amp; settings" entries are left alone - those are your preferences, not bug fixes.</GNH_LocalFixes_OnlyCrashes_Tip>
   <GNH_LocalFixes_StatusAllOn>All fixes are currently enabled.</GNH_LocalFixes_StatusAllOn>
   <GNH_LocalFixes_StatusSomeOff>Status: {1} of {0} fixes are turned off.</GNH_LocalFixes_StatusSomeOff>
   <GNH_LocalFixes_RestartHint>★ Changes take effect after restarting the game - patches cannot be removed mid-session; this screen decides what gets installed on the next launch.</GNH_LocalFixes_RestartHint>
