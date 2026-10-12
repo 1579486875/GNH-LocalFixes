@@ -291,6 +291,16 @@ namespace GNH.LocalFixes
         /// 返回 true  **仅当**确凿看到「读 placeWorkers」与「第一次拿它调方法」之间
         /// 夹着一条条件分支。
         /// 其余一切情况（含各种解析不出来）都**抛异常**，由调用方按「不安全」处理。
+        ///
+        /// ⚠ 能力边界（2026-10-12 第二轮复审记录）：判据只看「读之后、首次消费之前有没有条件
+        ///   分支」，**无法区分那个分支是 `&amp;&amp;` 还是 `||`**。所以
+        ///   `placeWorkers != null || placeWorkers.Contains(...)` 这种「短路方向写反」的代码
+        ///   会被判成 true（安全）—— 而它本身仍然会对 null 崩溃。
+        ///   这是有意接受的理论盲区：要区分就得做数据流分析（判定分支两条路是否都在做同一件
+        ///   事），成本远高于收益，而且没有任何作者会那样写。
+        ///   实测依据：本机 VFE Empire 1.6 的真实 IL 是 `ldarg.1 / ldfld / ldtoken /
+        ///   call GetTypeFromHandle / callvirt Contains / ret` —— 无分支，判 false（不安全），
+        ///   与实机日志 "still not null-safe — so this fix stays active" 一致。
         /// </summary>
         /// <param name="lambda">VFE Empire 的那个判断方法（编译器生成的 lambda）。</param>
         internal static bool HasNullGuardBeforeFirstUse(MethodInfo lambda)

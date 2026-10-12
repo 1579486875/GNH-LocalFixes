@@ -297,7 +297,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 24 | 两个动物遗传模组抢同一批 defName | 游戏遇重名不是忽略、而是给后来的追加随机数字，25 个基因名字每次启动都不同 | 按在场情况分两种处理，双方独有的定义一个不动 |
 | 25 | 雪兔系列公共库的渲染并发缺陷 | SRCELib 用两个全局静态容器做缓存却无锁，被自己的渲染补丁每帧调用 | 给那个方法套一把锁（前缀进锁、收尾器出锁） |
 | 26 | Guards For Me 的行为树节点复制转错类型 | DeepCopy 从原版复制时忘改强转目标，基类其实是兄弟类，每次加载三条红字且整棵子树没复制进来 | 用 Transpiler 只换两条 IL 指令的目标类型 |
-| 27 | RJW 月经体液的「强制关闭」副作用 | 该模组每次启动都把 Cumpilation 的 11 个开关写成 false，玩家在设置里打开也没用（磁盘上看着还是开着的） | 在所有延迟动作跑完之后，让 Cumpilation 自己重新读一次盘 |
+| 27 | RJW 月经体液的「强制关闭」副作用 | 该模组每次启动都把 Cumpilation 的 9 个开关写成 false（源码里 11 行赋值，其中 EnableAutoDeflateClean 重复 3 次），玩家在设置里打开也没用（磁盘上看着还是开着的） | 在所有延迟动作跑完之后，让 Cumpilation 自己重新读一次盘 |
 
 ---
 
@@ -1100,7 +1100,8 @@ NRE 发生在 `partsMoney -= thingDef.BaseMarketValue`（`thingDef` 为 null）�
 ### 审计通过项（未改动）
 
 `refs\` 8 个 DLL 与游戏本体 **SHA256 全部一致**；7 个 XML 补丁的语法 / 编码 / 启停保护 /
-部署一致性全部通过；**27 项 def 与类型引用在 1.6 加载集内逐一确认可用**（含 `Rotti` 只在 1.5、
+部署一致性全部通过；**27 条 def/类型引用检查在 1.6 加载集内逐一确认可用**（注意：这是
+2026-10-06 审计的「检查条数」，与上面《修复清单》里的「第 27 项修复」不是同一套编号）（含 `Rotti` 只在 1.5、
 `VFESecurity.CompProperties_LongRangeArtillery` 只在 1.4/1.5 这类「按全版本扫会误判」的项）；
 `NmmIdeoTrackerNullFix` 的性能经实测确认可忽略（`UpdateIdeo` 对每个 Pawn 最多每 600 tick 一次）。
 

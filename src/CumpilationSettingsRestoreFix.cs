@@ -9,8 +9,9 @@ namespace GNH.LocalFixes
     /// <summary>
     /// 【修的是什么问题】
     ///   「RJW Menstruation Fluids」（eltoro.rjw.menstruation.fluids，ELT 的月经体液）
-    ///   里有一段 [StaticConstructorOnStartup] 代码（Cumpilation_Integration.SettingsDisabler），
-    ///   它在**每次**游戏加载完成时无条件把「Cumpilation」（vegapnk.cumpilation）的 11 个
+    ///   里有一段 [StaticConstructorOnStartup] 代码（Cumpilation_Integration.CumpilationSettingsOverride；
+///   源文件名是 SettingsDisabler.cs，但**类名**是这个），
+    ///   它在**每次**游戏加载完成时无条件把「Cumpilation」（vegapnk.cumpilation）的 9 个
     ///   设置项写成 false —— 含 Cumflation、Stuffing、渗漏/自动泄压/隐私等一大票开关。
     ///   玩家在设置界面里打开也没用：下次启动又被按回去。
     ///
@@ -82,6 +83,20 @@ namespace GNH.LocalFixes
         /// 挂在 LongEventHandler.ExecuteToExecuteWhenFinished() 之后。
         /// 此时所有 ExecuteWhenFinished 排队的动作（含 ELT 的强制关闭）都已执行完毕。
         /// 只真正恢复一次：之后每次长事件结束都会进来，直接 return。
+        ///
+        /// ⚠ 依赖前提（2026-10-12 第二轮复审记录；Lead 与复审员两条独立路径都指出过）：
+        ///   restored 是在**恢复之前**置位的，语义是「只试一次」。这要求 Postfix 第一次触发时，
+        ///   ELT 的 Apply 已经在同一批次里跑过。
+        ///   依据：LongEventHandler.ExecuteWhenFinished 是「先把 action 入列，再（可能）执行整批」，
+        ///   而本 Postfix 挂在 ExecuteToExecuteWhenFinished **返回之后** —— 只要 Apply 与 Postfix
+        ///   属于同一批次，顺序就是确定的。
+        ///   理论上仍有一个窗口：若 StaticConstructorOnStartupUtility.CallAll() 期间发生过一次
+        ///   ExecuteToExecuteWhenFinished（即 currentEvent == null 或 ShouldWaitUntilDisplayed），
+        ///   且那一批次里还没有 ELT 的 Apply，我们就会先恢复、随后被 Apply 覆盖且不再重试。
+        ///   实测本机时间线（2026-10-12 基线日志）：Apply 与恢复各只出现一次，中间 86 行是同批
+        ///   其它模组的 action，该窗口没有发生。
+        ///   若将来日志出现「日志说恢复成功、但设置仍被关」，就是踩到了这个窗口 —— 届时把
+        ///   restored = true 移到恢复成功之后（或允许重试一次）即可，不需要改其它逻辑。
         /// </summary>
         public static void Postfix()
         {
