@@ -346,7 +346,7 @@ namespace GNH.LocalFixes
 
             // ---- ① 「乐器」分组：凡是真实类型不是 Building_MusicalInstrument 的，一律摘掉 ----
             //
-            // 摘除走的是 RemoveFromGroup → lister.Remove(t)（游戏自己的方法），
+            // 摘除走的是 RemoveFromGroup → 只摘目标分组自身的名单（❗不能用 lister.Remove，见该函数注释），
             // 它会真正改动游戏内部那张名单，下一帧就不会再拿到这个脏对象了。
             List<Thing> instruments = lister.ThingsInGroup(ThingRequestGroup.MusicalInstrument);
             if (instruments != null && instruments.Count > 0)
@@ -435,20 +435,45 @@ namespace GNH.LocalFixes
         // ----------------------------------------------------------------------
         internal static void RemoveFromGroup(ListerThings lister, ThingRequestGroup group, Thing t)
         {
+            // ⚠⚠ 2026-10-13 紧急修正：绝不能再用 lister.Remove(t)！
+            //
+            //   原写法是 lister.Remove(t)，当时的理由是「走游戏自己的方法，
+            //   能同步 stateHashByGroup，不会让别的模组读到过期缓存」。
+            //   但那个理由只算了性能/一致性账，**没算存档账**：
+            //
+            //     · Verse.ListerThings.Remove(Thing) 不只摘目标分组，它还会遍历
+            //       ThingListGroupHelper.AllGroups；
+            //     · AllGroups 由 Enum.GetValues 升序填充，而 ThingRequestGroup 是
+            //       { Undefined=0, Nothing=1, **Everything=2**, ... } —— 于是 AllGroups[2] 就是 Everything；
+            //     · Everything 这个组必然包含一切，所以 listsByGroup[2] 一定被摘；
+            //     · 而 ListerThings.AllThings => listsByGroup[2]；
+            //     · 而 Verse.Map.ExposeData 保存地图物品时正是
+            //       foreach (Thing allThing in listerThings.AllThings)；
+            //     · 且 IsSaveCompressible 对 Building 返回 false，不会走压缩落盘路径。
+            //   → 结果：被摘掉的寺筑**不会被写进存档**，重进后凭空消失。
+            //   这与 2026-10-13 墨诺灵（ASEL）生产建筑消失事故**完全同构**
+            //   —— v1.4.3 只删了「工作台」那个分支，没发现这个「手段」本身也有问题。
+            //
+            //   现在只摘目标分组自身的名单：ThingsInGroup(group).Remove(t)。
+            //   代价：stateHashByGroup[group] 不再同步（正是原注释担心的那点）。
+            //   但两者相比：StateHashOfGroup 目前只有围栏/大门那套（Fence / Door 组）
+            //   在读，而本函数只在「乐器 / 音乐源」两组上被调用，与它们没有交集；
+            //   而「存档静默丢建筑」是不可逆的玩家数据丢失。两害相权，选前者。
+            List<Thing> list = lister.ThingsInGroup(group);
+            if (list == null)
+            {
+                return;
+            }
+
             if (t != null)
             {
-                lister.Remove(t);
+                list.Remove(t);
                 return;
             }
 
             // 兜底：列表里混进了 null。正常途径进不来（ListerThings.Add 第一步就会
-            // 在 t.def 上空引用），但真出现时不能交给游戏自己的 Remove ——
-            // 它同样会在 t.def 上炸。这种情况只能直接摘。
-            List<Thing> list = lister.ThingsInGroup(group);
-            if (list != null)
-            {
-                list.Remove(null);
-            }
+            // 在 t.def 上空引用）。直接从该名单里摘掉。
+            list.Remove(null);
         }
 
         // ----------------------------------------------------------------------
