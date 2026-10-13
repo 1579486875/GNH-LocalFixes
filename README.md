@@ -308,7 +308,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 5 | VFE Empire 乐器空间 | `placeWorkers` 为 null 时直接 Contains，静态构造崩 | 只替换那句判断 |
 | 6 | 打开「模组配置」页即崩溃 | CrossPromotion 调了 Steam 已废弃接口 | 把那个前缀从补丁链上摘掉 |
 | 7 | RJW 动物动画悬空引用 | 模组删了 Rotti，动画定义里还列着 | 摘掉那两处死条目 |
-| 8 | 被「禁用房间要求」连累而失效的功能 | 前一步补丁失败，后面的全被跳过 | 补做 VFE 的钢琴、营火、石棺 |
+| 8 | VFE 的钢琴/营火/石棺补丁整块没执行 | 它自己的 `PatchOperationFindMod` 比的是显示名，中文下 Royalty 被译成「皇权」而匹配不上 | 补做 VFE 的钢琴、营火、石棺 |
 | 9 | CCOE 月经结算空引用 | 反射读错对象，抛 TargetException | 挂收尾器，只在真抛时接管 |
 | 10 | 原版植入体「0 权重」崩溃 | 预算为 0 时抽到 null 再解引用 | 前缀预判 + 收尾器兜底 |
 | 11 | 非乐器混进「乐器」分组 | 每帧强转失败，游戏掉到约 2fps | 在登记进分组时就摘掉 |
@@ -819,7 +819,7 @@ IL_0015: ret
 | 5 | VFE Empire「乐器空间」静态构造崩溃 | `src/VFEEInstrumentSpaceFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
 | 6 | **打开游戏「模组」页面即崩溃**（brrainz CrossPromotion 调用已废弃的 Steam API） | `src/CrossPromotionUnpatch.cs` + `src/SteamWorkshopHookFix.cs` |
 | 7 | RJW 动物动画对 Rotti 的悬空引用 | `Patches/ElToroAnimsRottiRefFix.xml` |
-| 8 | 被「禁用房间要求」连累跳过的 VFE 功能 | `Patches/VFEPianoFirepitRestore.xml` |
+| 8 | 补做被「显示名守卫」挡掉的 VFE 功能 | `Patches/VFEPianoFirepitRestore.xml` |
 | 9 | CCOE 月经结算的 `TargetException`（`?.` 保护错了对象） | `src/CcoeReflectionFix.cs` |
 | 10 | 原版植入体生成的「0 权重」空引用崩溃（**两层**：前缀预判 + 收尾器兜底） | `src/TechHediffsZeroBudgetFix.cs` |
 | 11 | **每帧 `InvalidCastException`**：非乐器混进「乐器」分组（游戏被拖到约 2fps）；同时拦下「挂着配方却不是工作台」的脏对象 | `src/MusicManagerFadeoutFix.cs` |

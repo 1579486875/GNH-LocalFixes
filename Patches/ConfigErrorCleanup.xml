@@ -114,10 +114,17 @@
 
           defName = Sex_MC_UAP 的原版 label 是 "vaginal"，干净。
           但汉化给它注入了带方括号的文本：
-              RJW_动画_兽耳屋动画支持\...\DefInjected\InteractionDef\
-                  Sex_Missionary [Chained].xml
-              -> <Sex_MC_UAP.label>面对面体位 [锁链牵颈]</Sex_MC_UAP.label>
-              RJW_动画_UAP终极动画包\... 同结构（注入 "阴道性交"，无方括号）
+          but the Chinese localisation injects text containing square brackets.
+          2026-10-13 re-audit: a repository-wide grep for Sex_MC_UAP.label
+          (5 translation injectors in total on this machine) shows the sources are
+          the OPPOSITE of what this section used to claim:
+              RJW_动画_UAP终极动画包\Languages\ChineseSimplified\DefInjected\
+                  InteractionDef\Sex_Missionary [Chained].xml
+              -> <Sex_MC_UAP.label>面对面体位 [锁链牵颈]</Sex_MC_UAP.label>（带方括号的是这一家）
+              RJW_动画_兽耳屋动画支持\...\Sex_Missionary [Chained].xml
+              -> <Sex_MC_UAP.label>性交</Sex_MC_UAP.label>（无方括号）
+              !Translation_AI_Pack\...\teacher_uap_AutoTranslated.xml
+              -> <Sex_MC_UAP.label>阴道性交</Sex_MC_UAP.label>（无方括号）
 
           RimWorld 检查的是注入之后的 def.label（ConfigErrors 在
           InjectIntoData_AfterImpliedDefs 之后才跑），所以原版字段看不出问题，
