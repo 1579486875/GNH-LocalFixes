@@ -4,9 +4,10 @@
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.4.1</modVersion>
+  <modVersion>1.4.2</modVersion>
   <supportedVersions>
     <li>1.6</li>
+    <li>1.7</li>
   </supportedVersions>
   <description>多项针对性修复 —— 每一项都对应一次真实故障，每一项都独立生效。
 
@@ -84,7 +85,7 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 
 ─────────────── 模组信息 ───────────────
 
-适用版本　　RimWorld 1.6
+适用版本　　RimWorld 1.6 / 1.7
 前置依赖　　Harmony
 作者　　　　大赢经直插白皮赢道
 存档影响　　不往存档里写任何数据 —— 加装或移除都不需要重开新档

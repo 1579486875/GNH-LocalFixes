@@ -142,6 +142,31 @@ namespace GNH.LocalFixes
         /// </summary>
         private static bool installDone;
 
+        /// <summary>
+        /// CrossPromotion 的宿主模组是否在场。
+        ///
+        /// 这三家各自内嵌一份 CrossPromotion.dll（见本文件开头「CrossPromotion 到底藏在哪」），
+        /// 只有它们在场，那份内嵌程序集才可能被解出来、才有前缀可摘。
+        ///
+        /// 为什么必须单独判一次（2026-10-13 修）：
+        ///   没装这三家时，FindPrefixMethod() 会**永远**返回 null，而它在 TryNeutralize 里的
+        ///   语义是「程序集还没加载出来，等下一次机会」—— 于是 UI 钩子每 30 帧白试一次、
+        ///   试满 60 次后打一条 ERROR：「Gave up neutralizing the CrossPromotion prefix…
+        ///   the mods page may still crash」。
+        ///   那条 ERROR 是**误报**：元凶 CrossPromotion 压根不存在，模组页面当然不会崩。
+        ///   它只是把「目标缺席」错当成了「修复失败」，害得每个没装 brrainz 系列的玩家
+        ///   都以为自己的游戏有问题。
+        /// </summary>
+        private static bool AnyCrossPromotionHostActive()
+        {
+            return ModsConfig.IsActive("brrainz.visualexceptions")
+                || ModsConfig.IsActive("brrainz.achtung")
+                || ModsConfig.IsActive("brrainz.cameraplus");
+        }
+
+        /// <summary>「无需处理」这件事只记一次。</summary>
+        private static bool notApplicableLogged;
+
         internal static void Install()
         {
             if (installDone)
@@ -149,6 +174,21 @@ namespace GNH.LocalFixes
                 // 已经安排妥当了，不用再来一遍 —— 否则会重复扫描程序集
                 //（TryNeutralize 要遍历 AppDomain 里全部已加载程序集）、重复 Patch UI 钩子；
                 // 若此刻正有长事件在跑，还会再往 LongEventHandler 里排一次队。
+                return;
+            }
+
+            // 宿主不在场 → CrossPromotion 不存在 → 这项修复对本局不适用。
+            // 直接收工：不排重试、不装 UI 钩子、更不打 ERROR（原因见上）。
+            if (!AnyCrossPromotionHostActive())
+            {
+                if (!notApplicableLogged)
+                {
+                    notApplicableLogged = true;
+                    LocalFixesMod.SafeLogMessage("[GNH LocalFixes] Visual Exceptions / Achtung! / Camera+ 三者都未启用，"
+                        + "CrossPromotion 修复对本局不适用（跳过，不重试）。");
+                }
+                neutralized = true;   // 让所有重试路径立刻返回
+                installDone = true;
                 return;
             }
 
