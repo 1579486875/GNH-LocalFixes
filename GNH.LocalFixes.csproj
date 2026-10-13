@@ -1,6 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- 目标框架说明（2026-10-13 实测补注）：
+         · 1.6 是 Unity/Mono，必须 net48。
+         · 1.7 是自研引擎 Waylith + .NET 10（CoreCLR）。实测：
+           现有 net48 产物在 1.7 上能直接加载（Assembly-CSharp / 0Harmony 均非强命名，
+           UnityEngine 引用由引擎 remap 到 UnityStubs）；而本源码【零改动】
+           也能直接编为 net10.0（实测：0 错误，仅 1 条 SYSLIB0050
+           —— SteamWorkshopHookFix.cs:406 的 FormatterServices 过时警告，可用）。
+         · ⚠ refs\0Harmony.dll 仍是 v2.4.1.0，而实际运行时用的是
+           工坊那份 1.6 的 v2.4.3.0（以及 1.7 的 v3.0）。因两者均非强命名、
+           且本模组用到的 Harmony API 在 3.0 里全部存在，目前不致故障；
+           但下次同步 refs 时应一并升到当前版本。 -->
     <TargetFramework>net48</TargetFramework>
     <!-- 钉死语言版本：写 latest 会随 .NET SDK 漂移（本机 SDK 10 下是 C# 14），
        换台机器/换个 SDK 可能编出不同语义甚至编译失败。net48 目标用 9.0 足够，
@@ -8,7 +19,7 @@
     <LangVersion>9.0</LangVersion>
     <AssemblyName>GNH.LocalFixes</AssemblyName>
     <RootNamespace>GNH.LocalFixes</RootNamespace>
-    <Version>1.4.1</Version>
+    <Version>1.4.2</Version>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DebugType>none</DebugType>
     <!-- 编译产物不掺入 git 提交号：相同源码在任何机器上都编译出完全相同的 dll -->
