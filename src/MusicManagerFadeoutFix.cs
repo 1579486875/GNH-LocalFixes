@@ -619,9 +619,6 @@ namespace GNH.LocalFixes
         // 累计拦下的「标签写错的乐器」数量（仅用于日志统计）。
         private static int badInstrumentCount;
 
-        // 累计拦下的「挂着配方、但不是工作台」的数量（仅用于日志统计）。
-        private static int badBillGiverCount;
-
         // 本补丁自己出错时的去重日志 key（Log.ErrorOnce 需要）。
         private const int PatchErrorLogKey = 0x4D4D4645; // "MMFE"
 
@@ -684,11 +681,37 @@ namespace GNH.LocalFixes
                 //    性能说明：def.AllRecipes 的结果是带缓存的，而且游戏自己在这一步之前
                 //    （分组判定 Includes 里那句 !def.AllRecipes.NullOrEmpty()）就已经访问过它，
                 //    所以这里读到的是现成缓存，不会触发重复计算。
-                if (!(t is IBillGiver) && !def.AllRecipes.NullOrEmpty())
-                {
-                    MusicManagerFadeoutFix.RemoveFromGroup(__instance, ThingRequestGroup.PotentialBillGiver, t);
-                    ReportBadBillGiver(t);
-                }
+                // ③ 工作台方向 —— ⚠⚠ 2026-10-13 【已整段删除】，原判据是错的。
+                //
+                //   原写法：if (!(t is IBillGiver) && !def.AllRecipes.NullOrEmpty())
+                //                 → RemoveFromGroup(..., PotentialBillGiver, t);
+                //
+                //   为什么错：「def 有配方 但对象不是 IBillGiver」**不等于**「脏对象」。
+                //   很多模组的建筑就是「自带配方系统、不走 IBillGiver」的合法设计。
+                //
+                //   实测事故（2026-10-13，玩家报「墨诺灵生产建筑重进存档后消失」）：
+                //     · 墨诺灵（ASEL，工坊 3742031864）的 Building_Crucible /
+                //       Building_ConstructFormator / Building_Regulator / Building_Fabricator
+                //       全都继承 Building_MonolynProducer：def 上挂着自定义的
+                //       MonolynRecipeDef 配方，但界面走自己的 ITab_MonolynRecipeList、
+                //       **本来就不是 IBillGiver** —— 完全合法。
+                //     · 本补丁把它们当成脏对象、调 listerThings.Remove(t) 摘掉。
+                //     · 而 Verse.Map.ExposeData 保存地图物品时正是遍历
+                //       listerThings.AllThings（= listsByGroup[2]）—— 被摘掉的对象
+                //       **根本不会被写进存档**，重新载入后凭空消失，
+                //       且只在别处留下一条「Could not resolve reference to object with
+                //       loadID Thing_XXX」—— 极难追因。
+                //     · 对比：同一模组的 InformationTuner（MonolynConsumer）、
+                //       RecordStela（无配方）、MNWorkbench（真的是 IBillGiver）都不中招。
+                //
+                //   原版对这类对象的处理是什么：只是
+                //   BillUtility.MapBillGivers 里一条 ErrorOnce「Found non-bill-giver tagged as
+                //   PotentialBillGiver」—— 不崩、不影响玩法。
+                //   用「每张地图一条红字」换「玩家的建筑被静默抹除」完全不划算。
+                //
+                //   → 所以整段删除，不再插手 PotentialBillGiver 分组。
+                //     （上面 ① 乐器方向继续保留：那个是真的类型不匹配，
+                //       放进去会让 MusicManagerPlay 每帧抛 InvalidCastException。）
             }
             catch (Exception ex)
             {
@@ -722,29 +745,5 @@ namespace GNH.LocalFixes
                 + "\n  不做也完全没问题：本补丁会持续拦住它，游戏不会因此出错。");
         }
 
-        // ----------------------------------------------------------------------
-        // 报告「挂着配方却不是工作台」的对象。
-        // 这类对象原本会让原版每遍历一次就打印一条红字（虽然 ErrorOnce 只出现一条，
-        // 但它在日志里看起来像是个错误，且会让那条分组每次都被无谓扫描）。
-        // ----------------------------------------------------------------------
-        private static void ReportBadBillGiver(Thing t)
-        {
-            badBillGiverCount++;
-
-            if (detailedLogsWritten >= MaxDetailedLogs)
-            {
-                Log.Warning("[GNH LocalFixes] 又拦下 1 个「挂着配方但不是工作台」的对象"
-                    + "（累计 " + badBillGiverCount + " 个）。详细报告不再重复打印。");
-                return;
-            }
-
-            detailedLogsWritten++;
-            Log.Warning("[GNH LocalFixes] 拦下一个「挂着配方但不是工作台」的对象：它的 def 有配方，"
-                + "所以会被算进「可能的工作台」分组，但它本身并不是 IBillGiver。"
-                + MusicManagerFadeoutFix.Describe(t, -1, "可能的工作台分组")
-                + "\n  这原本会让原版打印「Found non-bill-giver tagged as PotentialBillGiver」。"
-                + "\n  常见原因：提供这个建筑类的模组已被卸载，存档里的旧实例降级成了普通建筑。"
-                + "\n  建议：按上面的坐标把它拆掉即可；不拆也没关系，本补丁会一直拦住它。");
-        }
     }
 }
