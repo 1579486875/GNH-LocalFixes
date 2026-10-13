@@ -135,7 +135,10 @@ namespace GNH.LocalFixes
                     {
                         continue;
                     }
-                    Type t = asm.GetType(typeName, throwOnError: false);
+                // ⚠ 2026-10-13：补上 ignoreCase: true —— 原版 GetTypeInAnyAssemblyRaw 就是这么传的。
+            //   之前漏了它，若调用方字符串大小写与 CLR 不一致，本前缀会找不到、
+            //   退回原逻辑（仍能解析，只是本补丁不生效）——不会出错，但语义不对齐。
+                Type t = asm.GetType(typeName, throwOnError: false, ignoreCase: true);
                     if (t != null)
                     {
                         return t;

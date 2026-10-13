@@ -110,9 +110,18 @@ namespace GNH.LocalFixes
         // 只有一个参数、类型唯一，所以写成 `List<DebugActionNode> nodes` 同样能注入。
         // 改成 __0 只是更直观，不是必须。
         //
-        // ★ 但 __result **绝对不能用**：目标方法返回 void，Harmony 不允许给 void 方法注入 __result。
-        // 尤其不能写成 "__result"：那是 Harmony「原方法返回值」的专用名，
-        // 而目标方法 DebugHideVehiclesFromPawnSpawner 返回 void。
+        // ★ 但 __result **绝对不能用**。
+        //
+        //   ⚠ 2026-10-13 订正术语（原文的「目标方法」指代不清，两层含义会读混）：
+        //   · **本补丁的目标** = Vehicles.Patch_Debug.DebugHideVehiclesFromPawnSpawner
+        //     —— 它返回 void（它本身是 VF 挂在 SpawnPawn 上的 postfix）。
+        //     对 void 方法注入 __result 会直接抛
+        //     「Cannot get result from void method ...」，补丁根本装不上。
+        //   · 它所 patch 的 Verse.DebugToolsSpawning.SpawnPawn 则返回
+        //     List<DebugActionNode>（无参数）—— 别把两者混为一谈。
+        //
+        //   另：本补丁属于「patch 别人的 patch」，目标方法有 1 个参数，
+        //   所以下面的 __0 索引 0 合法（Harmony 的 __N 分支要求 0 <= N < 参数个数）。
         // Harmony 2.4.1 在生成补丁时对这种情况会直接抛
         //「Cannot get result from void method ...」，补丁根本装不上。
         public static bool Prefix(List<DebugActionNode> __0)

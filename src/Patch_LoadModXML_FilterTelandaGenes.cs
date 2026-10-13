@@ -46,13 +46,32 @@ namespace GNH.LocalFixes
     // 只会换来报错。既然如此，正确做法是让它们根本不进文档：整批摘掉 →
     // 不解析 → 不报错，而且与「类型不存在」这个事实完全自洽。
     //
-    // 必须一起处理的还有 Mask 自己的 `Common/Patches/DefaultRJWGenesRemoval.xml`：
-    // 那是作者为「telanda 在场」准备的，7 条 PatchOperationRemove 用的是绝对路径
-    // `/Defs/RJW_BGS.RaceGeneDef[defName="Canine"]` 且**没有 FindMod 守卫** ——
-    // 在 telanda 缺席时它删的其实是 Mask 自己的那 6 个 def（第 7 条 "Racoon"
-    // 因为 telanda 那边拼的是 "Raccoon"，从来没有命中过）。一旦我们把节点摘掉，
-    // 这 7 条又会因为「Failed to find a node」反过来再刷红字 ——
-    // 所以把这个补丁文件的文档元素清空，让它一条 Operation 都不执行。
+    // 【关于 Mask 自己的 `Common/Patches/DefaultRJWGenesRemoval.xml`】
+    //
+    // 那是作者为「telanda 在场」准备的，7 条 PatchOperationRemove 用绝对路径
+    // `/Defs/RJW_BGS.RaceGeneDef[defName="Canine"]` 且**没有 FindMod 守卫**。
+    //
+    // 我们**摘不掉它**（2026-10-13 反编译订正，此前注释写错了）：
+    //   · `LoadedModManager.LoadModXML` 只调 `ModContentPack.LoadDefs`，
+    //     而 LoadDefs 扫的是 `DirectXmlLoader.XmlAssetsInModFolder(this, "Defs/")`
+    //     —— **只含 Defs/**；
+    //   · `Patches/` 下的文件由另一条路 `LoadPatches()`（同样只扫 "Patches/"）
+    //     单独加载，**从不经过 LoadModXML**。
+    //   · 所以 DefaultRJWGenesRemoval.xml 永远不在本 Postfix 的 __result 里，
+    //     任何「清空它」的尝试都执行不到 —— 本节原先的 ClearDocumentElement
+    //     是死代码，已随本次订正删除。
+    //
+    // 那这 7 条 patch 现在为什么不刷红字？（2026-10-13 实测）
+    //   Mask 与 telanda 的第 7 个名字**都拼 `Raccoon`**；拼 `Racoon`（一个 c）的
+    //   是 `vegapnk.rjw.genes`（`1.6\Defs\RaceGeneDefs\RaceGeneDefs_Vanilla_Racegroups.xml`）。
+    //   也就是说这 7 条命中的是 RJW-Genes 本体的同名节点 —— 全量日志里
+    //   0 条 `Patch operation ... failed` 是硬反证。
+    //
+    // ⚠ 已知限制（不藏）：一旦 RJW-Genes 侧那 7 个节点消失（被注释 / 被别的 patch
+    //   先删 / 该模组改版），这 7 条就会全部落空并刷 7 条红字，而本补丁**管不到**
+    //   （它加载于 Patches 路径，与本 Postfix 无交集）。届时的正确做法是改用
+    //   `Verse.PatchOperation.Complete(string)` 的 Prefix 按 sourceFile 跳过报错，
+    //   而不是在这里做 XML 手术。
     //
     // 【为什么不删文件、也不整个移除 asset】
     //
@@ -84,10 +103,6 @@ namespace GNH.LocalFixes
         // 排查线索是启动日志里一条 `unloaded on purpose` 都没有。
         private const string MaskPackageId = "mask.eltoro.patches";
         private const string ElementName = "RJW_BGS.RaceGeneDef";
-
-        // 识别 Mask 那个「自我删除」补丁文件用的特征串。
-        // 用完整路径 / 文件名一起匹配，不依赖具体的目录层级写法。
-        private const string SelfRemovalPatchHint = "DefaultRJWGenesRemoval";
 
         // 与 telanda 重名的 25 个 defName（2026-10-10 从 Mask 的三个 Defs 文件提取）。
         private static readonly HashSet<string> ClashingNames = new HashSet<string>(StringComparer.Ordinal)
@@ -122,8 +137,18 @@ namespace GNH.LocalFixes
                 {
                     ResolveClashInsideTelanda(__result);
                 }
-                else if (maskOn)
+                else if (maskOn && RaceGeneDefTypeMissing())
                 {
+                    // ⚠ 2026-10-13 加固：判据从「telanda 模组是否启用」改成
+                    //    「RJW_BGS.RaceGeneDef 这个类型现在到底存不存在」。
+                    //
+                    //    为什么必须换：真正决定这 25 个 def 是「无人消费的垃圾」还是
+                    //    「合法数据」的，是**类型在不在**，不是某个模组开没开。
+                    //    两者今天恰好等价（1.6 的 Rjw-Genes.dll 不含 RJW_BGS），
+                    //    但将来上游一旦把该类型加回任何已启用程序集，
+                    //    「telanda 关着」就不再等于「数据没用」——那时旧判据会
+                    //    **静默删掉合法 def**，玩家只会看到一条 INFO 日志。
+                    //    拿不准时按「类型存在」处理 ⇒ 不删（宁可留红字，也不静默删数据）。
                     SilenceMaskOwnTables(__result);
                 }
                 // 只剩 telanda 时不动它：它是唯一数据源，剔了就等于把功能删掉。
@@ -168,7 +193,6 @@ namespace GNH.LocalFixes
         private static void SilenceMaskOwnTables(List<LoadableXmlAsset> assets)
         {
             int removedDefs = 0;
-            int neutralizedPatches = 0;
 
             for (int i = 0; i < assets.Count; i++)
             {
@@ -182,47 +206,25 @@ namespace GNH.LocalFixes
                     continue;
                 }
 
-                if (LooksLikeSelfRemovalPatch(asset))
-                {
-                    if (ClearDocumentElement(asset.xmlDoc))
-                    {
-                        neutralizedPatches++;
-                    }
-                    continue;
-                }
-
+                // ⚠ 2026-10-13：原本这里还有一个
+                //   LooksLikeSelfRemovalPatch -> ClearDocumentElement 分支，
+                //   想清空 Mask 的 Patches\DefaultRJWGenesRemoval.xml。
+                //   已删除：那个文件在 Patches/ 下，
+                //   而本 Postfix 的 __result 只含 Defs/ ——
+                //   分支从来没有被执行过（日志里
+                //   neutralized 恒为 0，四次运行无例外）。
+                //   详情见文件头部那段说明。
                 removedDefs += StripNodes(asset.xmlDoc, null);   // null = 该文档里的全删
             }
 
-            if (removedDefs > 0 || neutralizedPatches > 0)
+            if (removedDefs > 0)
             {
                 Log.Message("[GNH LocalFixes] Left Mask.ElToro.Patches' RJW_BGS.RaceGeneDef tables unloaded on purpose"
-                    + " (removed " + removedDefs + " definition(s); neutralized " + neutralizedPatches
-                    + " self-removal patch file(s)). RJW Animal Gene Inheritance is NOT active, so nothing consumes"
+                    + " (removed " + removedDefs + " definition(s)). RJW Animal Gene Inheritance is NOT active, so nothing consumes"
                     + " these defs - the 1.6 Rjw-Genes.dll never references RJW_BGS - and loading them only produced"
                     + " \"Type RJW_BGS.RaceGeneDef is not a Def type\" errors. Enable"
                     + " telanda.rjw.animalgeneinheritance to get the animal-gene feature back.");
             }
-        }
-
-        private static bool LooksLikeSelfRemovalPatch(LoadableXmlAsset asset)
-        {
-            string hint = (asset.FullFilePath ?? string.Empty) + "|" + (asset.name ?? string.Empty)
-                + "|" + (asset.fullFolderPath ?? string.Empty);
-            return hint.IndexOf(SelfRemovalPatchHint, StringComparison.OrdinalIgnoreCase) >= 0;
-        }
-
-        // 把根元素下的所有子节点清空 —— 用于让一个纯补丁文件变成「没有 Operation」。
-        // 返回 true 表示确实清掉了东西。
-        private static bool ClearDocumentElement(XmlDocument doc)
-        {
-            XmlElement root = doc.DocumentElement;
-            if (root == null || root.ChildNodes.Count == 0)
-            {
-                return false;
-            }
-            root.RemoveAll();
-            return true;
         }
 
         // 删掉该文档里的 RJW_BGS.RaceGeneDef 节点：
@@ -284,6 +286,24 @@ namespace GNH.LocalFixes
                 }
             }
             return doomed.Count;
+        }
+
+        // 这个类型现在能不能被解析出来？判不准时一律返回 false（= 当作「存在」= 不删）。
+        //
+        // 为什么可以直接问 GenTypes：它正是本补丁包另一项修复
+        // （Patch_GenTypes_PreferTelanda）所拦截的那个入口；而那一项对
+        // "RJW_BGS.RaceGeneDef" 只在 telanda 在场时才短路，所以这里得到的
+        // 就是「全进程真实可解析性」——telanda 不在场时与原版行为一致。
+        private static bool RaceGeneDefTypeMissing()
+        {
+            try
+            {
+                return GenTypes.GetTypeInAnyAssembly(ElementName) == null;
+            }
+            catch
+            {
+                return false;   // 问不出来 ⇒ 保守当作「类型存在」⇒ 不删
+            }
         }
 
         private static bool IsModActive(string packageId)
