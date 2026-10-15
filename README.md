@@ -6,9 +6,9 @@
 
 | 项目 | 说明 |
 |---|---|
-| **适用游戏版本** | RimWorld **1.6** |
+| **适用游戏版本** | RimWorld **1.6 / 1.7**（`About.xml` 的 `supportedVersions` 里同时声明了 `<li>1.6</li>` 与 `<li>1.7</li>`） |
 | **前置依赖** | [Harmony](https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077)（`brrainz.harmony`） |
-| **支持的语言** | 界面与日志为**中文**；修的是模组行为、不翻译文本，中英文环境都会生效 |
+| **支持的语言** | 模组设置界面是**中文 / 英文双语**（`Languages\ChineseSimplified` + `Languages\English`）；自检日志是「中文说明 + 英文标识符」。本模组**不翻译任何游戏文本**，中英文环境都会生效 |
 | **作者** | 大赢经直插白皮赢道 |
 | **仓库 / 问题反馈** | <https://github.com/1579486875/GNH-LocalFixes> |
 | **详细技术说明** | [技术说明.md](技术说明.md)（各项的根因分析、反编译证据） |
@@ -450,7 +450,7 @@ IL_0015: ret
 
 | 项目 | 情况 |
 |---|---|
-| **RimWorld 版本** | 1.6（About.xml 里声明 `supportedVersions = 1.6`） |
+| **RimWorld 版本** | **1.6 / 1.7**（`About.xml` 里声明 `supportedVersions`：`<li>1.6</li>` 与 `<li>1.7</li>`；自 v1.4.2 起追加 1.7） |
 | **必需前置** | Harmony |
 | **冲突** | 无已知冲突 |
 | **存档安全** | ✅ 不往存档里写任何数据 —— 加装或移除都不需要重开新档 |
@@ -484,13 +484,13 @@ IL_0015: ret
 本机模组组合的修复合集。packageId `gnh.cn.cys.localfixes`。
 部署目录名：`模组兼容修复补丁`（放进 RimWorld 的 `Mods\` 目录）
 
-- 模组版本：**1.3.33**　·　适用版本：RimWorld **1.6**　·　依赖：**Harmony**
+- 模组版本：**1.4.5**　·　适用版本：RimWorld **1.6 / 1.7**　·　依赖：**Harmony**
 
 ## 构建与部署
 
     dotnet build GNH.LocalFixes.csproj -c Release
 
-构建完 `bin\Release\` 就是一个**完整可部署的模组目录**：
+构建完 `bin\Release\` 里就有**游戏运行所需的全部文件**：
 
     bin\Release\
       About\About.xml                ← 模组元数据
@@ -498,8 +498,14 @@ IL_0015: ret
       About\ModIcon.png              ← 游戏内模组列表的小图标
       Assemblies\GNH.LocalFixes.dll  ← RimWorld 只从这个目录加载程序集
       Patches\*.xml                  ← 纯 XML 补丁
+      Languages\**\*.xml             ← 模组设置界面的中 / 英翻译
       README.md
       GNH.LocalFixes.dll             ← 编译器在根目录留的那一份，RimWorld 不读它，可无视
+
+> ⚠ 有**两份文档**不在构建输出里：`LICENSE` 与 `技术说明.md`。
+> 它们不参与游戏运行，所以缺了也不影响功能；`tools\deploy.ps1` 会额外从**工程根目录**
+> 把它们一起复制过去（见该脚本里的 `$rf` 循环）。若你手工复制 `bin\Release\`，
+> 记得自己补上这两份。
 
 整体复制到 `RimWorld\Mods\模组兼容修复补丁\` 即可。也可以直接用 `tools\deploy.ps1`
 （备份旧文件后复制，并会先检查游戏是否正在运行）。
@@ -520,9 +526,12 @@ IL_0015: ret
 
 ## 修复清单
 
-二十六项互相独立，均为最小侵入，可整体或逐项停用。
+二十七项互相独立，均为最小侵入。其中**代码侧那 22 项**可以在设置界面里逐项开关
+（`Patches\` 下 7 条 XML 补丁与 1 处类型补齐【1】不在界面上 —— 见上文「22 个设置项」与「修复速览」）。
 
-> **本版（v1.3.31，2026-10-11）的重点变更 —— 新增第 26 项：Guards For Me 的 DeepCopy 类型转换错误**
+> 最新的版本变化见《技术说明.md》开头的版本章节；下面这段起是**按版本倒序**保留的历史记录。
+
+> **v1.3.31（2026-10-11）的重点变更 —— 新增第 26 项：Guards For Me 的 DeepCopy 类型转换错误**
 >
 > · **症状**：每次进游戏（Def 加载阶段）都留三条红字 ——
 >   `Error while resolving references for def Nivarian_ThinkTree:
@@ -555,7 +564,7 @@ IL_0015: ret
 > · **给作者的修复建议（源码级，改一个词）**：把 `DeepCopy` 里
 >   `val` 的声明类型与强转类型从 `JobGiver_Idle` 换成 `JobGiver_IdleCombat`，其余一个字都不用动。
 >
-> **本版（v1.3.30，2026-10-11）的重点变更 —— 新增第 25 项：雪兔系列公共库的渲染并发缺陷**
+> **v1.3.30（2026-10-11）的重点变更 —— 新增第 25 项：雪兔系列公共库的渲染并发缺陷**
 > 
 > · **症状**：一局日志被刷到 **12.8 MB / 199,045 行**，其中
 >   `System.IndexOutOfRangeException` **42,987** 次、`IndexOutOfRangeException` **28,655** 次，

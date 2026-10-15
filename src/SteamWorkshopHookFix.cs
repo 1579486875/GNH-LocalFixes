@@ -112,6 +112,31 @@ namespace GNH.LocalFixes
         private static bool installed;
 
         /// <summary>
+        /// 「第一道保险」（重写 WorkshopItemHook.SendSteamDetailsQuery）是否已经挂上。
+        ///
+        /// 【为什么要逐目标记录，而不是共用一个 installed】（2026-10-15 复审修正）
+        ///   原写法是「装完第一道就立刻把 installed 置为 true」（当时的理由见下方代码里的长注释：
+        ///   防止后面的日志抛异常导致标记丢失、同一方法被重复 Patch）。
+        ///   那个理由本身成立，但它顺带造成了另一个缺陷：
+        ///   **只有第一道成功、第二道失败时，installed 也会是 true** ——
+        ///   下次模组对象被重建（切语言 / 开发者热重载）时会在方法开头直接 return，
+        ///   **第二道永远不会再重试**；而第二道 ModMetaData.GetWorkshopItemHook 才是真正兜住
+        ///   「打开模组页面即崩溃」的那一道（见下方 else 分支里那句 CRITICAL 日志）。
+        ///
+        ///   现在改成逐目标记录：每个目标一个「已挂上」标记，**紧贴 Patch 调用置位**
+        ///   （中间不夹任何可能抛异常的语句，2026-10-07 那条约束原样保留），
+        ///   而 installed 只在**两个标记都为真**时才置位。两者兼得：
+        ///   · 已 Patch 成功的方法绝不会被再 Patch 一次（不会叠层）；
+        ///   · 失败的那一道能在下次重入时补装。
+        /// </summary>
+        private static bool detailsPatched;
+
+        /// <summary>
+        /// 「第二道保险」（ModMetaData.GetWorkshopItemHook 替换）是否已经挂上。理由同上。
+        /// </summary>
+        private static bool getHookPatched;
+
+        /// <summary>
         /// ModMetaData 里那个「只建一次、之后复用」的 hook 缓存字段（原版字段名 workshopHookInt）。
         /// 拿到它才能把造好的空壳 hook 存回去，让后续调用直接命中缓存。
         /// </summary>
@@ -215,20 +240,24 @@ namespace GNH.LocalFixes
 
                 if (details != null)
                 {
-                    harmony.Patch(details,
-                        new HarmonyMethod(AccessTools.Method(typeof(SteamWorkshopHookFix), nameof(SkipDetailsQuery))),
-                        null, null, null);
+                    // 已经挂过的那一道不再重复挂 —— Harmony 是叠加的，重复 Patch = 越玩越卡。
+                    if (!detailsPatched)
+                    {
+                        harmony.Patch(details,
+                            new HarmonyMethod(AccessTools.Method(typeof(SteamWorkshopHookFix), nameof(SkipDetailsQuery))),
+                            null, null, null);
 
-                    // ⚠ 装上一道就**立刻**立标记，而不是等两道都做完再统一置位。
-                    //
-                    //   原因（2026-10-07 复核查出的一处真实风险）：
-                    //   下面那两个 else 分支里的 Log 调用是会抛异常的（日志子系统故障时），
-                    //   而异常会跳到方法末尾的 catch。若此时标记还没立起来，
-                    //   下次模组对象被重建时就会对**同一个方法再 Patch 一遍** ——
-                    //   Harmony 是叠加的，那就是「越玩越卡」。
-                    //   换句话说：**「已经 Patch 成功」这件事必须当场记下来**，
-                    //   不能让它取决于后面那句日志成不成功。
-                    installed = true;
+                        // ⚠ 标记**紧贴** Patch 调用置位，中间绝不夹日志之类的可抛异常语句。
+                        //
+                        //   原因（2026-10-07 复核查出的一处真实风险，本次修改完整保留这条约束）：
+                        //   下面那两个 else 分支里的 Log 调用是会抛异常的（日志子系统故障时），
+                        //   而异常会跳到方法末尾的 catch。若此时标记还没立起来，
+                        //   下次模组对象被重建时就会对**同一个方法再 Patch 一遍** ——
+                        //   Harmony 是叠加的，那就是「越玩越卡」。
+                        //   换句话说：**「已经 Patch 成功」这件事必须当场记下来**，
+                        //   不能让它取决于后面那句日志成不成功。
+                        detailsPatched = true;
+                    }
                 }
                 else
                 {
@@ -239,11 +268,14 @@ namespace GNH.LocalFixes
 
                 if (getHook != null)
                 {
-                    harmony.Patch(getHook,
-                        new HarmonyMethod(AccessTools.Method(typeof(SteamWorkshopHookFix), nameof(SafeGetWorkshopItemHook))),
-                        null, null, null);
+                    if (!getHookPatched)
+                    {
+                        harmony.Patch(getHook,
+                            new HarmonyMethod(AccessTools.Method(typeof(SteamWorkshopHookFix), nameof(SafeGetWorkshopItemHook))),
+                            null, null, null);
 
-                    installed = true;   // 同上：装上了就当场记下来
+                        getHookPatched = true;   // 同上：装上了就当场记下来
+                    }
                 }
                 else
                 {
@@ -252,9 +284,14 @@ namespace GNH.LocalFixes
                         + " not found; the mods-page crash guard is NOT installed.");
                 }
 
+                // 【2026-10-15 修正】只有**两道都装上了**才立「整个修复已完成」的快速路径标记。
+                //   原写法是「装上一道就置位」，导致第二道当次失败后再也不重试（详见字段声明处的注释）。
+                //   这里用的是两个**逐目标**标记的与，所以已经装好的那一道不会被重复 Patch。
+                installed = detailsPatched && getHookPatched;
+
                 if (!installed)
                 {
-                    // 两道都没找到（多半是原版大改）：不置位，留着下次再试。
+                    // 还差至少一道（多半是原版改名、或映射不到那个方法）：不置位，留着下次再试。
                     return;
                 }
 
