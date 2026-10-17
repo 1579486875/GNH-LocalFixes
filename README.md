@@ -10,6 +10,7 @@
 | **前置依赖** | [Harmony](https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077)（`brrainz.harmony`） |
 | **支持的语言** | 模组设置界面是**中文 / 英文双语**（`Languages\ChineseSimplified` + `Languages\English`）；自检日志是「中文说明 + 英文标识符」。本模组**不翻译任何游戏文本**，中英文环境都会生效 |
 | **作者** | 大赢经直插白皮赢道 |
+| **AI 协作** | 代码由 AI 助手「DeepSeek娘·汐蓝」辅助编写；设计、需求、审阅与实机验证由作者完成 |
 | **仓库 / 问题反馈** | <https://github.com/1579486875/GNH-LocalFixes> |
 | **详细技术说明** | [技术说明.md](技术说明.md)（各项的根因分析、反编译证据） |
 
