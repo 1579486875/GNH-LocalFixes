@@ -59,6 +59,10 @@
   <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>开发者模式下每帧都写一行 [RJW-Genes] multipreg checks（实测一局 3 万条、占整份日志 65%），把真正要看的问题全埋掉。本项只拦这一句，该模组的报错与警告照常输出。</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>
   <GNH_LocalFixes_Toggle_vehicleFrameworkDebug>Vehicle Framework 调试菜单报错</GNH_LocalFixes_Toggle_vehicleFrameworkDebug>
   <GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>打开开发者生成菜单后，该模组找不到对应的 PawnKind 会报错。本项把「找不到就报错」改成「查不到就静默跳过」。</GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>
+  <GNH_LocalFixes_Toggle_filterRjwpeStaleDefs>PE 模组的残留 def 报错</GNH_LocalFixes_Toggle_filterRjwpeStaleDefs>
+  <GNH_LocalFixes_Toggle_filterRjwpeStaleDefs_Desc>RJW PE 的 SoundDef_Replacement.xml 用的是已被作者改名的旧类型 rjwpe.SoundReplacementDef（2025-09-04 起改叫 rjwpe.VoiceReplacementDef，新文件 ReplacementDef_Voice.xml 已完整实现该功能），启动时必报「Type ... is not a Def type」。那批定义从来没生效过，本项把它摘掉 —— 行为与实际完全等价，只是不再刷红字。★ 作者若把类型加回来，本项自动失效、什么都不做。</GNH_LocalFixes_Toggle_filterRjwpeStaleDefs_Desc>
+  <GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet>RI-Furniture 皇权自检刷屏</GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet>
+  <GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet_Desc>每次启动刷 54 条「皇权房间要求补丁未生效」。成因是 disroom.mashiro 把爵位的 throneRoomRequirements / bedroomRequirements 整片清空，而那是玩家故意启用的效果 —— RI 的家具因此必然加不进去，属于预期中的设计冲突。本项只静音这一类自检结论，该模组的其它日志一律照常输出。</GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet_Desc>
   <GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>射程计算空引用</GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>
   <GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange_Desc>原版算射程时有两处直接使用「攻击者」却没有先判空，特定情况下会刷空引用。本项补上判空。</GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange_Desc>
   <GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>XML 补丁按名字判定 DLC 失效</GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>

@@ -4,7 +4,7 @@
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.4.5</modVersion>
+  <modVersion>1.4.6</modVersion>
   <supportedVersions>
     <li>1.6</li>
     <li>1.7</li>
@@ -52,6 +52,8 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 【25】雪兔系列的公共库在渲染时并发写坏集合 —— SRCELib 用两个全游戏共享的静态容器做缓存、却没有任何锁，而它被自己的渲染补丁每帧调用好几十次 —— 给那个方法套一把锁（进锁用前缀、出锁用收尾器，保证异常时也解锁）
 【26】Guards For Me 的行为树节点复制里有个转错类型的强制转换 —— 它的 DeepCopy 是从原版 JobGiver_Idle 复制来的，只改了变量名 obj、忘了改强转的目标类型，而它真正的基类 ThinkNode_JobGiver 与 JobGiver_Idle 是兄弟关系而非父子关系，于是每次加载都留下三条「解析引用失败」红字，并且抛异常的位置正在 ResolveSubnodes —— 那一步的职责是把 Subtree 引用的节点深拷贝进来，异常一抛整棵子树都没复制成，涅瓦莲与 PasserRace 的 AI 行为因此残缺 —— 用 Transpiler 只替换两条 IL 指令的目标类型（castclass 与 stfld），先整表扫描、两条都恰好命中一次才动手，作者哪天真修好了就自动什么都不做
 【27】「RJW 月经体液」（ELT）每次启动都把「Cumpilation」的 9 个开关强制关掉 —— 该模组的 Cumpilation_Integration.CumpilationSettingsOverride 在 StaticConstructorOnStartup 里无条件把它们写成 false；而 Cumpilation 的设置字段全是 static、只在更早的 Mod 构造函数里读一次盘，之后再没有任何读盘来纠正它（玩家在设置界面里打开也没用，磁盘文件上看着还是开着的） —— 挂 LongEventHandler.ExecuteToExecuteWhenFinished 的收尾器，在所有这类延迟动作执行完之后让 Cumpilation 自己重新读一次盘；恢复的是你自己存过的值，本补丁不写死任何开关。没装这两个模组时什么都不做
+【28】RJW PE 的 SoundDef_Replacement.xml 每次启动必报「Type rjwpe.SoundReplacementDef is not a Def type」 —— 作者在 2025-09-04 把这个类型改名为 rjwpe.VoiceReplacementDef 并另写了 ReplacementDef_Voice.xml 完整实现该功能，却把 8 月 12 日的旧文件忘在了原地（该模组全部 11 个程序集里都搜不到 SoundReplacementDef） —— 把那批从来没生效过的定义摘掉：行为与「跳过 + 报错」完全等价，只是不再刷红字；判据是「类型现在是否存在」，作者若把它加回来则自动失效、什么都不做
+【29】「边缘仙路-雕梁画栋」（RI-Furniture）每次启动刷 54 条「皇权房间要求补丁未生效」 —— 成因是 disroom.mashiro（模组名即「禁用所有房间要求」）用 PatchOperationReplace 把爵位的 throneRoomRequirements / bedroomRequirements 整片清空，而那是玩家故意启用的效果，RI 想往空列表里追加自家家具必然失败，属于预期中的设计冲突（调加载顺序也救不了：清空是不可逆的单向操作） —— 只静音它这一路的自检结论，该模组的其它日志一律照常输出；没装它时什么都不做
 
 每一项的根因分析、反编译证据与验证方法，见仓库里的「技术说明.md」。
 

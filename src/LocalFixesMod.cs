@@ -229,9 +229,33 @@ namespace GNH.LocalFixes
             TryInstall("steamWorkshopHook", "SteamWorkshopHookFix", SteamWorkshopHookFix.Install);
             TryInstall("crossPromotionUnpatch", "CrossPromotionUnpatch", CrossPromotionUnpatch.Install);
 
+            // ⚠ RimUnityPostFxUnpatch 曾经也在这里装（2026-10-16 加，2026-10-17 由用户指示移除）。
+            //
+            // 移除原因：那场崩溃（crash-20261016-132826.txt，开在主菜单约 21 分钟后被渲染线程
+            // 的 MissingMethodException 终结）属于**本机引擎快照落后** —— D:\RimWorld-1.7 是
+            // 2026-10-13 的构建，而 RimUnity 0.1.7 按**更新的** Waylith 引擎编译，CLR 因而找不到
+            // PostEffectPass 的新重载。这不是模组间的兼容问题，引擎快照更新后自愈，
+            // 不需要在兼容补丁里长期兜着。详见 FixToggles.cs 同类注记与移除前的源码备份。
+            //
+            // ⚠ 「不要停用 RimUnity」这条警告仍然有效：ZuoYao_RavenRace 在编译时引用了 RimUnity
+            //    的类型，停用会让它整份程序集不可用，进而使大量 Def 解析失败（实测 3 分钟 5.7 万条
+            //    ERROR）。快照更新前若又崩，先升级快照 —— 别去停用 RimUnity。
+            //
+            // ⚠ 保留：steamWorkshopHook / crossPromotionUnpatch 这对「打开模组页面即崩」的两道保险，
+            //    它们修的是 Steam 官方废弃接口（RequestUGCDetails），与本地版本无关，2026-10-17 确认保留。
+
             // 下面这个是 2026-10-04 根据游戏日志新增的修复，详见它的文件头注释。
             // 安装方式是「按类型名去找，找不到就置位跳过」。
             TryInstall("techHediffsZeroBudget", "TechHediffsZeroBudgetFix", TechHediffsZeroBudgetFix.Install);
+
+            // 2026-10-17 新增：RI-Furniture 的皇权房间要求自检刷屏静音。
+            //
+            // 那 54 条「皇权房间要求补丁未生效」的成因是 disroom.mashiro 把爵位的
+            // throneRoomRequirements / bedroomRequirements 整片清空 —— 而那是玩家**故意**启用的
+            // 效果（模组名就叫 disabledroomRequirements）。RI 想往空列表里加家具，必然加不进去。
+            // 本项只静音它这一路的自检结论，其余日志照常。完整推导见 RIFurnitureRoyalCompatQuietFix.cs。
+            TryInstall("riFurnitureRoyalCompatQuiet", "RIFurnitureRoyalCompatQuietFix",
+                RIFurnitureRoyalCompatQuietFix.Install);
 
             // ⚠ CcoeReflectionFix 曾经也在这里装，2026-10-06 移走了。
             //
@@ -557,6 +581,7 @@ namespace GNH.LocalFixes
             "GNH.LocalFixes.Patch_VerbProperties_AdjustedRange",
             "GNH.LocalFixes.Patch_GenTypes_PreferTelanda",
             "GNH.LocalFixes.Patch_LoadModXML_FilterTelandaGenes",
+            "GNH.LocalFixes.Patch_LoadModXML_FilterRjwpeStaleDefs",
         };
 
         private static Type[] LoadKnownPatchClassesTolerantly(Assembly assembly)

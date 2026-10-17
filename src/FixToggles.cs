@@ -155,6 +155,20 @@ namespace GNH.LocalFixes
                 "CrossPromotion 在模组页面里去取 Steam 信息，会调用 Steam 官方早已废弃的接口，"
                 + "导致一打开「模组」页面就崩。本项把它那段前置处理摘掉。"),
 
+            // ⚠ RimUnityPostFxUnpatch 曾经也在这一组里，2026-10-17 由用户指示移除。
+            //
+            // 原因：那场崩溃（crash-20261016-132826.txt）的根因是**本机引擎快照落后** ——
+            //      D:\RimWorld-1.7 是 2026-10-13 的构建，而 RimUnity 0.1.7 是按**更新的**
+            //      Waylith 引擎编译的，于是 CLR 找不到 PostEffectPass 的新重载。
+            //      这是本地环境版本落后，**不是模组之间的兼容问题** —— 引擎快照更新后自愈，
+            //      不该在兼容补丁里长期兜着。
+            //
+            // ⚠ 但「**不要停用 RimUnity**」这条警告仍然有效：ZuoYao_RavenRace 在编译时引用了
+            //    RimUnity 的类型，停用会让整份程序集不可用，进而使大量 Def 解析失败
+            //    （实测 3 分钟 5.7 万条 ERROR）。快照更新前若又崩，先升级快照 —— 别去停用 RimUnity。
+            //
+            // 完整推导见备份 _backup/pre-rimunity-postfx-20261016-134657/ 与当时的 RimUnityPostFxUnpatch.cs。
+
             new Entry("steamWorkshopHook", GroupCrash,
                 "Steam 工坊信息崩溃（第二道保险）",
                 "与上一项是同一场崩溃的另一条路：把「取工坊信息」这条链路上的空值与异常接住。"
@@ -175,6 +189,22 @@ namespace GNH.LocalFixes
                 "Vehicle Framework 调试菜单报错",
                 "打开开发者生成菜单后，该模组找不到对应的 PawnKind 会报错。"
                 + "本项把「找不到就报错」改成「查不到就静默跳过」。"),
+
+            new Entry("filterRjwpeStaleDefs", GroupSpam,
+                "PE 模组的残留 def 报错",
+                "RJW PE 的 SoundDef_Replacement.xml 用的是已被作者改名的旧类型 rjwpe.SoundReplacementDef"
+                + "（2025-09-04 起改叫 rjwpe.VoiceReplacementDef，新文件 ReplacementDef_Voice.xml 已完整实现该功能），"
+                + "启动时必报「Type ... is not a Def type」。那批定义从来没生效过，"
+                + "本项把它摘掉 —— 行为与实际完全等价，只是不再刷红字。"
+                + "★ 作者若把类型加回来，本项自动失效、什么都不做。",
+                "GNH.LocalFixes.Patch_LoadModXML_FilterRjwpeStaleDefs"),
+
+            new Entry("riFurnitureRoyalCompatQuiet", GroupSpam,
+                "RI-Furniture 皇权自检刷屏",
+                "每次启动刷 54 条「皇权房间要求补丁未生效」。成因是 disroom.mashiro 把爵位的"
+                + " throneRoomRequirements / bedroomRequirements 整片清空，而那是玩家故意启用的效果 ——"
+                + " RI 的家具因此必然加不进去，属于预期中的设计冲突。"
+                + "本项只静音这一类自检结论，该模组的其它日志一律照常输出。"),
 
             // ---------------- 兼容与判定 ----------------
             new Entry("patchVerbPropertiesAdjustedRange", GroupCompat,
