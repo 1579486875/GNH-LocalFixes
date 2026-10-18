@@ -8,7 +8,7 @@
 |---|---|
 | **适用游戏版本** | RimWorld **1.6 / 1.7**（`About.xml` 的 `supportedVersions` 里同时声明了 `<li>1.6</li>` 与 `<li>1.7</li>`） |
 | **前置依赖** | [Harmony](https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077)（`brrainz.harmony`） |
-| **支持的语言** | 模组设置界面是**中文 / 英文双语**（`Languages\ChineseSimplified` + `Languages\English`）；自检日志是「中文说明 + 英文标识符」。本模组**不翻译任何游戏文本**，中英文环境都会生效 |
+| **支持的语言** | 模组设置界面是**简中 / 繁中 / 英文三语**（`Languages\ChineseSimplified` + `Languages\ChineseTraditional` + `Languages\English`）；自检日志是「中文说明 + 英文标识符」。本模组**不翻译任何游戏文本**，中英文环境都会生效 |
 | **作者** | 大赢经直插白皮赢道 |
 | **AI 协作** | 代码由 AI 助手「DeepSeek娘·汐蓝」辅助编写；设计、需求、审阅与实机验证由作者完成 |
 | **仓库 / 问题反馈** | <https://github.com/1579486875/GNH-LocalFixes> |
@@ -508,7 +508,7 @@ IL_0015: ret
       About\ModIcon.png              ← 游戏内模组列表的小图标
       Assemblies\GNH.LocalFixes.dll  ← RimWorld 只从这个目录加载程序集
       Patches\*.xml                  ← 纯 XML 补丁
-      Languages\**\*.xml             ← 模组设置界面的中 / 英翻译
+      Languages\**\*.xml             ← 模组设置界面的简中 / 繁中 / 英翻译
       README.md
       GNH.LocalFixes.dll             ← 编译器在根目录留的那一份，RimWorld 不读它，可无视
 
