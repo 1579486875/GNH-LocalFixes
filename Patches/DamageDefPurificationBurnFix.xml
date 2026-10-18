@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+
+  <!--
+    【【32】把 HediffDef 当成 DamageDef 引用 —— 摘掉那条死引用】
+
+    ── 修的是什么问题 ──
+
+    Fortification Industrial - Citadel（Aoba.Fortress.Industrial.Citadel，
+    工坊 2887532326）在 damageMultipliers 里写了这样一条：
+
+        <li MayRequire="ASEL.MonolynRace">
+          <damageDef>PurificationBurn</damageDef>
+          <multiplier>0.5</multiplier>
+        </li>
+
+    而 PurificationBurn 在 Monolyn Race 里是这样定义的：
+
+        <HediffDef ParentName="BurnBase">
+          <defName>PurificationBurn</defName>
+
+    —— 它是 **HediffDef**，不是 DamageDef。Monolyn 自己的写法就是
+    <hediff>PurificationBurn</hediff>。于是每次加载都报：
+
+        No Verse.DamageDef named PurificationBurn found
+        to give to Verse.DamageMultiplier
+
+    本机实测：每开一局报 2 条（两处定义各 1 条，都随 MayRequire 生效）。
+
+    ── 为什么删、而不是改成别的 DamageDef ──
+
+    这一条的含义是「对某种伤害追加 0.5 倍」。把它改成别的 DamageDef
+    （例如 Burn）等于把「纯化烧伤」的倍率套到普通烧伤上 ——
+    那是在改游戏平衡，而且猜错目标伤害还会让作者的数值设计变形。
+
+    这个 DamageDef 从来就不存在，所以这条倍率**从来没有生效过**。
+    删掉它 = 行为与原状完全一致，只是不再刷红字。
+    同一批里紧邻的 MNPurification 是真实 DamageDef，保留不动。
+
+    ── 两处位置 ──
+
+    · 1.6\Defs\Things\FTC_PermanentStructure.xml
+        ThingDef[@Name="FTC_BasePermanentStructure"]
+    · 1.6\CombatExtended\Defs\Things\FTC_Gun.xml
+        ThingDef[@Name="FTC_BasePermanentTurret_Mannable"]
+
+      第二份只在装了 Combat Extended 时才会被加载 —— 该模组的
+      LoadFolders.xml 用
+        <li IfModActive="CETeam.CombatExtended,CETeam.CombatExtended_steam">1.6/CombatExtended</li>
+      分流。本机没装 CE，这条 xpath 会匹配 0 个节点，success=Always
+      让它安静跳过；装了 CE 的机器上才会真正删第二处。
+
+    两处都挂在 Abstract="True" 的模板上，会被各自的子类继承，
+    所以只删模板里这一条，就覆盖了它的全部子类。
+
+    ── 什么时候自动失效 ──
+
+    作者自己删掉、或把 defName 改正之后，xpath 匹配 0 个节点，本补丁不动作。
+
+    ── 副作用 ──
+
+    无。删的是一条指向不存在 def 的死条目。
+  -->
+
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[@Name="FTC_BasePermanentStructure"]/damageMultipliers/li[damageDef="PurificationBurn"]</xpath>
+  </Operation>
+
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[@Name="FTC_BasePermanentTurret_Mannable"]/damageMultipliers/li[damageDef="PurificationBurn"]</xpath>
+  </Operation>
+
+</Patch>

@@ -4,7 +4,7 @@
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.4.8</modVersion>
+  <modVersion>1.4.9</modVersion>
   <supportedVersions>
     <li>1.6</li>
     <li>1.7</li>
@@ -27,7 +27,7 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 
 【1】ElToro 人兽杂交「观看」任务 —— 任务类缺失导致 JobDef 加载失败 —— 照同类任务补齐
 【2】CeleTech 智能切换武器 —— 原版射程计算不判空，每 15 tick 崩一次 —— 加空值守卫
-【3】VFE Empire 爵位层级 —— 另一个模组把爵位扩展整片清空，16 个爵位在层级里全塌成同一档 —— 按「实际生效的 def」逐条补回
+【3】VFE Empire 爵位层级 —— 另一个模组把爵位扩展整片清空，16 个爵位在层级里全塌成同一档 —— 其中 15 个（VFE 9 + 原版 6）按「实际生效的 def」精确补回，第 16 个（Emperor）留作兜底
 【4】Vehicle Framework 开发者面板 —— 拿「显示名{defName}」整串去查 Def，成片红字 —— 先解析出纯 defName 再查
 【5】VFE Empire 乐器空间 —— placeWorkers 为 null 时直接 Contains，静态构造崩 —— 只替换那句判断。★ 它自带「自动让路」：先探测原版那句判断还崩不崩，不崩了就什么都不做（VFE Empire 修好即自动失效）；另有独立开关可手动关闭
 【6】打开「模组配置」页即崩溃 —— CrossPromotion 调了 Steam 已废弃接口 —— 让这处调用不再被挂上那个前缀
@@ -55,6 +55,12 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 【28】RJW PE 的 SoundDef_Replacement.xml 每次启动必报「Type rjwpe.SoundReplacementDef is not a Def type」 —— 作者在 2025-09-04 把这个类型改名为 rjwpe.VoiceReplacementDef 并另写了 ReplacementDef_Voice.xml 完整实现该功能，却把 8 月 12 日的旧文件忘在了原地（该模组全部 11 个程序集里都搜不到 SoundReplacementDef） —— 把那批从来没生效过的定义摘掉：行为与「跳过 + 报错」完全等价，只是不再刷红字；判据是「类型现在是否存在」，作者若把它加回来则自动失效、什么都不做
 【29】「边缘仙路-雕梁画栋」（RI-Furniture）每次启动刷 54 条「皇权房间要求补丁未生效」 —— 成因是 disroom.mashiro（模组名即「禁用所有房间要求」）用 PatchOperationReplace 把爵位的 throneRoomRequirements / bedroomRequirements 整片清空，而那是玩家故意启用的效果，RI 想往空列表里追加自家家具必然失败，属于预期中的设计冲突（调加载顺序也救不了：清空是不可逆的单向操作） —— 只静音它这一路的自检结论，该模组的其它日志一律照常输出；没装它时什么都不做
 【30】「乱伦许可」模组删掉了 Incestuos_Disapproved_CloseOnly 这个戒律的 issue 节点，而它自己的 preceptClass 也是空的 —— 于是实例化成基类 Precept，Precept.DrawIcon 去读 def.issue.Icon 时抛空引用，打开文化界面一次刷 350 条红字，本机 10 个文化受累 —— 把 issue 补回（只补这一个字段，不复活被一并删掉的 comps，保留作者「不让它生效」的本意）；用 PatchOperationConditional 做成幂等，那个模组哪天不删了也一样安全
+【33】「缇瓦莱特贞操科技」的智能贞操带与贞操胸罩漏写耐久与可燃字段 —— 两件装备写了 useHitPoints=false / destroyable=false，却没写 statBases/DeteriorationRate（取 StatDef 默认值 1.0）也没写 flammable（默认 0.7），于是开发模式下每开一局各刷两条「has >0 DeteriorationRate but can't deteriorate」与「flammable but has no hitpoints」 —— 把 DeteriorationRate 补成 0、flammable 补成 false；不改 useHitPoints，那会让装备开始掉耐久、属于改玩法
+【34】两个基因分类的 displayPriorityInXenotype 都是 999 —— RS_DarkArchite（工坊 3236303965 的 Anomaly 分层目录）与 Lolium 撞号，只在开发者模式报「Multiple gene categories share the same displayPriorityInXenotype」，影响基因界面的排序稳定性 —— 把 RS_DarkArchite 改成 998，不改任何基因本身的效果
+【35】OA 的会计记录里写了 CompProperties_Hackable 中不存在的字段（1.6 目录拼作 destoryOnHackComplete、1.7 目录拼作 destroyOnHackComplete，两种拼写都不存在）—— XML 反序列化时被静默忽略，只刷「XML error: destroyOnHackComplete doesn't correspond to any field」 —— 两种拼写各删一条，行为与原状完全一致
+【36】三条指向「本机不存在的 def」的交叉引用 —— RI_ToggleProducerLoading_Living（只存在于工坊 3326145525 的 1.7 目录，1.6 下不加载）、SR_CarrotArmorH（提供它的模组已不在）、WolfeinExecutiveSteakLunch（WolfeinExpand.BlackScience 未启用，而那一处引用没有 MayRequire 挡着），每局各刷 3 条「Could not resolve cross-reference」 —— 各自把引用项删掉；这些 def 本来就解析失败，删引用与置空对游戏行为等价
+【31】米莉拉领航员制服 Milira_NavigatorUniform 的 layers 与 comps 被写成了空元素 —— layers 为空让 ApparelProperties.LastLayer 取末项时越界，每次染色都刷「Failed to get last layer on apparel item」，comps 为空则让这件制服丢掉父类的「避免友伤」（AncotLibrary.CompProperties_AvoidAllyDamage）；成因是 RimWorld 的 XML 继承里「<layers></layers>」这种空元素是「覆盖成空」而不是「不覆盖」 —— 把 layers 补成 OnSkin（与 PawnKind 的 apparelLayer 要求一致；父类给的 Shell 本身是笔误，同文件的 Milira_CombatantSuit 就是手写 OnSkin 纠正它），把空 comps 直接删掉、让继承阶段把父类链的完整列表拿回来
+【32】「Fortification Industrial - Citadel」把 HediffDef 的 defName 当成 DamageDef 写进了 damageMultipliers（PurificationBurn 在 Monolyn Race 里定义成 HediffDef） —— 每次启动刷「No Verse.DamageDef named PurificationBurn found to give to Verse.DamageMultiplier」 —— 摘掉那条从来没生效过的倍率条目（行为与原状完全一致，只是不再刷红字）；不改写成别的 DamageDef，因为那会把倍率错套到其它伤害上、属于改游戏平衡
 
 每一项的根因分析、反编译证据与验证方法，见仓库里的「技术说明.md」。
 
@@ -62,7 +68,7 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 
 · 装进 Mods 目录、在游戏里启用即可，没有任何必填设置。
 · 建议排在模组列表靠下的位置（Harmony 之后，最好也在它要修的那些模组之后）。
-· 想只保留一部分：Patches 目录下是 8 个 XML 补丁，Assemblies 目录里是一个 dll。
+· 想只保留一部分：Patches 目录下是 10 个 XML 补丁，Assemblies 目录里是一个 dll。
   两者互不依赖 —— 删掉哪一部分，就只有那一部分对应的修复不再生效，其余照常。
 · 「选项 → 模组设置 → 多模组兼容修复补丁」里有一组开关（默认全开），
   覆盖 **dll 侧的全部程序化安装动作** —— 也就是上面《修复速览》里由程序做的那几条，
@@ -70,7 +76,7 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
   （`SteamWorkshopHookFix`，改 `SendSteamDetailsQuery` 与 `ModMetaData.GetWorkshopItemHook`）。
   个别条占 2 个开关（「乐器分组」「telanda 争用」各拆成两条）。
   ★ 这里**不写死开关总数**：它随版本增减，写死必然失同步，请以设置界面实际显示为准。
-  ⚠ 上面《修复速览》里有 9 条**不在**这个界面上：8 条是 `Patches\` 下的 XML 补丁
+  ⚠ 上面《修复速览》里有 15 条**不在**这个界面上：14 条分布在 `Patches\` 下的 10 个 XML 文件里
   （删掉对应文件即可关掉，见上一条）、1 条是类型补齐（【1】，随 dll 一起生效）。
   顶部三个批量按钮：全部开启（默认）/ 全部关闭 / 只留「崩溃与卡死」
   （最后一个**不动**「行为与设置」两项，那是玩家偏好而非故障修复）。
@@ -120,7 +126,7 @@ AI 协作　　　代码由 AI 助手「DeepSeek娘·汐蓝」辅助编写，作
     <li>ElToro.Anims</li>
     <li>TOT.CeleTech.MKIII</li>
     <li>OskarPotocki.VFE.Empire</li>
-    <!-- VFE 核心（Vanilla Expanded Framework 的本体 Def 都在这里）。
+    <!-- VFE 家具本体（Vanilla Furniture Expanded 的本体 Def 都在这里）。
          我们的 Patches/VFEPianoFirepitRestore.xml 给 VFECore 的
          Joy_Piano / Play_Piano 等 Def 补做被清掉的效果。
 

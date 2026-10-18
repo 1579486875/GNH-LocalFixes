@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+
+  <!--
+    【【31】米莉拉领航员制服的 layers / comps 被空元素覆盖 —— 补回】
+
+    ── 修的是什么问题 ──
+
+    Milira Faction: Milira Imperium（Ariandel.MiliraImperium，工坊 3588393755）
+    的「米莉拉阿斯忒瑞亚制服」Milira_NavigatorUniform，把父类给的
+    apparel/layers 与 comps 覆盖成了空列表，后果有两个：
+
+      ① apparel.layers 为空
+         → ApparelProperties.LastLayer 取 layers[layers.Count - 1] 时下标越界，
+           走 Log.ErrorOnce 分支，日志里刷
+             Failed to get last layer on apparel item (see your config errors)
+         并让 Character Editor 的「允许染色」这一步失败；
+      ② comps 为空
+         → 这件制服丢掉了父类的 AncotLibrary.CompProperties_AvoidAllyDamage
+           （避免友伤），也就是该功能对这件衣服直接不存在。
+
+    ── 为什么会这样（机制比「空元素覆盖」更细，别记错） ──
+
+    RimWorld 的 XML 继承走 Universe.XmlInheritance 的
+    RecursiveNodeCopyOverwriteElements(child, current)：
+    child 是子类节点、current 是已经克隆好的父节点。
+
+    它遍历 child 的每一个子项，先记两件事：
+      · 有没有 Element 子节点（flag）
+      · 有没有 Text 子节点（xmlNode2）
+
+    然后：
+
+      if (xmlNode2 != null)          ← 有文本节点
+      {
+          清空 current 的全部子节点；把这段文本塞进去；return;
+      }
+      if (!flag)                     ← 没有 Element
+      {
+          if (current 里有 Element) return;   ← 父类的原样保留
+          否则清空；return;
+      }
+
+    **关键就在这里**：写成一行「<layers></layers>」是**没有文本节点**的，
+    继承时父类的 Shell 会原样保留；但这个模组写的是
+
+        <layers>
+        </layers>
+
+    —— 中间有换行和缩进，那是**一个 Text 节点**（内容是空白）。
+    于是走进第一个分支：父类的 <li>Shell</li> 被清掉，只剩一段空白文本，
+    layers 就成了空列表。<comps> 同理，父类的 AvoidAllyDamage 被清掉。
+
+    换句话说：**不是「空元素一律覆盖」，而是「含空白文本的空元素」才会覆盖。**
+    这条区别很容易记反 —— 记反了就会以为「紧凑写法是安全的」，
+    而去作者那边找个不存在的错。
+
+    同一文件里紧挨着的 Milira_CombatantSuit 写了
+        <layers Inherit="False"><li>OnSkin</li></layers>
+    —— 作者知道父类给的值不对、在那里手写了正确的值，唯独这件忘了写。
+
+    ── 补丁在哪一步生效（这条决定用 Replace 还是 Remove） ──
+
+    反编译 Verse.LoadedModManager.LoadAllActiveMods 可证，加载顺序是：
+
+        CombineIntoUnifiedXML()   ← 所有已启用模组的 XML 合并成一份
+        ErrorCheckPatches()
+        ApplyPatches()            ← 本补丁在这里执行
+        ParseAndProcessXML()      ← XmlInheritance.Resolve() 在这里才跑
+
+    也就是说：**补丁执行时继承还没发生**，我们动的是合并后的原始 XML 树。
+    因此既可以「把值写死」，也可以「删掉空元素让它去继承父类」。
+
+    ── 为什么 layers 用 Replace、comps 用 Remove ──
+
+    · layers：父类 MI_Milira_OnSkinBase_Combat 给的是 <li>Shell</li>，
+      但这件制服属于 OnSkin 类（父类名字就叫 OnSkinBase），而且
+         1.6\Defs\PawnKindDef\PawnKinds_MiliraImperiumOC.xml
+      里 Milera_Luselyte_OC 明确要求
+         <requiredTag>Milira_NavigatorUniform</requiredTag>
+         <apparelLayer>OnSkin</apparelLayer>
+      假如只是删掉空 layers，继承会得到 Shell —— 红字没了，但那件制服
+      依然配不到这个 PawnKind（穿在错误的层上）。所以这里直接写 OnSkin。
+
+    · comps：父类链上可能不止一个 comp，硬写一个会把别的覆盖掉。
+      直接删掉这个空 <comps>，继承阶段会把父类链的 comps 完整拿回来。
+
+    ── 什么时候自动失效 ──
+
+    两条 xpath 都带 [not(li)]：
+      · 作者给 layers 填上内容后 → 第 ① 条匹配 0 个节点，不动作；
+      · 作者给 comps 填上内容后   → 第 ② 条匹配 0 个节点，不动作。
+    success=Always 保证模组没装、或作者改了结构时安静跳过，
+    不制造新红字（这与本包其余补丁的处理方式一致）。
+
+    ── 副作用 ──
+
+    无。只是把作者本意的值补回去，不改任何数值、不改层与其他装备的搭配关系。
+  -->
+
+  <Operation Class="PatchOperationReplace">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[defName="Milira_NavigatorUniform"]/apparel/layers[not(li)]</xpath>
+    <value>
+      <layers>
+        <li>OnSkin</li>
+      </layers>
+    </value>
+  </Operation>
+
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[defName="Milira_NavigatorUniform"]/comps[not(li)]</xpath>
+  </Operation>
+
+</Patch>

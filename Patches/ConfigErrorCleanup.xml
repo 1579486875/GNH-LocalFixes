@@ -151,4 +151,192 @@
     </value>
   </Operation>
 
+  <!-- ================================================================
+       D. LT 缇瓦莱特贞操科技 —— 两件装备漏写耐久与可燃字段（16 条/局）
+
+          现象（每个开局各 4 条 × 2 件）：
+            Config error in TwilightChastityTechnology_TTChastityBelt:
+              has >0 DeteriorationRate but can't deteriorate.
+            Config error in TwilightChastityTechnology_TTChastityBelt:
+              flammable but has no hitpoints (will burn indefinitely)
+
+          反编译 Verse.ThingDef.ConfigErrors 的两条判据（原文）：
+            if (this.GetStatValueAbstract(StatDefOf.DeteriorationRate) > 1E-05f
+                && !CanEverDeteriorate && !destroyOnDrop)
+            if (BaseFlammability != 0f && !useHitPoints
+                && category != ThingCategory.Pawn && !destroyOnDrop)
+
+          这两件装备自己写了 <useHitPoints>false</useHitPoints> 与
+          <destroyable>false</destroyable>，于是一定「永不损坏」；
+          但它们既没写 statBases/DeteriorationRate（取 StatDef 的默认值 1.0），
+          也没写 flammable（取默认 0.7）—— 于是两条判据同时成立。
+
+          修法：把 DeteriorationRate 补成 0、把 statBases/Flammability 改成 0。
+          为什么不改 useHitPoints：那会让装备开始掉耐久，是改玩法；
+          补一个「它本来就不该有的值」才是修配置。
+
+          ⚠⚠ 血泪教训：**不能写 <flammable>false</flammable>**。
+            rjw.bondage_gear_def 这个自定义类**没有 flammable 字段**
+            （它有 statBases/Flammability，但没有顶层 flammable），
+            第一版这么写，实机启动立刻报：
+              XML error: <flammable>false</flammable> doesn't correspond
+              to any field in type bondage_gear_def
+            正确做法是改 statBases 里那个 Flammability 的数值 ——
+            BaseFlammability 读的正是 GetStatValueAbstract(StatDefOf.Flammability)。
+
+          ⚠ 这里的 Def 类型是 rjw.bondage_gear_def（RJW 的自定义类），
+            不是 ThingDef，所以 xpath 前缀写它，不要写成 ThingDef。
+
+          自动失效：作者补上 DeteriorationRate 后第 1 条匹配 0 个节点；
+            作者把 Flammability 改成别的值后第 2 条的 [text()="1.0"] 不再命中。
+       ================================================================ -->
+
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/rjw.bondage_gear_def[defName="TwilightChastityTechnology_TTChastityBelt"]/statBases[not(DeteriorationRate)]</xpath>
+    <value>
+      <DeteriorationRate>0</DeteriorationRate>
+    </value>
+  </Operation>
+
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/rjw.bondage_gear_def[defName="TwilightChastityTechnology_TTChastityBelt"]/statBases[not(Flammability)]</xpath>
+    <value>
+      <Flammability>0</Flammability>
+    </value>
+  </Operation>
+
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/rjw.bondage_gear_def[defName="TwilightChastityTechnology_TTChastityBra"]/statBases[not(DeteriorationRate)]</xpath>
+    <value>
+      <DeteriorationRate>0</DeteriorationRate>
+    </value>
+  </Operation>
+
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/rjw.bondage_gear_def[defName="TwilightChastityTechnology_TTChastityBra"]/statBases[not(Flammability)]</xpath>
+    <value>
+      <Flammability>0</Flammability>
+    </value>
+  </Operation>
+
+  <!-- ================================================================
+       E. 两个基因分类的 displayPriorityInXenotype 都是 999（6 条/局）
+
+          现象：Config error in RS_DarkArchite / Lolium:
+                Multiple gene categories share the same
+                displayPriorityInXenotype. This can cause display order issues.
+
+          全库扫下来，1.6 段里只有这两个 GeneCategoryDef 用了 999
+          （RS_DarkArchite 来自工坊 3236303965 的 Anomaly 分层目录，
+           Lolium 来自 loliumxpe-master）。撞号只影响基因界面的排序稳定性。
+
+          修法：把 RS_DarkArchite 从 999 改成 998 —— 只是让排序确定下来，
+          不改任何基因本身的效果。为什么不改 Lolium：那个模组更小、
+          改动面也更小；两个都改反而多一处失同步风险。
+
+          自动失效：作者自己改掉 999 之后，[text()="999"] 守卫匹配 0 个节点。
+       ================================================================ -->
+
+  <Operation Class="PatchOperationReplace">
+    <success>Always</success>
+    <xpath>Defs/GeneCategoryDef[defName="RS_DarkArchite"]/displayPriorityInXenotype[text()="999"]</xpath>
+    <value>
+      <displayPriorityInXenotype>998</displayPriorityInXenotype>
+    </value>
+  </Operation>
+
+  <!-- ================================================================
+       F. OA 的会计记录写了不存在的字段（3 条/局）
+
+          现象：XML error: <destroyOnHackComplete>true</destroyOnHackComplete>
+                doesn't correspond to any field in type
+                CompProperties_Hackable.
+                Context: <li Class="OberoniaAurea.CompProperties_Hackable">
+                           <compClass>OberoniaAurea.CompSDAccountingRecord</compClass>
+                           <maxHackPoint>…</maxHackPoint>
+                           <destroyOnHackComplete>true</destroyOnHackComplete>
+                         </li>
+
+          出处：[OA]Ratkin Faction 的 Odyssey 兼容目录。
+                宿主 defName = OARK_SDAccountingRecord，
+                compClass = OberoniaAurea.CompSDAccountingRecord。
+
+          ⚠ 这里有个坑：**两个版本目录里的字段名拼写不一样**
+              Mods\Odyssey\1.6\…\Odyssey_Items.xml  ->  <destoryOnHackComplete>   （destory，拼错）
+              Mods\Odyssey\1.7\…\Odyssey_Items.xml  ->  <destroyOnHackComplete>   （destroy，拼对）
+            而本机日志里报的是 **destroyOnHackComplete** 那一条。
+            为避免「到底加载了哪一份」这种不确定性，下面**两条都删**：
+            两种拼写在 CompProperties_Hackable 里都不存在，删哪个都是对的。
+
+          反编译 CompProperties_Hackable 可证：该类没有这两个字段中的任何一个，
+          XML 反序列化时被静默忽略。删掉 = 行为与原状完全一致，只是不再报 XML error。
+
+          自动失效：作者删掉或改正该字段后，对应 xpath 匹配 0 个节点。
+       ================================================================ -->
+
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[defName="OARK_SDAccountingRecord"]/comps/li[@Class="OberoniaAurea.CompProperties_Hackable"]/destroyOnHackComplete</xpath>
+  </Operation>
+
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[defName="OARK_SDAccountingRecord"]/comps/li[@Class="OberoniaAurea.CompProperties_Hackable"]/destoryOnHackComplete</xpath>
+  </Operation>
+
+  <!-- ================================================================
+       G. 三条指向「本机不存在的 def」的交叉引用（各 3 条/局）
+
+          三条独立的小修复，成因都是「引用方还在、被引用的 def 已经不在」：
+
+          G1. Could not resolve cross-reference to Verse.KeyBindingDef
+              named RI_ToggleProducerLoading_Living
+              · 引用方：工坊 3655458570 的 RI_KeyBindings.xml，
+                写在 ignoreConflictsWith 里，带 MayRequire="RI.RimImmortal.Living"
+              · 为什么 MayRequire 没挡住：那个模组确实装着、也启用了，
+                但 KeyBindingDef 本身只存在于 3326145525 的 **1.7** 目录
+                （1.6 下不加载）→ 守卫通过、def 却不存在。
+              · 删掉这一条只影响「两个 RI 包同时装时的热键冲突豁免」，
+                1.6 下本来就没有那个键位，删了等于恢复原状。
+
+          G2. Could not resolve cross-reference to Verse.ThingDef
+              named SR_CarrotArmorH (wanter=GoodsList)
+              · 引用方：工坊 3759653504 的 GoodsDef_Patch.xml，
+                GoodsDef = Goods_SR_Apparel 的 GoodsList（商店货架清单）
+              · 全库 1.6 段里搜不到这个 ThingDef，提供它的模组已不在。
+              · 删掉那一项 = 那个货架少一件商品（本来也买不到）。
+
+          G3. Could not resolve cross-reference: No Verse.ThingDef named
+              WolfeinExecutiveSteakLunch found to give to
+              SimManagementLib.SimDef.CollectibleExchangeItemEntry
+              · 引用方：工坊 3737464034 的 CollectibleExchangeLists_WF.xml，
+                列表 RSMF_food_WFC 的 items 里有一条 <thingDef>
+              · 提供它的 WolfeinExpand.BlackScience 未启用；
+                GoodsList 那处有 MayRequire 挡着，但 items 这处**没有**。
+              · 删掉那一整条 <li>（含 id / thingDef / 价格等字段）。
+
+          三处的共同判据：这些 def 在本机 1.6 加载集里确实不存在，
+          所以「删引用」与「原本就解析失败、置空」对游戏行为等价，
+          只是不再刷红字。
+       ================================================================ -->
+
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/KeyBindingDef[defName="RI_ToggleProducerLoading"]/ignoreConflictsWith/li[text()="RI_ToggleProducerLoading_Living"]</xpath>
+  </Operation>
+
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/SimManagementLib.SimDef.GoodsDef[defName="Goods_SR_Apparel"]/GoodsList/li[text()="SR_CarrotArmorH"]</xpath>
+  </Operation>
+
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/SimManagementLib.SimDef.CollectibleExchangeListDef[defName="RSMF_food_WFC"]/items/li[thingDef="WolfeinExecutiveSteakLunch"]</xpath>
+  </Operation>
+
 </Patch>

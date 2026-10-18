@@ -2,7 +2,7 @@
 
 > **多项针对性修复 —— 每一项都对应一次真实故障，每一项都独立生效。**
 
-> **当前版本：1.4.8** · 共 30 项修复。其中代码侧有 **24 个开关、覆盖 21 项**；另 8 项是纯 XML 补丁、1 项是类型补齐，都不在设置界面上。完整版本变迁见《技术说明.md》。
+> **当前版本：1.4.9** · 共 36 项修复。其中代码侧有 **24 个开关、覆盖 21 项**；另 14 项是纯 XML 补丁、1 项是类型补齐，都不在设置界面上。完整版本变迁见《技术说明.md》。
 
 | 项目 | 说明 |
 |---|---|
@@ -67,7 +67,7 @@ Mods\
     ├── Assemblies\
     │   └── GNH.LocalFixes.dll
     └── Patches\
-        └── （8 个 XML 补丁）
+        └── （10 个 XML 补丁）
 ```
 
 **第 3 步**：启动游戏 → 主菜单点「模组」→ 找到「多模组兼容修复补丁」→ 勾选启用。
@@ -175,7 +175,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 | 位置 | 内容 | 删掉的后果 |
 |---|---|---|
-| `Patches\` | 8 个 XML 补丁（只改 Def 数据） | 对应的 8 个问题不再修 |
+| `Patches\` | 10 个 XML 补丁（只改 Def 数据） | 对应的 10 个问题不再修 |
 | `Assemblies\` | 一个 dll（代码级修复） | 其余修复全部失效 |
 
 删掉不想要的那部分即可，剩下部分照常工作。
@@ -306,7 +306,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 |---|---|---|---|
 | 1 | ElToro 人兽杂交「观看」任务 | 任务类缺失，JobDef 加载失败 | 照同类任务补齐 |
 | 2 | CeleTech 智能切换武器 | 原版射程计算不判空，每 15 tick 崩一次 | 加空值守卫 |
-| 3 | VFE Empire 爵位层级 | 另一个模组把爵位扩展整片清空，16 个爵位的层级人物退化成同一级 | 按「实际生效的 def」逐条补回 |
+| 3 | VFE Empire 爵位层级 | 另一个模组把爵位扩展整片清空，16 个爵位的层级人物退化成同一级 | 其中 15 个（VFE 9 + 原版 6）按「实际生效的 def」精确补回，第 16 个留作兜底 |
 | 4 | Vehicle Framework 开发者面板 | 拿「显示名+defName」整串去查 Def，成片红字 | 先解析出纯 defName 再查 |
 | 5 | VFE Empire 乐器空间 | `placeWorkers` 为 null 时直接 Contains，静态构造崩 | 只替换那句判断 |
 | 6 | 打开「模组配置」页即崩溃 | CrossPromotion 调了 Steam 已废弃接口 | 把那个前缀从补丁链上摘掉 |
@@ -334,6 +334,12 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 28 | RJW PE 的残留 def 报错 | SoundDef_Replacement.xml 用的是已被作者改名的旧类型 `rjwpe.SoundReplacementDef`（2025-09-04 起改叫 `rjwpe.VoiceReplacementDef`，新文件已完整实现该功能），启动时必报「Type ... is not a Def type」 | 摘掉那批从来没生效过的定义；判据是「类型现在是否存在」，作者加回来就自动失效 |
 | 29 | RI-Furniture 皇权自检刷屏 | 每次启动刷 54 条「皇权房间要求补丁未生效」—— disroom.mashiro 把爵位的房间要求列表整片清空，而那是玩家故意启用的效果 | 只静音它这一路的自检结论，该模组其它日志照常输出 |
 | 30 | 「乱伦许可」删掉了某条戒律的 `issue` 节点 | 那条 `PreceptDef` 的 `preceptClass` 是空的，实例化成基类 `Precept`；基类 `DrawIcon` 直接读 `def.issue.Icon`，于是打开文化界面一次刷 350 条红字，本机 10 个文化受累 | 用 `PatchOperationConditional` 幂等地把 `issue` 补回（只补这一个字段，不复活被一并删掉的 `comps`） |
+| 31 | 米莉拉领航员制服丢了 layers 与 comps | `Milira_NavigatorUniform` 把父类的 `apparel/layers` 与 `comps` 写成了空元素 —— XML 继承里这等于「覆盖成空」而不是「不覆盖」：layers 为空让 `ApparelProperties.LastLayer` 取末项时越界，每次染色刷「Failed to get last layer」；comps 为空则让这件制服丢掉「避免友伤」（`AncotLibrary.CompProperties_AvoidAllyDamage`） | 把 layers 补成 `OnSkin`（与 PawnKind 的 `apparelLayer` 要求一致；父类给的 `Shell` 本身是笔误），把空 comps 删掉、让继承阶段把父类链的完整列表拿回来 |
+| 32 | HediffDef 被当成 DamageDef 引用 | 「Fortification Industrial - Citadel」在 `damageMultipliers` 里写了 `<damageDef>PurificationBurn</damageDef>`，而它在 Monolyn Race 里是 **HediffDef** —— 每次启动报 `No Verse.DamageDef named PurificationBurn` | 摘掉那条从来没生效过的倍率条目（行为与原状完全一致）；不改写成别的 DamageDef，因为那会把倍率错套到其它伤害上、属于改平衡 |
+| 33 | 贞操带/胸罩漏写耐久与可燃字段 | 装备写了 `useHitPoints=false`，却没写 `DeteriorationRate`（默认 1.0）与 `flammable`（默认 0.7），开发者模式下每局刷「has >0 DeteriorationRate but can't deteriorate」「flammable but has no hitpoints」 | 补 `DeteriorationRate=0` + `flammable=false`；不动 `useHitPoints`（那会改玩法） |
+| 34 | 两个基因分类的排序优先级撞号 | `RS_DarkArchite` 与 `Lolium` 的 `displayPriorityInXenotype` 都是 999，报「Multiple gene categories share the same displayPriorityInXenotype」 | 把 `RS_DarkArchite` 改成 998，不改基因效果 |
+| 35 | OA 会计记录写了不存在的字段 | `CompProperties_Hackable` 里没有 `destroyOnHackComplete`，反序列化时被忽略并报 XML error | 删掉该字段 |
+| 36 | 三条指向不存在 def 的交叉引用 | `RI_ToggleProducerLoading_Living` 只在 1.7 目录、`SR_CarrotArmorH` 提供方已不在、`WolfeinExecutiveSteakLunch` 的模组未启用，每局各刷 3 条 | 各自删掉引用项（本来就解析失败，行为等价） |
 
 ---
 
@@ -537,8 +543,8 @@ IL_0015: ret
 
 ## 修复清单
 
-三十项互相独立，均为最小侵入。其中**代码侧那 24 个开关**可以在设置界面里逐项开关
-（`Patches\` 下 8 条 XML 补丁与 1 处类型补齐【1】不在界面上 —— 见上文「24 个设置项」与「修复速览」）。
+三十六项互相独立，均为最小侵入。其中**代码侧那 24 个开关**可以在设置界面里逐项开关
+（`Patches\` 下 10 条 XML 补丁与 1 处类型补齐【1】不在界面上 —— 见上文「24 个设置项」与「修复速览」）。
 
 > 最新的版本变化见《技术说明.md》开头的版本章节；下面这段起是**按版本倒序**保留的历史记录。
 
@@ -816,7 +822,7 @@ IL_0015: ret
 >   整体替换成 `<modExtensions Inherit="False" />` —— 而 `Inherit="False"` 的语义是
 >   「清空继承来的内容、只留自己写的」，写空元素就等于把 VFE 的扩展整片抹掉。
 >   净效果：**帝国所有爵位的层级人物退化成同一个等级**（不崩，但功能倒退）。
->   新版按「实际生效的 def」定位，把 16 个爵位的 `kindForHierarchy` / `iconPath` 逐条补回，
+>   新版按「实际生效的 def」定位，把 15 个爵位的 `kindForHierarchy` / `iconPath` 逐条补回（第 16 个永远不命中，属防御性保留），
 >   并用 .NET 真 XPath 引擎跑通了「VFE → disroom → 本补丁」的完整流水线模拟：**期望值不符 = 0**。
 > 
 > · **新增第 19 项**（雪兔纹身图标）—— 这一条其实早就修好了，但一直没写进文档，本次补上。
