@@ -86,6 +86,14 @@
        B. Amor Tentaculum（RJW-玩法-爱神触手）
           文件：1.6\Defs\Things\Resin.xml
 
+          ⚠ 2026-10-18 全盘核对（Mods\ 310 个 + 工坊 1082 个，按 1.6 版本段过滤）：
+            本机搜不到 <defName>softresin</defName>，也就是这个模组并未安装。
+            下面这一节因此是**待命修复** —— 装了它才会命中；没装时 success=Always
+            让它安静跳过，不会产生红字。
+            注意：本机**别处**仍在引用这个 defName，日志里会出现
+            `Could not load reference to Verse.ThingDef named softresin` ——
+            那是引用方的责任，与本补丁无关（我们只补字段，不造 def）。
+
           defName = softresin 的 ThingDef 写的是
               <ThingDef ParentName="ResourceVerbBase">
           —— ResourceVerbBase 是原版 Core 的基类（只在 Core 里定义），

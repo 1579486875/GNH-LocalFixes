@@ -194,6 +194,13 @@ AI 协作　　　代码由 AI 助手「DeepSeek娘·汐蓝」辅助编写，作
 
          所以本补丁包的 VFEE_RoyalTitleExtFix.xml 必须排在 disroom.mashiro 之后执行，
          才能把扩展补回来；否则我们加的扩展随后被清空，日志里 NRE 照旧，看起来完全无效。
+
+         ⚠ 2026-10-18 复审补充：「排在它之后」靠的是 ModsConfig.xml 里的**列表位次**，
+            不是 About.xml 的 loadAfter 声明。反编译证实：Verse.ModMetaData.LoadAfter
+            唯一的读取点是 ModsConfig.TrySortMods()（手动「排序」按钮 / 外部排序器），
+            而 LoadedModManager.ApplyPatches 遍历的是 runningMods —— 顺序就是
+            ModsConfig.xml 的 activeMods。loadAfter 的作用只是**告诉排序器该往后放**。
+            换机器、或手动改过顺序之后，要确认本模组确实排在 disroom.mashiro 之后。
           ⚠ 2026-10-13 复审纠正：上面这段**不要**外推到 Patches/VFEPianoFirepitRestore.xml。
             那个补丁补的是「VFE 自己的 PatchOperationFindMod 被中文显示名挡掉」而没生效的
             几条家具效果（详见该文件开头的说明），与 disroom 无关 ——

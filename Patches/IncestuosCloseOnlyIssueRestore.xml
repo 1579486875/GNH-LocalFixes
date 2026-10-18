@@ -42,7 +42,10 @@
 		  · 目标 Def 不存在（例如「RJW-文化-淫秽文化」被禁用）时 xpath 匹配不到，
 		    两个分支都不执行，静默跳过，不报错；
 		  · 本补丁必须排在 worldie.allowconsensualincest 之后应用，否则我们补完
-		    又被它删掉、等于没做。该约束已在 About.xml 的 loadAfter 里声明。
+		    又被它删掉、等于没做。**真正的保障是 ModsConfig.xml 里的列表位次** ——
+		    反编译证实 loadAfter 只被 ModsConfig.TrySortMods() 消费，
+		    ApplyPatches 按 runningMods 顺序执行；About.xml 的 loadAfter 只是
+		    告诉排序器该把它往后放，换机器后要确认实际位次。
 	-->
 
 	<Operation Class="PatchOperationConditional">
