@@ -70,7 +70,7 @@
   <GNH_LocalFixes_Toggle_xmlExtensionsFindMod>XmlExtensions 的 FindMod 判定失效</GNH_LocalFixes_Toggle_xmlExtensionsFindMod>
   <GNH_LocalFixes_Toggle_xmlExtensionsFindMod_Desc>同樣是「按名字判定 DLC」的毛病，但走的是 XmlExtensions 自己那條程式碼路徑（與本補丁包另一處修復互不重疊，兩者都要開才完整）。</GNH_LocalFixes_Toggle_xmlExtensionsFindMod_Desc>
   <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>RaceGeneDef 型別名解析到正確的一份</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>
-  <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>本補丁包為了避免刷紅字自帶了一份同名相容定義，當 telanda 的動物遺傳模組在場時，同一個型別名會同時存在於兩個組件。本項保證解析到 telanda 的那一份。</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>
+  <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>當 telanda 的動物遺傳模組與 ElToro Patches 同時在場時，同一個型別名會同時存在於兩個組件。本項保證解析到 telanda 的那一份；telanda 不在場時什麼都不做。</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>
   <GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>ElToro Patches 與 telanda 搶 defName</GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>
   <GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes_Desc>兩個模組各自定義了一整套 RaceGeneDef，而且 25 個完全重名、互相覆蓋。本項讓它們不再互搶；telanda 缺席時還會順手把無人消費的那批資料表安靜地摘掉。</GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes_Desc>
   <GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>非樂器不許進「樂器」分組（源頭攔截）</GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>
@@ -78,5 +78,5 @@
   <GNH_LocalFixes_Toggle_keepLeaderTitle>保護自訂的領袖頭銜</GNH_LocalFixes_Toggle_keepLeaderTitle>
   <GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>開啟時：你已經定好的領袖頭銜（主席、教宗……這類）不會再被遊戲重新隨機，改模因、點「隨機符號」都不會動它。關閉後：完全恢復原版行為。想給某個文化換頭銜，把頭銜清空（或臨時關掉本開關）再點一次「隨機符號」即可。</GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>
   <GNH_LocalFixes_Toggle_cumpilationSettingsRestore>抵消「月經體液」強制關閉 Cumpilation 設定</GNH_LocalFixes_Toggle_cumpilationSettingsRestore>
-  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>「RJW Menstruation Fluids」每次啟動都會把 Cumpilation 的 9 個開關無條件寫成關閉，你在設定介面裡開啟也沒用（下次啟動又被按回去，而且它只改記憶體、從不寫入磁碟）。本項在它之後按**你自己存過的值**恢復，不寫死任何開關。</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
+  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>「RJW Menstruation Fluids」每次啟動都會把 Cumpilation 的 9 個開關無條件寫成關閉，你在設定介面裡開啟也沒用（下次啟動又被按回去，而且它只改記憶體、從不寫入磁碟）。本項在它之後按你自己存過的值恢復，不寫死任何開關。</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
 </LanguageData>

@@ -231,8 +231,8 @@ namespace GNH.LocalFixes
 
             new Entry("patchGenTypesPreferTelanda", GroupCompat,
                 "RaceGeneDef 类型名解析到正确的一份",
-                "本补丁包为了避免刷红字自带了一份同名兼容定义，当 telanda 的动物遗传模组在场时，"
-                + "同一个类型名会同时存在于两个程序集。本项保证解析到 telanda 的那一份。", "GNH.LocalFixes.Patch_GenTypes_PreferTelanda"),
+                "当 telanda 的动物遗传模组与 ElToro Patches 同时在场时，同一个类型名会同时存在于两个程序集。"
+                + "本项保证解析到 telanda 的那一份；telanda 不在场时什么都不做。", "GNH.LocalFixes.Patch_GenTypes_PreferTelanda"),
 
             new Entry("patchLoadModXMLFilterTelandaGenes", GroupCompat,
                 "ElToro Patches 与 telanda 抢 defName",
@@ -255,7 +255,7 @@ namespace GNH.LocalFixes
                 "抵消「月经体液」强制关闭 Cumpilation 设置",
                 "「RJW Menstruation Fluids」每次启动都会把 Cumpilation 的 9 个开关无条件写成关闭，"
                 + "你在设置界面里打开也没用（下次启动又被按回去，而且它只改内存、从不写盘）。"
-                + "本项在它之后按**你自己存过的值**恢复，不写死任何开关。"),
+                + "本项在它之后按你自己存过的值恢复，不写死任何开关。"),
         };
 
         // ======================================================================
