@@ -73,7 +73,7 @@ namespace GNH.LocalFixes
     // 现已改成逐类安装，理由写在下文 InstallAllPatchClasses 的注释里。
     // 一句话：PatchAll 遇到任何一个补丁类出错就整体中止；更麻烦的是它内部那句
     // GetTypes() 一旦因为「某个模组没装、程序集里有类型解析不了」而失败，
-    // 整个补丁包会一个都装不上 —— 那正是「模组兼容修复补丁反被别的模组拖死」的情形。
+    // 整个补丁包会一个都装不上 —— 那正是「多模组兼容修复补丁反被别的模组拖死」的情形。
     public class LocalFixesMod : Mod
     {
         public const string HarmonyId = "gnh.cn.cys.localfixes";
@@ -447,7 +447,7 @@ namespace GNH.LocalFixes
         //      这个类型就取不出来；失败的类型一多，GetTypes() 直接抛
         //      ReflectionTypeLoadException —— **整批类型都拿不到**，
         //      于是整个补丁包一个都装不上。
-        //      这正是「模组兼容修复补丁反而被某个没启用的模组拖死」的情形。
+        //      这正是「多模组兼容修复补丁反而被某个没启用的模组拖死」的情形。
         //
         //      ⚠ 2026-10-08 用离线宿主实测，纠正了这里原先的一处错误说法：
         //        旧注释写的是「卸载 RJW / ElToro 就会让 GetTypes() 失败」，**实测并不成立**。
@@ -832,7 +832,7 @@ namespace GNH.LocalFixes
             // ⚠ 中文名必须与 About\About.xml 的 <name> 保持一致。
             //   两者是分开的两处：游戏内【模组列表】读 About.xml 的 <name>，
             //   【模组设置】读这里的返回值。改名时两处都要改。
-            return Translated("GNH_LocalFixes_SettingsCategory", "模组兼容修复补丁");
+            return Translated("GNH_LocalFixes_SettingsCategory", "多模组兼容修复补丁");
         }
 
         public override void DoSettingsWindowContents(Rect inRect)

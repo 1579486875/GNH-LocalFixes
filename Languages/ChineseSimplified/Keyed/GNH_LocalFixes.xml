@@ -21,7 +21,7 @@
   <GNH_LocalFixes_Group_Compat>兼容与判定</GNH_LocalFixes_Group_Compat>
   <GNH_LocalFixes_Group_Behaviour>行为与设置</GNH_LocalFixes_Group_Behaviour>
 
-  <GNH_LocalFixes_SettingsCategory>模组兼容修复补丁</GNH_LocalFixes_SettingsCategory>
+  <GNH_LocalFixes_SettingsCategory>多模组兼容修复补丁</GNH_LocalFixes_SettingsCategory>
   <GNH_LocalFixes_SettingsUnavailable>设置读取失败。本补丁按内置默认值（全部开启）继续工作。</GNH_LocalFixes_SettingsUnavailable>
   <GNH_LocalFixes_EnableAll>全部开启（默认）</GNH_LocalFixes_EnableAll>
   <GNH_LocalFixes_DisableAll>全部关闭</GNH_LocalFixes_DisableAll>
