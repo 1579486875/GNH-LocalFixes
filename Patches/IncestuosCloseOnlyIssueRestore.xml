@@ -46,6 +46,10 @@
 	-->
 
 	<Operation Class="PatchOperationConditional">
+		<!-- 目标 def 不存在时（没装「RJW Sexperience Ideology」，而本补丁的目标 PreceptDef 正是它定义的）两个分支都匹配不到，
+		     该操作会返回 false；没有 success=Always 的话，PatchOperation.Complete() 就会打一条「Patch operation ... failed」红字。
+		     加了它才是真正的「安静跳过」—— 与 ConfigErrorCleanup.xml 里同一套做法。 -->
+		<success>Always</success>
 		<xpath>Defs/PreceptDef[defName="Incestuos_Disapproved_CloseOnly"]/issue</xpath>
 		<match Class="PatchOperationReplace">
 			<xpath>Defs/PreceptDef[defName="Incestuos_Disapproved_CloseOnly"]/issue</xpath>

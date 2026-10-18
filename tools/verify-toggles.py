@@ -55,11 +55,15 @@ print('声明了但没接线 : %s' % (missing_wire or '无'))
 print('接线了但没声明 : %s' % (extra_wire or '无'))
 print('重复 Id        : %s' % (dup or '无'))
 
+# 三份语言文件必须键集合一致 —— 2026-10-18 补繁中后把语言表抽成常量，
+# 免得以后再增语种时又漏改某一处循环（本文件历史上就有两处各自硬编码的列表）。
+LANGS = (('简中', 'ChineseSimplified'),
+         ('繁中', 'ChineseTraditional'),
+         ('英文', 'English'))
+
 bad = 0
-for lang, path in (('中文', os.path.join(REPO, 'Languages', 'ChineseSimplified', 'Keyed',
-                                        'GNH_LocalFixes.xml')),
-                   ('英文', os.path.join(REPO, 'Languages', 'English', 'Keyed',
-                                        'GNH_LocalFixes.xml'))):
+for lang, lang_dir in LANGS:
+    path = os.path.join(REPO, 'Languages', lang_dir, 'Keyed', 'GNH_LocalFixes.xml')
     keys = set(el.tag for el in ET.fromstring(open(path, 'rb').read()))
     miss_l = [i for i in ids if ('GNH_LocalFixes_Toggle_%s' % i) not in keys]
     miss_d = [i for i in ids if ('GNH_LocalFixes_Toggle_%s_Desc' % i) not in keys]
@@ -69,19 +73,20 @@ for lang, path in (('中文', os.path.join(REPO, 'Languages', 'ChineseSimplified
     bad += len(miss_l) + len(miss_d) + len(miss_g)
 
 code_ui = set(re.findall(r'Translated\("(GNH_LocalFixes_\w+)"', mod))
-zh_keys = set(el.tag for el in ET.fromstring(open(
-    os.path.join(REPO, 'Languages', 'ChineseSimplified', 'Keyed', 'GNH_LocalFixes.xml'),
-    'rb').read()))
-miss_ui = sorted(code_ui - zh_keys)
+miss_ui = []
+for lang, lang_dir in LANGS:
+    p_ui = os.path.join(REPO, 'Languages', lang_dir, 'Keyed', 'GNH_LocalFixes.xml')
+    ks = set(el.tag for el in ET.fromstring(open(p_ui, 'rb').read()))
+    lack = sorted(code_ui - ks)
+    if lack:
+        miss_ui.append('%s:%s' % (lang, lack))
 print('代码引用的界面键 %d 个，语言文件缺 %s' % (len(code_ui), miss_ui or '无'))
 print('分组标题键 %d 个：%s' % (len(group_keys), group_keys or '（无）'))
 
 # 值里混进键名（历史脚本替换留下的残渣）—— 玩家能在界面上直接看到
 garbage = []
-for lang, path in (('中文', os.path.join(REPO, 'Languages', 'ChineseSimplified', 'Keyed',
-                                         'GNH_LocalFixes.xml')),
-                   ('英文', os.path.join(REPO, 'Languages', 'English', 'Keyed',
-                                         'GNH_LocalFixes.xml'))):
+for lang, lang_dir in LANGS:
+    path = os.path.join(REPO, 'Languages', lang_dir, 'Keyed', 'GNH_LocalFixes.xml')
     for el in ET.fromstring(open(path, 'rb').read()):
         if el.text and 'GNH_LocalFixes_' in el.text:
             garbage.append('%s:%s' % (lang, el.tag))
