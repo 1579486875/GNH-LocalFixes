@@ -4,7 +4,7 @@
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.4.6</modVersion>
+  <modVersion>1.4.7</modVersion>
   <supportedVersions>
     <li>1.6</li>
     <li>1.7</li>
@@ -54,6 +54,7 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 【27】「RJW 月经体液」（ELT）每次启动都把「Cumpilation」的 9 个开关强制关掉 —— 该模组的 Cumpilation_Integration.CumpilationSettingsOverride 在 StaticConstructorOnStartup 里无条件把它们写成 false；而 Cumpilation 的设置字段全是 static、只在更早的 Mod 构造函数里读一次盘，之后再没有任何读盘来纠正它（玩家在设置界面里打开也没用，磁盘文件上看着还是开着的） —— 挂 LongEventHandler.ExecuteToExecuteWhenFinished 的收尾器，在所有这类延迟动作执行完之后让 Cumpilation 自己重新读一次盘；恢复的是你自己存过的值，本补丁不写死任何开关。没装这两个模组时什么都不做
 【28】RJW PE 的 SoundDef_Replacement.xml 每次启动必报「Type rjwpe.SoundReplacementDef is not a Def type」 —— 作者在 2025-09-04 把这个类型改名为 rjwpe.VoiceReplacementDef 并另写了 ReplacementDef_Voice.xml 完整实现该功能，却把 8 月 12 日的旧文件忘在了原地（该模组全部 11 个程序集里都搜不到 SoundReplacementDef） —— 把那批从来没生效过的定义摘掉：行为与「跳过 + 报错」完全等价，只是不再刷红字；判据是「类型现在是否存在」，作者若把它加回来则自动失效、什么都不做
 【29】「边缘仙路-雕梁画栋」（RI-Furniture）每次启动刷 54 条「皇权房间要求补丁未生效」 —— 成因是 disroom.mashiro（模组名即「禁用所有房间要求」）用 PatchOperationReplace 把爵位的 throneRoomRequirements / bedroomRequirements 整片清空，而那是玩家故意启用的效果，RI 想往空列表里追加自家家具必然失败，属于预期中的设计冲突（调加载顺序也救不了：清空是不可逆的单向操作） —— 只静音它这一路的自检结论，该模组的其它日志一律照常输出；没装它时什么都不做
+【30】「乱伦许可」模组删掉了 Incestuos_Disapproved_CloseOnly 这个戒律的 issue 节点，而它自己的 preceptClass 也是空的 —— 于是实例化成基类 Precept，Precept.DrawIcon 去读 def.issue.Icon 时抛空引用，打开文化界面一次刷 350 条红字，本机 10 个文化受累 —— 把 issue 补回（只补这一个字段，不复活被一并删掉的 comps，保留作者「不让它生效」的本意）；用 PatchOperationConditional 做成幂等，那个模组哪天不删了也一样安全
 
 每一项的根因分析、反编译证据与验证方法，见仓库里的「技术说明.md」。
 
@@ -61,7 +62,7 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
 
 · 装进 Mods 目录、在游戏里启用即可，没有任何必填设置。
 · 建议排在模组列表靠下的位置（Harmony 之后，最好也在它要修的那些模组之后）。
-· 想只保留一部分：Patches 目录下是 7 个 XML 补丁，Assemblies 目录里是一个 dll。
+· 想只保留一部分：Patches 目录下是 8 个 XML 补丁，Assemblies 目录里是一个 dll。
   两者互不依赖 —— 删掉哪一部分，就只有那一部分对应的修复不再生效，其余照常。
 · 「选项 → 模组设置 → 模组兼容修复补丁」里有一组开关（默认全开），
   覆盖 **dll 侧的全部程序化安装动作** —— 也就是上面《修复速览》里由程序做的那几条，
@@ -69,7 +70,7 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
   （`SteamWorkshopHookFix`，改 `SendSteamDetailsQuery` 与 `ModMetaData.GetWorkshopItemHook`）。
   个别条占 2 个开关（「乐器分组」「telanda 争用」各拆成两条）。
   ★ 这里**不写死开关总数**：它随版本增减，写死必然失同步，请以设置界面实际显示为准。
-  ⚠ 上面《修复速览》里有 8 条**不在**这个界面上：7 条是 `Patches\` 下的 XML 补丁
+  ⚠ 上面《修复速览》里有 9 条**不在**这个界面上：8 条是 `Patches\` 下的 XML 补丁
   （删掉对应文件即可关掉，见上一条）、1 条是类型补齐（【1】，随 dll 一起生效）。
   顶部三个批量按钮：全部开启（默认）/ 全部关闭 / 只留「崩溃与卡死」
   （最后一个**不动**「行为与设置」两项，那是玩家偏好而非故障修复）。
@@ -200,6 +201,23 @@ AI 协作　　　代码由 AI 助手「DeepSeek娘·汐蓝」辅助编写，作
 
          （2026-10-05 查清。） -->
     <li>disroom.mashiro</li>
+
+    <!-- 乱伦许可（worldie.allowconsensualincest，本机位次 1111）：
+
+         它的 Compatibility\Sexperience_Ideology\Patches\IncestPreceptPatch.xml
+         用 PatchOperationRemove 删掉了
+             PreceptDef[defName="Incestuos_Disapproved_CloseOnly"]/issue
+         而那个 Def 的 <preceptClass> 为空（原定义在 RJW-文化-淫秽文化），
+         空 preceptClass 实例化成基类 RimWorld.Precept，基类
+             Precept.DrawIcon → GUI.DrawTexture(rect, def.issue.Icon)
+         issue 为 null 就在这一行抛 NullReferenceException。
+         后果是打开文化界面时含该戒律的文化全部刷红字（实测 350 次/会话），
+         本机 10 个 .rid 引用了它。
+
+         我们的 Patches/IncestuosCloseOnlyIssueRestore.xml 负责把 <issue> 补回，
+         属于「补丁打补丁」，**必须**排在它之后应用，否则补完又被删掉。
+         （2026-10-18 定位；与 disroom.mashiro 那条同属硬约束型 loadAfter。） -->
+    <li>worldie.allowconsensualincest</li>
   </loadAfter>
   <!--
     排序说明（2026-10-04 更正）：

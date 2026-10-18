@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+
+	<!--
+		◆ 修的是什么
+		  「乱伦许可」（worldie.allowconsensualincest，Mods\RJW-功能-中世纪风格乱伦许可）
+		  在 Compatibility\Sexperience_Ideology\Patches\IncestPreceptPatch.xml 里，为了
+		  「让它不再出现在 Incest 戒律界面」，用 PatchOperationRemove 把
+		  PreceptDef[defName="Incestuos_Disapproved_CloseOnly"] 的 <issue> 节点删掉了。
+
+		  但那个 PreceptDef 的 <preceptClass> 是空的（原定义在
+		  RJW-文化-淫秽文化\1.6\Defs\PreceptDefs\Precepts_Incest.xml）。
+		  空 preceptClass 会实例化成基类 RimWorld.Precept，而基类
+		  Precept.DrawIcon 的实现只有一行（反编译 Assembly-CSharp 证实）：
+
+		      GUI.DrawTexture(rect, def.issue.Icon);
+
+		  issue 被删掉后 def.issue 就是 null，这一行立刻抛 NullReferenceException。
+		  表现：打开文化界面时，每个含该戒律的文化都刷红字 ——
+		        “Exception filling window for RimWorld.MainTabWindow_Ideos”，
+		        并伴随 “GUI Error: You are pushing more GUIClips than you are popping”，
+		        那一格画不出来。同一条堆栈会被 VisualExceptions 记为同一个 Ref，
+		        所以日志里看起来像一条错误反复刷（实测单次会话 350 次）。
+
+		◆ 为什么这样修
+		  「乱伦许可」把 defaultSelectionWeight 设成 0，这只挡住「新生成」，
+		  挡不住已经写进文化模板（.rid）或存档里的条目。
+		  本机实测有 10 个 .rid 引用它：
+		    冰霜联合 / 利益之路 / 剑之行路 / 基督教 / 天空精灵传统文化 /
+		    天羽教会 / 明观道 / 米莉拉帝国正教 / 绮罗文化 / 螈萌 门派
+
+		  所以最小修法是把 <issue> 补回去：条目能正常画出来、不再崩；
+		  而作者原本的意图（不希望它被自动选中）由它自己设的
+		  defaultSelectionWeight=0 继续保证，我们不去动它。
+
+		  这里刻意只补 <issue>，不去恢复被一并删掉的 <comps>：
+		  恢复 comps 会把它变成「有实际效果」的戒律，那才是改动作者设计。
+
+		◆ 什么时候自动失效 / 跳过
+		  · PatchOperationConditional：<issue> 还在（例如「乱伦许可」没装，或它以后改了实现）
+		    就走 match 分支原样替换，不会重复插入第二个 <issue> 节点；
+		  · 目标 Def 不存在（例如「RJW-文化-淫秽文化」被禁用）时 xpath 匹配不到，
+		    两个分支都不执行，静默跳过，不报错；
+		  · 本补丁必须排在 worldie.allowconsensualincest 之后应用，否则我们补完
+		    又被它删掉、等于没做。该约束已在 About.xml 的 loadAfter 里声明。
+	-->
+
+	<Operation Class="PatchOperationConditional">
+		<xpath>Defs/PreceptDef[defName="Incestuos_Disapproved_CloseOnly"]/issue</xpath>
+		<match Class="PatchOperationReplace">
+			<xpath>Defs/PreceptDef[defName="Incestuos_Disapproved_CloseOnly"]/issue</xpath>
+			<value>
+				<issue>Incestuos</issue>
+			</value>
+		</match>
+		<nomatch Class="PatchOperationAdd">
+			<xpath>Defs/PreceptDef[defName="Incestuos_Disapproved_CloseOnly"]</xpath>
+			<value>
+				<issue>Incestuos</issue>
+			</value>
+		</nomatch>
+	</Operation>
+
+</Patch>
