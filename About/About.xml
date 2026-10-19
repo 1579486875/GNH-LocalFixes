@@ -13,71 +13,57 @@
 
 报给作者要等，自己又改不动。这个补丁把它们一条条揪出来修掉 —— 现在 35 条，条条独立。
 
-修复速览（格式：出的什么问题 —— 怎么修）
+修复速览
 
-【1】ElToro 人兽杂交「观看」任务 —— 任务类缺失导致 JobDef 加载失败 —— 照同类任务补齐（预防性：当前 1.6 版 ElToro 已经没有那个 JobDef，本类暂时没有对象；保留它是为了旧版本 / 旧存档，或者作者把 JobDef 加回来时，不会因为缺类型让整份程序集失效）
-【2】CeleTech 智能切换武器 —— 原版射程计算不判空，每 15 tick 崩一次 —— 加空值守卫
-【3】VFE Empire 爵位层级 —— 另一个模组把爵位扩展整片清空，16 个爵位在层级里全塌成同一档 —— 其中 15 个（VFE 9 + 原版 6）按「实际生效的 def」精确补回，第 16 个（Emperor）留作兜底
-【4】Vehicle Framework 开发者面板 —— 拿「显示名{defName}」整串去查 Def，成片红字 —— 先解析出纯 defName 再查
-【5】VFE Empire 乐器空间 —— placeWorkers 为 null 时直接 Contains，静态构造崩 —— 只替换那句判断。★ 它自带「自动让路」：先探测原版那句判断还崩不崩，不崩了就什么都不做（VFE Empire 修好即自动失效）；另有独立开关可手动关闭
-【6】打开「模组配置」页即崩溃 —— CrossPromotion 调了 Steam 已废弃接口 —— 让这处调用不再被挂上那个前缀
-【7】RJW 动物动画悬空引用 —— 模组删了 Rotti，动画定义里还列着 —— 摘掉那两处死条目
-【8】VFE 的钢琴 / 营火 / 石棺补丁整块没执行 —— 它自己的 PatchOperationFindMod 比的是显示名，中文下 Royalty 被译成「皇权」而匹配不上 —— 补做那几条
-【9】CCOE 月经结算空引用 —— 反射读错对象，抛 TargetException —— 挂收尾器，只在真抛时接管
-【10】原版植入体「0 权重」崩溃 —— 预算为 0 时抽到 null 再解引用 —— 前缀预判加收尾器兜底
-【11】非乐器混进「乐器」分组 —— 每帧强转失败，游戏掉到约 2fps —— 在登记进分组时就摘掉
-【12】中文下 Royalty 这类判定匹配不上 —— 官方 DLC 的显示名被翻译成「皇权」 —— 按 packageId 末段再判一次
-【13】天鹰溪谷联邦给炮塔塞了已删除的类型 —— 整个 Def 加载失败、炮塔消失 —— 移除该节点
-【14】XmlExtensions 的 FindMod 静默跳过 —— 与第 12 项同病，走的是另一条判定路径 —— 加前置检查
-【15】领袖头衔定好了自己变回去 —— GenerateLeaderTitle 不读旧值、直接覆盖 —— 已有值就整个跳过，不再覆盖
-【16】连续开新局会卡死在殖民者生成 —— NMM 的跨局残留记录撞号 —— 前缀删掉那条残留
-【17】Onahole mimic 生成器刷警告 —— 空矩形被 resolver 拒绝 —— 提前拦下，与原版等价
-【18】金鸢尾兰「某不知名的沙皇」变智人 —— 该模板缺 xenotypeSet —— 补一个固定的
-【19】雪兔纹身图标 —— iconPath 大小写与磁盘文件名不符，文化界面刷红字 —— 改回磁盘上真实的名字
-【20】Allies are Helpful 的空引用 —— 角色「当前没有工作」时那道守卫失效，随后直接读空对象 —— 把那几次读取改成 null 安全
-【21】RJW 基因扩展的调试刷屏 —— 每帧问一次的「怀孕了吗」里留了无节流调试输出，开发者模式下一局刷 3 万行 —— 只拦那一句，报错警告一条不少
-【22】近战动画的补丁整批没装上 —— 某个模组引用了不存在的程序集，「列类型清单」整体失败，把也在扫类型的模组一起打断 —— 把失败的那几个跳过，让清单还能用
-【23】三处「只有开发者模式才会报」的配置自检噪音 —— 大型量子温控设备挡不住子弹与视线（有实际玩法影响）、树脂被当成装备却没有攻击方式、汉化给交互标签加了方括号 —— 各自补上原版自带的豁免字段，不改变任何游戏行为
-【24】两个动物遗传模组抢同一批 defName —— 游戏遇到重名不是忽略、而是给后来的追加随机数字，于是每次启动那 25 个基因的名字都不一样、存档与引用全部失配 —— 按在场情况分两种处理：两个都在场就只剔除重名的 25 个（双方各自独有的定义一个不动）；只有「生物大师」在场时整批不加载（那批数据没有任何代码消费，硬让它们加载只会刷红字 —— v1.3.28 试过补一个同名类型，实测会把游戏卡住，已撤回）
-【25】雪兔系列的公共库在渲染时并发写坏集合 —— SRCELib 用两个全游戏共享的静态容器做缓存、却没有任何锁，而它被自己的渲染补丁每帧调用好几十次 —— 给那个方法套一把锁（进锁用前缀、出锁用收尾器，保证异常时也解锁）
-【26】Guards For Me 的行为树节点复制里有个转错类型的强制转换 —— 它的 DeepCopy 是从原版 JobGiver_Idle 复制来的，只改了变量名 obj、忘了改强转的目标类型，而它真正的基类 ThinkNode_JobGiver 与 JobGiver_Idle 是兄弟关系而非父子关系，于是每次加载都留下三条「解析引用失败」红字，并且抛异常的位置正在 ResolveSubnodes —— 那一步的职责是把 Subtree 引用的节点深拷贝进来，异常一抛整棵子树都没复制成，涅瓦莲与 PasserRace 的 AI 行为因此残缺 —— 用 Transpiler 只替换两条 IL 指令的目标类型（castclass 与 stfld），先整表扫描、两条都恰好命中一次才动手，作者哪天真修好了就自动什么都不做
-【27】「RJW 月经体液」（ELT）每次启动都把「Cumpilation」的 9 个开关强制关掉 —— 该模组的 Cumpilation_Integration.CumpilationSettingsOverride 在 StaticConstructorOnStartup 里无条件把它们写成 false；而 Cumpilation 的设置字段全是 static、只在更早的 Mod 构造函数里读一次盘，之后再没有任何读盘来纠正它（玩家在设置界面里打开也没用，磁盘文件上看着还是开着的） —— 挂 LongEventHandler.ExecuteToExecuteWhenFinished 的收尾器，在所有这类延迟动作执行完之后让 Cumpilation 自己重新读一次盘；恢复的是你自己存过的值，本补丁不写死任何开关。没装这两个模组时什么都不做
-【28】RJW PE 的 SoundDef_Replacement.xml 每次启动必报「Type rjwpe.SoundReplacementDef is not a Def type」 —— 作者在 2025-09-04 把这个类型改名为 rjwpe.VoiceReplacementDef 并另写了 ReplacementDef_Voice.xml 完整实现该功能，却把 8 月 12 日的旧文件忘在了原地（该模组全部 11 个程序集里都搜不到 SoundReplacementDef） —— 把那批从来没生效过的定义摘掉：行为与「跳过 + 报错」完全等价，只是不再刷红字；判据是「类型现在是否存在」，作者若把它加回来则自动失效、什么都不做
-【29】「边缘仙路-雕梁画栋」（RI-Furniture）每次启动刷 54 条「皇权房间要求补丁未生效」 —— 成因是 disroom.mashiro（模组名即「禁用所有房间要求」）用 PatchOperationReplace 把爵位的 throneRoomRequirements / bedroomRequirements 整片清空，而那是玩家故意启用的效果，RI 想往空列表里追加自家家具必然失败，属于预期中的设计冲突（调加载顺序也救不了：清空是不可逆的单向操作） —— 只静音它这一路的自检结论，该模组的其它日志一律照常输出；没装它时什么都不做
-【30】「乱伦许可」模组删掉了 Incestuos_Disapproved_CloseOnly 这个戒律的 issue 节点，而它自己的 preceptClass 也是空的 —— 于是实例化成基类 Precept，Precept.DrawIcon 去读 def.issue.Icon 时抛空引用，打开文化界面一次刷 350 条红字，本机 10 个文化受累 —— 把 issue 补回（只补这一个字段，不复活被一并删掉的 comps，保留作者「不让它生效」的本意）；用 PatchOperationConditional 做成幂等，那个模组哪天不删了也一样安全
-【31】米莉拉领航员制服 Milira_NavigatorUniform 的 layers 与 comps 被写成了空元素 —— layers 为空让 ApparelProperties.LastLayer 取末项时越界，每次染色都刷「Failed to get last layer on apparel item」，comps 为空则让这件制服丢掉父类的「避免友伤」（AncotLibrary.CompProperties_AvoidAllyDamage）；成因是 RimWorld 的 XML 继承里「<layers></layers>」这种空元素是「覆盖成空」而不是「不覆盖」 —— 把 layers 补成 OnSkin（与 PawnKind 的 apparelLayer 要求一致；父类给的 Shell 本身是笔误，同文件的 Milira_CombatantSuit 就是手写 OnSkin 纠正它），把空 comps 直接删掉、让继承阶段把父类链的完整列表拿回来
-【32】「Fortification Industrial - Citadel」把 HediffDef 的 defName 当成 DamageDef 写进了 damageMultipliers（PurificationBurn 在 Monolyn Race 里定义成 HediffDef） —— 每次启动刷「No Verse.DamageDef named PurificationBurn found to give to Verse.DamageMultiplier」 —— 摘掉那条从来没生效过的倍率条目（行为与原状完全一致，只是不再刷红字）；不改写成别的 DamageDef，因为那会把倍率错套到其它伤害上、属于改游戏平衡
-【33】「缇瓦莱特贞操科技」的智能贞操带与贞操胸罩漏写耐久与可燃字段 —— 两件装备写了 useHitPoints=false / destroyable=false，却没写 statBases/DeteriorationRate（取 StatDef 默认值 1.0）也没写 flammable（默认 0.7），于是开发模式下每开一局各刷两条「has >0 DeteriorationRate but can't deteriorate」与「flammable but has no hitpoints」 —— 在 statBases 里把 DeteriorationRate 补成 0、Flammability 补成 0（这两件装备是 rjw.bondage_gear_def 自定义类，没有顶层 flammable 字段 —— 照别的装备那样写顶层 flammable 会让游戏直接报 XML error）；不改 useHitPoints，那会让装备开始掉耐久、属于改玩法
-【34】两个基因分类的 displayPriorityInXenotype 都是 999 —— RS_DarkArchite（工坊 3236303965 的 Anomaly 分层目录）与 Lolium 撞号，只在开发者模式报「Multiple gene categories share the same displayPriorityInXenotype」，影响基因界面的排序稳定性 —— 把 RS_DarkArchite 改成 998，不改任何基因本身的效果
-【35】三条指向「本机不存在的 def」的交叉引用 —— RI_ToggleProducerLoading_Living（只存在于工坊 3326145525 的 1.7 目录，1.6 下不加载）、SR_CarrotArmorH（提供它的模组已不在）、WolfeinExecutiveSteakLunch（WolfeinExpand.BlackScience 未启用，而那一处引用没有 MayRequire 挡着），每局各刷 3 条「Could not resolve cross-reference」 —— 各自把引用项删掉；这些 def 本来就解析失败，删引用与置空对游戏行为等价
-
-每条的根因分析、反编译证据和验证方法，都在仓库的《技术说明.md》里。
+【1】ElToro「观看」任务缺类
+【2】CeleTech 射程计算不判空
+【3】VFE 爵位扩展被整片清空
+【4】载具面板拿错 Def 名去查
+【5】VFE 乐器空间空引用
+【6】CrossPromotion 调废弃接口
+【7】RJW 动物动画悬空引用
+【8】VFE 钢琴/营火/石棺补丁没执行
+【9】CCOE 反射抛异常
+【10】植入体零权重崩溃
+【11】非乐器混进乐器分组
+【12】中文下 Royalty 判定失效
+【13】溪谷联邦炮塔引用已删类型
+【14】XmlExtensions FindMod 静默跳过
+【15】领袖头衔自己变回去
+【16】NMM 跨局残留撞号
+【17】Onahole mimic 刷警告
+【18】金鸢尾兰沙皇变智人
+【19】雪兔纹身图标大小写
+【20】Allies are Helpful 空引用
+【21】RJW 基因调试刷屏
+【22】近战动画补丁整批失败
+【23】三处开发者模式自检噪音
+【24】两个动物遗传模组抢 defName
+【25】SRCELib 并发写坏集合
+【26】Guards For Me 转错类型
+【27】ELT 强关 Cumpilation 设置
+【28】RJW PE 废弃类型定义
+【29】RI 房间要求补丁刷屏
+【30】乱伦许可删了戒律 issue
+【31】米莉拉制服 layers/comps 为空
+【32】HediffDef 当 DamageDef 引用
+【33】贞操装备缺耐久与可燃字段
+【34】基因分类排序撞号
+【35】三条指向不存在 def 的交叉引用
 
 怎么用
 
-装进 Mods 目录、在游戏里启用即可，没有任何必填设置。位置建议靠下：排在 Harmony 之后，最好也排在它要修的那些模组之后 —— 有几条修补是在别人改完之后才补上去的。
+装进 Mods 目录、在游戏里启用即可，没有必填设置。位置建议靠下：排在 Harmony 之后，最好也排在它要修的那些模组之后。
 
-想只保留一部分：Patches 目录下是 10 个 XML 补丁，Assemblies 目录里是一个 dll，两者互不依赖。删掉哪一半，就只有那一半对应的修复不再生效。
+两部分组成：Patches 目录下是 10 个 XML 补丁，Assemblies 目录里是一个 dll，互不依赖 —— 删掉哪一半，就只有那一半不生效。
 
-「选项 → 模组设置 → 多模组兼容修复补丁」里有 35 个开关，默认全开，分五组：崩溃与卡死、日志刷屏、兼容与判定、行为与设置、XML 补丁（10 个文件各一个，外加一个总控）。顶部有三个批量按钮：全部开启、全部关闭、只留「崩溃与卡死」。
+设置里有 35 个开关，默认全开，分五组：崩溃与卡死、日志刷屏、兼容与判定、行为与设置、XML 补丁。只有第 1 条没有开关 —— 它是类型补齐，跟 dll 一起生效。每条右侧会标出异常状态（灰色「已关闭」／暗黄「目标模组未启用」），顶部有一行汇总，告诉你这次实际装上了多少条。
 
-开关和修复并非一一对应，两头都有例外。一头是拆：有的修复占两个开关（「乐器分组」「telanda 争用」各拆成两条，便于单独排查）；另一头是合：「配置自检噪音」一个文件里就装着四条修复（第 23、33、34、35 条），关掉它，四条一并停用。只有第 1 条没有开关 —— 它是类型补齐，跟 dll 一起生效。
-
-每条右侧会标出异常状态：灰色「已关闭」是你自己关的，暗黄「目标模组未启用」是它要修的那个模组不在场 —— 没装，或装了没勾，都算。什么都不标的，才是正常干活的。
-
-界面最上方还有一行汇总：「本次启动：共 N 项 —— 已装载 X · 已关闭 Y · 目标模组未启用 Z」。不必翻日志，一眼看得出这次究竟有几条真正在跑。
-
-改开关要重启游戏才生效。补丁一旦挂上没法中途中止，这个界面决定的是下次启动装哪几项。
-
-出问题怎么查
+改开关要重启游戏才生效 —— 补丁一旦挂上没法中途中止，这个界面决定的是下次启动装哪几项。
 
 日志里搜 [GNH LocalFixes]，它会逐条打印装上了什么、跳过了什么、哪一步失败了。
 
-关于语言
-
-本补丁不含任何游戏文本的翻译。它修的是别的模组的行为，因此界面语言用中文还是英文，该修的问题照样修好。
-
-设置界面有简中、繁中、英文三套。自检日志是中文说明 + 英文标识符混排，保留英文是有意的：那些标识符要能直接拿去搜索，也能原样贴给模组作者看。
+每条的根因分析、反编译证据与验证方法，见仓库的《技术说明.md》。
 
 模组信息
 
