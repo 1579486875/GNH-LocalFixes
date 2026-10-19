@@ -287,7 +287,7 @@ namespace GNH.LocalFixes
                 "一个文件里装着多条彼此独立的小修复：量子温控设备的射击/视线豁免、"
                 + "Sex_MC_UAP 标签方括号豁免、softresin 当成装备的问题，"
                 + "以及【33】LT 贞操带/胸罩的耐久与可燃字段、【34】两个基因分类排序撞号、"
-                + "【35】OA 会计记录里的非法字段、【36】三条指向不存在 def 的交叉引用。",
+                + "【35】三条指向不存在 def 的交叉引用。",
                 xmlPatchFile: "ConfigErrorCleanup.xml"),
 
             new Entry("xmlDamageDefPurificationBurn", GroupXmlPatches,

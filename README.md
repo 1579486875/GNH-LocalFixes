@@ -2,7 +2,7 @@
 
 > **多项针对性修复 —— 每一项都对应一次真实故障，每一项都独立生效。**
 
-> **当前版本：1.4.12** · 共 36 项修复，**35 个开关**。其中代码侧 24 个开关覆盖 21 项；`Patches\` 下的 10 个 XML 补丁自 v1.4.10 起也各有开关。只剩 1 项（类型补齐【1】）不在界面上。完整版本变迁见《技术说明.md》。
+> **当前版本：1.4.12** · 共 35 项修复，**35 个开关**。其中代码侧 24 个开关覆盖 21 项；`Patches\` 下的 10 个 XML 补丁自 v1.4.10 起也各有开关。只剩 1 项（类型补齐【1】）不在界面上。完整版本变迁见《技术说明.md》。
 
 | 项目 | 说明 |
 |---|---|
@@ -93,14 +93,14 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 > 开关右侧会对**异常状态**做标注（正常项不标 —— 没标就是好的）：
 > 灰色「已关闭」= 你关掉了；暗黄「目标模组未启用」= 这一项要修的模组不在场（没装、或者装了没勾选，都算），它在空转。
 
-> ⚠ 36 项修复里只剩 **1 项**没有开关：类型补齐（速览里的【1】），它随 dll 一起生效。
+> ⚠ 35 项修复里只剩 **1 项**没有开关：类型补齐（速览里的【1】），它随 dll 一起生效。
 > 10 个 XML 补丁从 v1.4.10 起都能在界面最下面那一组里单独关掉；
 > 删掉对应 XML 文件同样有效 —— 两种方式等价。
 >
 > ⚠ **开关数和修复条数不是一一对应**，两个方向都有：
 > 一条修复可能占两个开关（「乐器分组」「telanda 争用」各拆成两条，方便单独排查）；
 > 一个开关也可能覆盖多条 —— 「配置自检噪音」这一个 XML 文件里装着
-> 【23】【33】【34】【35】【36】五条修复，关掉它就是把那五条一起关。
+> 【23】【33】【34】【35】四条修复，关掉它就是把那四条一起关。
 
 | 分组 | 项数 | 里面是什么 |
 |---|---|---|
@@ -183,7 +183,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 | 位置 | 内容 | 删掉的后果 |
 |---|---|---|
-| `Patches\` | 10 个 XML 补丁（只改 Def 数据） | 对应的 **14 项**修复不再生效（`ConfigErrorCleanup.xml` 一个文件就含【23】【33】【34】【35】【36】五项） |
+| `Patches\` | 10 个 XML 补丁（只改 Def 数据） | 对应的 **13 项**修复不再生效（`ConfigErrorCleanup.xml` 一个文件就含【23】【33】【34】【35】四项） |
 | `Assemblies\` | 一个 dll（代码级修复） | 其余修复全部失效 |
 
 删掉不想要的那部分即可，剩下部分照常工作。
@@ -347,8 +347,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 32 | HediffDef 被当成 DamageDef 引用 | 「Fortification Industrial - Citadel」在 `damageMultipliers` 里写了 `<damageDef>PurificationBurn</damageDef>`，而它在 Monolyn Race 里是 **HediffDef** —— 每次启动报 `No Verse.DamageDef named PurificationBurn` | 摘掉那条从来没生效过的倍率条目（行为与原状完全一致）；不改写成别的 DamageDef，因为那会把倍率错套到其它伤害上、属于改平衡 |
 | 33 | 贞操带/胸罩漏写耐久与可燃字段 | 装备写了 `useHitPoints=false`，却没写 `DeteriorationRate`（默认 1.0）与 `flammable`（默认 0.7），开发者模式下每局刷「has >0 DeteriorationRate but can't deteriorate」「flammable but has no hitpoints」 | 在 `statBases` 里补 `DeteriorationRate=0` 与 `Flammability=0`（这两件是 `rjw.bondage_gear_def` 自定义类，没有顶层 `flammable` 字段，写顶层会报 XML error）；不动 `useHitPoints`（那会改玩法） |
 | 34 | 两个基因分类的排序优先级撞号 | `RS_DarkArchite` 与 `Lolium` 的 `displayPriorityInXenotype` 都是 999，报「Multiple gene categories share the same displayPriorityInXenotype」 | 把 `RS_DarkArchite` 改成 998，不改基因效果 |
-| 35 | ~~OA 会计记录写了不存在的字段~~ **（已作废 · v1.4.12）** | 原判断错了：1.6 的 dll 里确有 `destoryOnHackComplete`、1.7 里确有 `destroyOnHackComplete`，各自与自己的 XML 匹配；删掉它们会让会计记录被黑后不再自毁 | **补丁已移除**，本条不再修任何东西 |
-| 36 | 三条指向不存在 def 的交叉引用 | `RI_ToggleProducerLoading_Living` 只在 1.7 目录、`SR_CarrotArmorH` 提供方已不在、`WolfeinExecutiveSteakLunch` 的模组未启用，每局各刷 3 条 | 各自删掉引用项（本来就解析失败，行为等价） |
+| 35 | 三条指向不存在 def 的交叉引用 | `RI_ToggleProducerLoading_Living` 只在 1.7 目录、`SR_CarrotArmorH` 提供方已不在、`WolfeinExecutiveSteakLunch` 的模组未启用，每局各刷 3 条 | 各自删掉引用项（本来就解析失败，行为等价） |
 
 ---
 
