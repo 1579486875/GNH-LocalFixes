@@ -101,4 +101,8 @@ The two "Behaviour &amp; settings" entries are left alone - those are your prefe
   <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>disroom.mashiro replaces every title's modExtensions with an empty list, and WorldComponent_Hierarchy does not null-check when reading them, aborting world-component initialization. This restores them per effective def. WARNING: patch-on-patch — this mod must load after disroom.mashiro.</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>
   <GNH_LocalFixes_Toggle_xmlVfePianoFirepit>VFE piano/campfire/sarcophagus patch never ran ([8])</GNH_LocalFixes_Toggle_xmlVfePianoFirepit>
   <GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>VFE's own PatchOperationFindMod compares display names, and under Chinese Royalty becomes a different string. This redoes those 8 operations. NOTE: if the FindMod language fix is enabled, VFE runs them itself and this one matches zero nodes.</GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>
+  <GNH_LocalFixes_Status_Disabled>Disabled</GNH_LocalFixes_Status_Disabled>
+  <GNH_LocalFixes_Status_TargetMissing>Target mod not installed</GNH_LocalFixes_Status_TargetMissing>
+  <GNH_LocalFixes_StatusSummary>This session: {0} entries — {1} installed · {2} disabled · {3} target mod missing</GNH_LocalFixes_StatusSummary>
+  <GNH_LocalFixes_StatusFailed> · {0} failed</GNH_LocalFixes_StatusFailed>
 </LanguageData>

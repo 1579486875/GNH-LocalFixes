@@ -426,5 +426,105 @@ namespace GNH.LocalFixes
             string id;
             return idByPatchClass.TryGetValue(fullTypeName, out id) ? id : null;
         }
+
+        // ======================================================================
+        // 设置界面的状态提示
+        // ======================================================================
+        //
+        // 【为什么需要这个】
+        //
+        // 玩家看不出「这一项现在到底还有没有活干」。两种情况尤其容易困惑：
+        //   ① 自己关掉了，但界面只有一个没勾的框，翻半天才发现；
+        //   ② **被修的模组根本没装** —— 这一项从头到尾都在空转，
+        //      却和真正在干活的项长得一模一样。
+        //
+        // 所以界面上只对**异常状态**做提示，正常项一律不标（避免噪音）。
+        //
+        // 【为什么不用「作者修好了」作为状态】
+        //
+        // 那需要每项各自写一套「目标现在是好的还是坏的」检测逻辑，
+        // 三十六项没有统一判据，猜错方向反而会骗人。
+        // 这里只做**能确定**的两件事：开关值、前置模组在不在场。
+        // ======================================================================
+        internal enum FixStatus
+        {
+            /// <summary>开关开着、前置也在场 —— 正常，界面不标注。</summary>
+            Active,
+
+            /// <summary>玩家在设置里关掉了。</summary>
+            Disabled,
+
+            /// <summary>这一项的前置模组没装 / 没启用 —— 修了也没对象。</summary>
+            TargetMissing,
+        }
+
+        /// <summary>
+        /// 开关 Id → 前置模组的 packageId。
+        /// 只登记**依赖单一模组**的项；依赖多个来源、或修的是原版行为的，
+        /// 一律不登记（不登记就不会误报「目标未安装」）。
+        /// </summary>
+        private static readonly Dictionary<string, string> requiresModById =
+            new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            { "nmmIdeoTrackerNull", "dord.nuditymattersmore" },
+            { "alliesAreHelpfulCurJobNull", "ninagoblin.alliesarehelpful" },
+            { "srceLibConcurrency", "Gugustar.SnowRabbitRaceBeta" },
+            { "gfmIdleCombatDeepCopy", "arandomkiwi.guardsforme" },
+            { "ccoeReflection", "keahuy.rjw.ccoe" },
+            { "fixVfeeInstrumentSpace", "OskarPotocki.VFE.Empire" },
+            { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },
+            { "filterRjwpeStaleDefs", "readyforjeff.rjwpeculiarinstitution" },
+            { "patchVerbPropertiesAdjustedRange", "TOT.CeleTech.MKIII" },
+            { "patchGenTypesPreferTelanda", "telanda.rjw.animalgeneinheritance" },
+            { "patchLoadModXMLFilterTelandaGenes", "telanda.rjw.animalgeneinheritance" },
+            { "cumpilationSettingsRestore", "vegapnk.cumpilation" },
+            { "rjwGenesSpamQuiet", "vegapnk.rjw.genes" },
+
+            { "xmlDamageDefPurificationBurn", "Aoba.Fortress.Industrial.Citadel" },
+            { "xmlElToroAnimsRottiRef", "ElToro.Anims" },
+            { "xmlTY2ValleyArtillery", "TYll.valley" },
+            { "xmlIncestuosIssueRestore", "worldie.allowconsensualincest" },
+            { "xmlMiliraNavigatorUniform", "Ariandel.MiliraImperium" },
+            { "xmlOasfcTsarXenotype", "WW.OberoniaAurea.SteppedFlowerCake" },
+            { "xmlSnowRabbitTattooIcon", "Gugustar.SnowRabbitRaceBeta" },
+            { "xmlVfeeRoyalTitleExt", "OskarPotocki.VFE.Empire" },
+            { "xmlVfePianoFirepit", "VanillaExpanded.VFECore" },
+        };
+
+        /// <summary>
+        /// 某一项当前的状态。判据只有两条，且都是**能确定**的：
+        ///   ① 开关是不是关着；
+        ///   ② 登记过的前置模组在不在场。
+        /// 任何异常都当作 Active（不显示提示），宁可少标也不误标。
+        /// </summary>
+        internal static FixStatus StatusOf(Entry entry)
+        {
+            try
+            {
+                if (entry == null)
+                {
+                    return FixStatus.Active;
+                }
+
+                if (!LocalFixesMod.IsFixEnabled(entry.Id))
+                {
+                    return FixStatus.Disabled;
+                }
+
+                string modId;
+                if (requiresModById.TryGetValue(entry.Id, out modId) && !modId.NullOrEmpty())
+                {
+                    if (!ModsConfig.IsActive(modId))
+                    {
+                        return FixStatus.TargetMissing;
+                    }
+                }
+            }
+            catch (System.Exception)
+            {
+                // 状态提示本身绝不能影响开关的读写，出错就当作正常。
+            }
+            return FixStatus.Active;
+        }
     }
 }

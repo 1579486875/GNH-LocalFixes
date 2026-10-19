@@ -692,6 +692,10 @@ namespace GNH.LocalFixes
                     // （下面用的是 SafeLogMessage，它自己已经不会抛了 —— 这里算双保险。）
                     installedPatchClasses.Add(type);
 
+                    // 记账：toggleId 为 null 的类（未登记开关）MarkLoaded 会直接忽略，
+                    // 那类项在设置界面上本来也不显示状态。
+                    FixReport.MarkLoaded(toggleId);
+
                     SafeLogMessage("[GNH LocalFixes] Patch class installed: " + type.Name
                         + " (" + ((patched != null) ? patched.Count : 0) + " target method(s)).");
                     return true;
@@ -708,6 +712,7 @@ namespace GNH.LocalFixes
                     // 「某个补丁装不上」就升级成了「补丁叠层、越玩越卡」。
                     SafeLogError("[GNH LocalFixes] Patch class " + type.Name
                         + " failed to install; other patches are unaffected, and this one will be retried: " + ex);
+                    FixReport.MarkFailed(toggleId);
                     return false;
                 }
             }
@@ -759,10 +764,14 @@ namespace GNH.LocalFixes
             try
             {
                 install();
+                // 记账：这一项这次确实装上了。「装上了」与「玩家开着」是两件事 ——
+                // 前者还可能因为目标方法签名变了而失败，设置界面读的就是这份账本。
+                FixReport.MarkLoaded(toggleId);
             }
             catch (Exception ex)
             {
                 SafeLogError("[GNH LocalFixes] " + name + ".Install() failed; that fix is NOT active this session: " + ex);
+                FixReport.MarkFailed(toggleId);
             }
         }
 
@@ -921,11 +930,17 @@ namespace GNH.LocalFixes
                 }
             }
 
-            int disabled = settings.CountDisabled();
-            string status = (disabled == 0)
-                ? Translated("GNH_LocalFixes_StatusAllOn", "当前状态：全部修复项均已开启。")
-                : string.Format(Translated("GNH_LocalFixes_StatusSomeOff",
-                    "当前状态：共 {0} 项，其中 {1} 项已关闭。"), FixToggles.All.Length, disabled);
+            int total, loadedCount, disabledCount, missingCount, failedCount, notRunCount;
+            FixReport.Count(out total, out loadedCount, out disabledCount,
+                out missingCount, out failedCount, out notRunCount);
+            string status = string.Format(Translated("GNH_LocalFixes_StatusSummary",
+                    "本次启动：共 {0} 项 —— 已装载 {1} 项 · 已关闭 {2} 项 · 目标模组未安装 {3} 项"),
+                total, loadedCount, disabledCount, missingCount);
+            if (failedCount > 0)
+            {
+                status += string.Format(Translated("GNH_LocalFixes_StatusFailed",
+                    " · 安装失败 {0} 项"), failedCount);
+            }
             Widgets.Label(new Rect(rect.x, rect.y + 36f, rect.width, 22f), status);
 
             Color prevColor = GUI.color;
@@ -1054,10 +1069,36 @@ namespace GNH.LocalFixes
                 // 也不会因为中途异常把设置改坏。
                 bool value = settings.IsOn(entry.Id);
                 bool before = value;
-                Widgets.CheckboxLabeled(listing.GetRect(26f), cacheLabel[i], ref value);
+                Rect toggleRect = listing.GetRect(26f);
+                Widgets.CheckboxLabeled(toggleRect, cacheLabel[i], ref value);
                 if (value != before)
                 {
                     settings.SetOn(entry.Id, value);
+                }
+
+                // 状态提示：只对**异常状态**标注，正常项不画（避免界面噪音）。
+                // 判据见 FixToggles.StatusOf —— 只有两条能确定的：开关值、前置模组在不在场。
+                // 画在标题行右端：标题都很短，不会压到它；万一将来标题变长，
+                // 它也只是被文字盖住，不会影响点击区域（点击仍然作用在左边那个方框上）。
+                FixToggles.FixStatus status = FixToggles.StatusOf(entry);
+                if (status != FixToggles.FixStatus.Active)
+                {
+                    string statusText = (status == FixToggles.FixStatus.Disabled)
+                        ? "GNH_LocalFixes_Status_Disabled".Translate()
+                        : "GNH_LocalFixes_Status_TargetMissing".Translate();
+                    Color prevColor = GUI.color;
+                    TextAnchor prevAnchor = Text.Anchor;
+                    GameFont prevFont = Text.Font;
+                    GUI.color = (status == FixToggles.FixStatus.Disabled)
+                        ? new Color(0.62f, 0.62f, 0.62f)
+                        : new Color(0.85f, 0.72f, 0.30f);
+                    Text.Anchor = TextAnchor.MiddleRight;
+                    Text.Font = GameFont.Tiny;
+                    Widgets.Label(new Rect(toggleRect.x, toggleRect.y, toggleRect.width - 4f, toggleRect.height),
+                        statusText);
+                    Text.Font = prevFont;
+                    Text.Anchor = prevAnchor;
+                    GUI.color = prevColor;
                 }
 
                 // 说明单独一行、缩进对齐到标题文字下面。

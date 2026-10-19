@@ -102,4 +102,8 @@
   <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>disroom.mashiro 把爵位的 modExtensions 整片換空，而 WorldComponent_Hierarchy 取擴展時不判空 —— 會中斷整輪世界元件初始化。本項按「實際生效的 def」逐個補回。⚠ 屬於補丁打補丁：必須排在 disroom.mashiro 之後。</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>
   <GNH_LocalFixes_Toggle_xmlVfePianoFirepit>VFE 鋼琴/營火/石棺補丁沒執行（【8】）</GNH_LocalFixes_Toggle_xmlVfePianoFirepit>
   <GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>VFE 自己的 PatchOperationFindMod 比的是顯示名稱，中文下 Royalty 被譯成「皇權」而比對不上。本項補做那 8 條操作。★ 若「中文名稱判定」那一項開著，VFE 自己就會執行，本項會自動比對到 0 個節點、不動作。</GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>
+  <GNH_LocalFixes_Status_Disabled>已關閉</GNH_LocalFixes_Status_Disabled>
+  <GNH_LocalFixes_Status_TargetMissing>目標模組未安裝</GNH_LocalFixes_Status_TargetMissing>
+  <GNH_LocalFixes_StatusSummary>本次啟動：共 {0} 項 —— 已裝載 {1} 項 · 已關閉 {2} 項 · 目標模組未安裝 {3} 項</GNH_LocalFixes_StatusSummary>
+  <GNH_LocalFixes_StatusFailed> · 安裝失敗 {0} 項</GNH_LocalFixes_StatusFailed>
 </LanguageData>

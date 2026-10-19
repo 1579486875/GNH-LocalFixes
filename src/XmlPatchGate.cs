@@ -134,6 +134,9 @@ namespace GNH.LocalFixes
 
                 if (LocalFixesMod.IsFixEnabled(toggleId))
                 {
+                    // 记账：这一条真的被执行了。同一个文件的多条 Operation 会重复记，
+                    // 但 FixReport 内部是 HashSet，重复添加无副作用。
+                    FixReport.MarkLoaded(toggleId);
                     return true;   // 玩家没关这一项
                 }
 
