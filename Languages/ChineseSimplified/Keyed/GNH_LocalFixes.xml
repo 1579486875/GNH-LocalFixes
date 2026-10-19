@@ -79,4 +79,27 @@
   <GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>开启时：你已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，改模因、点「随机符号」都不会动它。关闭后：完全恢复原版行为。想给某个文化换头衔，把头衔清空（或临时关掉本开关）再点一次「随机符号」即可。</GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>
   <GNH_LocalFixes_Toggle_cumpilationSettingsRestore>抵消「月经体液」强制关闭 Cumpilation 设置</GNH_LocalFixes_Toggle_cumpilationSettingsRestore>
   <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>「RJW Menstruation Fluids」每次启动都会把 Cumpilation 的 9 个开关无条件写成关闭，你在设置界面里打开也没用（下次启动又被按回去，而且它只改内存、从不写盘）。本项在它之后按你自己存过的值恢复，不写死任何开关。</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
+  <GNH_LocalFixes_Group_XmlPatches>XML 补丁（可单独关闭）</GNH_LocalFixes_Group_XmlPatches>
+  <GNH_LocalFixes_Toggle_xmlPatchGate>让 XML 补丁也能单独关闭</GNH_LocalFixes_Toggle_xmlPatchGate>
+  <GNH_LocalFixes_Toggle_xmlPatchGate_Desc>开启时：下面每个 XML 补丁文件各有一个开关，关掉哪个就只有那个文件里的修复不生效。关闭时：所有 XML 补丁照常全部执行（等于把它们全部打开）。★ 这一项只决定「开关是否生效」，本身不修任何问题。</GNH_LocalFixes_Toggle_xmlPatchGate_Desc>
+  <GNH_LocalFixes_Toggle_xmlConfigErrorCleanup>配置自检噪音 + 字段级清理</GNH_LocalFixes_Toggle_xmlConfigErrorCleanup>
+  <GNH_LocalFixes_Toggle_xmlConfigErrorCleanup_Desc>一个文件里装着多条彼此独立的小修复：量子温控设备的射击/视线豁免、Sex_MC_UAP 标签方括号豁免、softresin 当成装备的问题，以及【33】LT 贞操带/胸罩的耐久与可燃字段、【34】两个基因分类排序撞号、【35】OA 会计记录里的非法字段、【36】三条指向不存在 def 的交叉引用。</GNH_LocalFixes_Toggle_xmlConfigErrorCleanup_Desc>
+  <GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn>把 HediffDef 当 DamageDef 引用（【32】）</GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn>
+  <GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn_Desc>Fortification Industrial - Citadel 在 damageMultipliers 里写了 PurificationBurn，而它在 Monolyn Race 里是 HediffDef —— 每次都报「No Verse.DamageDef named」。摘掉那条从来没生效过的倍率条目。</GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn_Desc>
+  <GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef>通用动物动画的 Rotti 死引用（【7】）</GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef>
+  <GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef_Desc>动画定义里还列着已经被删掉的 Rotti 种族，加载时刷悬空引用。</GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef_Desc>
+  <GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery>溪谷联邦炮塔引用已删除的类型（【13】）</GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery>
+  <GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery_Desc>该模组往炮塔里塞了 VFE Security 1.6 已删除的 CompProperties_LongRangeArtillery，整个 Def 加载失败、炮塔消失。本项把这个节点摘掉。</GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery_Desc>
+  <GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore>补回被删掉的戒律 issue（【30】）</GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore>
+  <GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore_Desc>「乱伦许可」把 Incestuos_Disapproved_CloseOnly 的 issue 节点删了，而它自己的 preceptClass 是空的 —— 打开文化界面一次刷 350 条空引用。本项只把 issue 补回来，不复活被一并删掉的 comps。</GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore_Desc>
+  <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>米莉拉领航员制服的 layers / comps（【31】）</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>
+  <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>那件制服把父类的 apparel/layers 与 comps 写成了含空白文本的空元素，导致每次染色都报「Failed to get last layer」，还丢了「避免友伤」。</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>
+  <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>金鸢尾兰「不知名的沙皇」缺 xenotypeSet（【18】）</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>
+  <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>该模板没有 xenotypeSet，生成出来会变成普通智人。本项补一个固定的。</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>
+  <GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon>雪兔纹身图标大小写不符（【19】）</GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon>
+  <GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon_Desc>iconPath 与磁盘文件名大小写不一致，文化界面刷红字。本项改回真实文件名。</GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon_Desc>
+  <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>VFE Empire 爵位扩展被清空（【3】）</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>
+  <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>disroom.mashiro 把爵位的 modExtensions 整片换空，而 WorldComponent_Hierarchy 取扩展时不判空 —— 会中断整轮世界组件初始化。本项按「实际生效的 def」逐个补回。⚠ 属于补丁打补丁：必须排在 disroom.mashiro 之后。</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>
+  <GNH_LocalFixes_Toggle_xmlVfePianoFirepit>VFE 钢琴/营火/石棺补丁没执行（【8】）</GNH_LocalFixes_Toggle_xmlVfePianoFirepit>
+  <GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>VFE 自己的 PatchOperationFindMod 比的是显示名，中文下 Royalty 被译成「皇权」而匹配不上。本项补做那 8 条操作。★ 若「中文名判定」那一项开着，VFE 自己就会执行，本项会自动匹配 0 个节点、不动作。</GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>
 </LanguageData>

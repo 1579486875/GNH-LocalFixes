@@ -79,4 +79,27 @@
   <GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>開啟時：你已經定好的領袖頭銜（主席、教宗……這類）不會再被遊戲重新隨機，改模因、點「隨機符號」都不會動它。關閉後：完全恢復原版行為。想給某個文化換頭銜，把頭銜清空（或臨時關掉本開關）再點一次「隨機符號」即可。</GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>
   <GNH_LocalFixes_Toggle_cumpilationSettingsRestore>抵消「月經體液」強制關閉 Cumpilation 設定</GNH_LocalFixes_Toggle_cumpilationSettingsRestore>
   <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>「RJW Menstruation Fluids」每次啟動都會把 Cumpilation 的 9 個開關無條件寫成關閉，你在設定介面裡開啟也沒用（下次啟動又被按回去，而且它只改記憶體、從不寫入磁碟）。本項在它之後按你自己存過的值恢復，不寫死任何開關。</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
+  <GNH_LocalFixes_Group_XmlPatches>XML 補丁（可單獨關閉）</GNH_LocalFixes_Group_XmlPatches>
+  <GNH_LocalFixes_Toggle_xmlPatchGate>讓 XML 補丁也能單獨關閉</GNH_LocalFixes_Toggle_xmlPatchGate>
+  <GNH_LocalFixes_Toggle_xmlPatchGate_Desc>開啟時：下面每個 XML 補丁檔案各有一個開關，關掉哪個就只有那個檔案裡的修復不生效。關閉時：所有 XML 補丁照常全部執行（等於把它們全部打開）。★ 這一項只決定「開關是否生效」，本身不修任何問題。</GNH_LocalFixes_Toggle_xmlPatchGate_Desc>
+  <GNH_LocalFixes_Toggle_xmlConfigErrorCleanup>設定自檢噪音 + 欄位級清理</GNH_LocalFixes_Toggle_xmlConfigErrorCleanup>
+  <GNH_LocalFixes_Toggle_xmlConfigErrorCleanup_Desc>一個檔案裡裝著多條彼此獨立的小修復：量子溫控設備的射擊/視線豁免、Sex_MC_UAP 標籤方括號豁免、softresin 當成裝備的問題，以及【33】LT 貞操帶/胸罩的耐久與可燃欄位、【34】兩個基因分類排序撞號、【35】OA 會計記錄裡的非法欄位、【36】三條指向不存在 def 的交叉引用。</GNH_LocalFixes_Toggle_xmlConfigErrorCleanup_Desc>
+  <GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn>把 HediffDef 當 DamageDef 引用（【32】）</GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn>
+  <GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn_Desc>Fortification Industrial - Citadel 在 damageMultipliers 裡寫了 PurificationBurn，而它在 Monolyn Race 裡是 HediffDef —— 每次都報「No Verse.DamageDef named」。摘掉那條從來沒生效過的倍率條目。</GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn_Desc>
+  <GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef>通用動物動畫的 Rotti 死引用（【7】）</GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef>
+  <GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef_Desc>動畫定義裡還列著已經被刪掉的 Rotti 種族，載入時刷懸空引用。</GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef_Desc>
+  <GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery>溪谷聯邦炮塔引用已刪除的類型（【13】）</GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery>
+  <GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery_Desc>該模組往炮塔裡塞了 VFE Security 1.6 已刪除的 CompProperties_LongRangeArtillery，整個 Def 載入失敗、炮塔消失。本項把這個節點摘掉。</GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery_Desc>
+  <GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore>補回被刪掉的戒律 issue（【30】）</GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore>
+  <GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore_Desc>「亂倫許可」把 Incestuos_Disapproved_CloseOnly 的 issue 節點刪了，而它自己的 preceptClass 是空的 —— 打開文化介面一次刷 350 條空引用。本項只把 issue 補回來，不復活被一併刪掉的 comps。</GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore_Desc>
+  <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>米莉拉領航員制服的 layers / comps（【31】）</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>
+  <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>那件制服把父類別的 apparel/layers 與 comps 寫成了含空白文字的空元素，導致每次染色都報「Failed to get last layer」，還丟了「避免友傷」。</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>
+  <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>金鳶尾蘭「不知名的沙皇」缺 xenotypeSet（【18】）</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>
+  <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>該模板沒有 xenotypeSet，生成出來會變成普通智人。本項補一個固定的。</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>
+  <GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon>雪兔紋身圖示大小寫不符（【19】）</GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon>
+  <GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon_Desc>iconPath 與磁碟檔名大小寫不一致，文化介面刷紅字。本項改回真實檔名。</GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon_Desc>
+  <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>VFE Empire 爵位擴展被清空（【3】）</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>
+  <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>disroom.mashiro 把爵位的 modExtensions 整片換空，而 WorldComponent_Hierarchy 取擴展時不判空 —— 會中斷整輪世界元件初始化。本項按「實際生效的 def」逐個補回。⚠ 屬於補丁打補丁：必須排在 disroom.mashiro 之後。</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>
+  <GNH_LocalFixes_Toggle_xmlVfePianoFirepit>VFE 鋼琴/營火/石棺補丁沒執行（【8】）</GNH_LocalFixes_Toggle_xmlVfePianoFirepit>
+  <GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>VFE 自己的 PatchOperationFindMod 比的是顯示名稱，中文下 Royalty 被譯成「皇權」而比對不上。本項補做那 8 條操作。★ 若「中文名稱判定」那一項開著，VFE 自己就會執行，本項會自動比對到 0 個節點、不動作。</GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>
 </LanguageData>

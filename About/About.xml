@@ -4,7 +4,7 @@
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.4.9</modVersion>
+  <modVersion>1.4.10</modVersion>
   <supportedVersions>
     <li>1.6</li>
     <li>1.7</li>
@@ -76,8 +76,9 @@ RimWorld 装了几百上千个模组之后，总会遇到这类毛病：
   （`SteamWorkshopHookFix`，改 `SendSteamDetailsQuery` 与 `ModMetaData.GetWorkshopItemHook`）。
   个别条占 2 个开关（「乐器分组」「telanda 争用」各拆成两条）。
   ★ 这里**不写死开关总数**：它随版本增减，写死必然失同步，请以设置界面实际显示为准。
-  ⚠ 上面《修复速览》里有 15 条**不在**这个界面上：14 条分布在 `Patches\` 下的 10 个 XML 文件里
-  （删掉对应文件即可关掉，见上一条）、1 条是类型补齐（【1】，随 dll 一起生效）。
+  ⚠ v1.4.10 起，`Patches\` 下的 10 个 XML 补丁也各有开关了（界面最下面那一组）——
+  于是《修复速览》里只剩 **1 条**不在这个界面上：类型补齐（【1】，随 dll 一起生效）。
+  不想走开关的话，删掉对应 XML 文件同样能关掉那一项；两种方式等价。
   顶部三个批量按钮：全部开启（默认）/ 全部关闭 / 只留「崩溃与卡死」
   （最后一个**不动**「行为与设置」两项，那是玩家偏好而非故障修复）。
   ★ 开关改动要【重启游戏】才生效 —— 补丁一旦挂上就没法中途摘掉，
