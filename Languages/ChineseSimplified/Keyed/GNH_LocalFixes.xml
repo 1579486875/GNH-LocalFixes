@@ -8,12 +8,12 @@
     C# 那边用 "键名".Translate() 取；取不到时会回退到 FixToggles.cs 里
     写好的文本，所以即使这个文件丢了，界面也不会显示成键名。
 
-    ⚠ 新增一个开关时要同时改三处：FixToggles.cs、本文件、English 那份。
-    （改动清单写在 FixToggles.cs 顶部的注释里。）
+    ⚠ 新增一个开关时要同时改四处：FixToggles.cs + 简体 / 繁体 / 英文三份语言文件。
+    （清单在 FixToggles.cs 顶部；**繁中那份最容易漏**，以前就漏过一次。）
   -->
-  <!-- ── 分组标题（设置界面里的四个小节名）─────────────────────────
+  <!-- ── 分组标题（设置界面里的五个小节名）─────────────────────────
        这四行原先不存在：标题是硬编码在 FixToggles.cs 里的中文，
-       英文客户端里会出现「22 个开关都是英文、四个分组标题却是中文」的混搭。
+       英文客户端里会出现「35 个开关都是英文、分组标题却是中文」的混搭。
        2026-10-12 复审改正 —— 现在标题也走语言键，取不到才回退到 FixToggles.GroupFallback()。
   -->
   <GNH_LocalFixes_Group_Crash>崩溃与卡死</GNH_LocalFixes_Group_Crash>
@@ -26,10 +26,8 @@
   <GNH_LocalFixes_EnableAll>全部开启（默认）</GNH_LocalFixes_EnableAll>
   <GNH_LocalFixes_DisableAll>全部关闭</GNH_LocalFixes_DisableAll>
   <GNH_LocalFixes_OnlyCrashes>只留「崩溃与卡死」</GNH_LocalFixes_OnlyCrashes>
-  <GNH_LocalFixes_OnlyCrashes_Tip>把「日志刷屏」与「兼容与判定」两类关掉，只留下不修就会崩的那些。
+  <GNH_LocalFixes_OnlyCrashes_Tip>把「日志刷屏」「兼容与判定」「XML 补丁」三类关掉，只留下不修就会崩的那些。
 「行为与设置」两项不动 —— 那是你自己的偏好，不是故障修复。</GNH_LocalFixes_OnlyCrashes_Tip>
-  <GNH_LocalFixes_StatusAllOn>当前状态：全部修复项均已开启。</GNH_LocalFixes_StatusAllOn>
-  <GNH_LocalFixes_StatusSomeOff>当前状态：共 {0} 项，其中 {1} 项已关闭。</GNH_LocalFixes_StatusSomeOff>
   <GNH_LocalFixes_RestartHint>★ 改动要重启游戏才生效 —— 补丁一旦挂上就没法中途摘掉，这里决定的是「下次启动装哪几项」。</GNH_LocalFixes_RestartHint>
   <GNH_LocalFixes_Toggle_assemblyGetTypesFallback>坏程序集不再拖垮整批补丁</GNH_LocalFixes_Toggle_assemblyGetTypesFallback>
   <GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>某个模组的 dll 引用了根本不存在的程序集时，游戏枚举「所有类」会整体失败，排在后面的模组就全部扫不到。本项把「整份清单作废」降级成「少几个类，但清单还能用」。</GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>
@@ -103,7 +101,7 @@
   <GNH_LocalFixes_Toggle_xmlVfePianoFirepit>VFE 钢琴/营火/石棺补丁没执行（【8】）</GNH_LocalFixes_Toggle_xmlVfePianoFirepit>
   <GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>VFE 自己的 PatchOperationFindMod 比的是显示名，中文下 Royalty 被译成「皇权」而匹配不上。本项补做那 8 条操作。★ 若「中文名判定」那一项开着，VFE 自己就会执行，本项会自动匹配 0 个节点、不动作。</GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>
   <GNH_LocalFixes_Status_Disabled>已关闭</GNH_LocalFixes_Status_Disabled>
-  <GNH_LocalFixes_Status_TargetMissing>目标模组未安装</GNH_LocalFixes_Status_TargetMissing>
+  <GNH_LocalFixes_Status_TargetMissing>目标模组未启用</GNH_LocalFixes_Status_TargetMissing>
   <GNH_LocalFixes_StatusSummary>本次启动：共 {0} 项 —— 已装载 {1} 项 · 已关闭 {2} 项 · 目标模组未安装 {3} 项</GNH_LocalFixes_StatusSummary>
   <GNH_LocalFixes_StatusFailed> · 安装失败 {0} 项</GNH_LocalFixes_StatusFailed>
 </LanguageData>

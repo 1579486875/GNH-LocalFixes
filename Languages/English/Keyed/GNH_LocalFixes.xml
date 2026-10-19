@@ -2,19 +2,21 @@
 <LanguageData>
   <!--
     ═══════════════════════════════════════════════════════════════
-    模组设置界面 —— English
+    Mod settings window — English
     ═══════════════════════════════════════════════════════════════
-    这些键只在「选项 → 模组设置 → 本模组」这一个界面里用到。
-    C# 那边用 "键名".Translate() 取；取不到时会回退到 FixToggles.cs 里
-    写好的文本，所以即使这个文件丢了，界面也不会显示成键名。
+    These keys are used only by "Options -> Mod settings -> this mod".
+    The C# side reads them with "KEY".Translate(); when a key is missing it
+    falls back to the text baked into FixToggles.cs, so the window never shows
+    a raw key name even if this file is deleted.
 
-    ⚠ 新增一个开关时要同时改三处：FixToggles.cs、本文件、English 那份。
-    （改动清单写在 FixToggles.cs 顶部的注释里。）
+    Adding a toggle means editing FOUR places: FixToggles.cs plus the
+    Simplified Chinese, Traditional Chinese and English files.
+    (The checklist lives in the header comment of FixToggles.cs.)
   -->
   <!-- Section headers shown in the mod settings window.
-       These keys did not exist before: the four group titles were hard-coded
-       Chinese literals in FixToggles.cs, so an English client showed 22 English
-       toggles under four Chinese headings. Fixed 2026-10-12. -->
+       These keys did not exist before: the group titles were hard-coded
+       Chinese literals in FixToggles.cs, so an English client showed English
+       toggles under Chinese headings. Fixed 2026-10-12. -->
   <GNH_LocalFixes_Group_Crash>Crashes &amp; freezes</GNH_LocalFixes_Group_Crash>
   <GNH_LocalFixes_Group_Spam>Log spam</GNH_LocalFixes_Group_Spam>
   <GNH_LocalFixes_Group_Compat>Compatibility &amp; detection</GNH_LocalFixes_Group_Compat>
@@ -25,10 +27,8 @@
   <GNH_LocalFixes_EnableAll>Enable all (default)</GNH_LocalFixes_EnableAll>
   <GNH_LocalFixes_DisableAll>Disable all</GNH_LocalFixes_DisableAll>
   <GNH_LocalFixes_OnlyCrashes>Crashes only</GNH_LocalFixes_OnlyCrashes>
-  <GNH_LocalFixes_OnlyCrashes_Tip>Turns off the "Log spam" and "Compatibility" groups, keeping only the ones that crash or freeze when unfixed.
+  <GNH_LocalFixes_OnlyCrashes_Tip>Turns off the "Log spam", "Compatibility" and "XML patches" groups, keeping only the ones that crash or freeze when unfixed.
 The two "Behaviour &amp; settings" entries are left alone - those are your preferences, not bug fixes.</GNH_LocalFixes_OnlyCrashes_Tip>
-  <GNH_LocalFixes_StatusAllOn>All fixes are currently enabled.</GNH_LocalFixes_StatusAllOn>
-  <GNH_LocalFixes_StatusSomeOff>Status: {1} of {0} fixes are turned off.</GNH_LocalFixes_StatusSomeOff>
   <GNH_LocalFixes_RestartHint>★ Changes take effect after restarting the game - patches cannot be removed mid-session; this screen decides what gets installed on the next launch.</GNH_LocalFixes_RestartHint>
   <GNH_LocalFixes_Toggle_assemblyGetTypesFallback>One broken assembly no longer kills every patch</GNH_LocalFixes_Toggle_assemblyGetTypesFallback>
   <GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>When a mod's dll references an assembly that is not installed, enumerating all types fails for everyone, and mods later in the list get skipped entirely. This turns 'the whole list is void' into 'a few types missing, the list is still usable'.</GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>
@@ -53,9 +53,9 @@ The two "Behaviour &amp; settings" entries are left alone - those are your prefe
   <GNH_LocalFixes_Toggle_steamWorkshopHook>Steam workshop info crash (second safety net)</GNH_LocalFixes_Toggle_steamWorkshopHook>
   <GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>The other path of the same crash: catches nulls and exceptions along the 'get workshop info' chain. Keeping both on is safest.</GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>
   <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>Ancient shrine warning spam</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>
-  <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>Generating ancient shrines logs a 'no RuleDef for mimicSpawner' warning per tile (34 per map in testing). Vanilla's path already rejects and does nothing, so this only stops the spam.</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>
+  <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>Generating ancient shrines logs a 'no RuleDef for mimicSpawner' warning per tile (34 per map in testing). Vanilla's path already rejects and does nothing, so this only stops the spam - behaviour is exactly equivalent.</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>
   <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>RJW-Genes debug spam</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>
-  <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>In dev mode it logs '[RJW-Genes] multipreg checks' every frame (30k lines, 65 percent of the log in one session), burying real problems. This blocks only that one string.</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>
+  <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>In dev mode it logs '[RJW-Genes] multipreg checks' every frame (30k lines, 65 percent of the log in one session), burying real problems. This blocks only that one string; the mod's errors and warnings still print.</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>
   <GNH_LocalFixes_Toggle_vehicleFrameworkDebug>Vehicle Framework debug menu error</GNH_LocalFixes_Toggle_vehicleFrameworkDebug>
   <GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>After building the dev spawn menu, that mod errors out when a PawnKind is not found. This turns 'error out' into 'silently skip'.</GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>
   <GNH_LocalFixes_Toggle_filterRjwpeStaleDefs>PE mod stale def errors</GNH_LocalFixes_Toggle_filterRjwpeStaleDefs>
@@ -77,7 +77,7 @@ The two "Behaviour &amp; settings" entries are left alone - those are your prefe
   <GNH_LocalFixes_Toggle_keepLeaderTitle>Keep custom leader titles</GNH_LocalFixes_Toggle_keepLeaderTitle>
   <GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>On: leader titles you set (Chairman, Pope, ...) are never re-rolled by randomize-symbols or meme changes. Off: fully back to vanilla behaviour. To change a title, clear it (or turn this off), then randomize once.</GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>
   <GNH_LocalFixes_Toggle_cumpilationSettingsRestore>Counteract Menstruation Fluids forcing Cumpilation settings off</GNH_LocalFixes_Toggle_cumpilationSettingsRestore>
-  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>'RJW Menstruation Fluids' unconditionally writes 9 Cumpilation settings to false on every launch, so turning them on in the settings UI does not stick (it only changes memory, never disk). This restores the values you saved.</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
+  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>'RJW Menstruation Fluids' unconditionally writes 9 Cumpilation settings to false on every launch, so turning them on in the settings UI does not stick (it only changes memory, never disk). This restores the values you saved; no setting is hard-coded.</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
   <GNH_LocalFixes_Group_XmlPatches>XML patches (toggleable)</GNH_LocalFixes_Group_XmlPatches>
   <GNH_LocalFixes_Toggle_xmlPatchGate>Let XML patches be toggled individually</GNH_LocalFixes_Toggle_xmlPatchGate>
   <GNH_LocalFixes_Toggle_xmlPatchGate_Desc>ON: each XML patch file below gets its own toggle; turning one off disables only that file's fixes. OFF: every XML patch runs as usual (equivalent to turning them all on). This entry only decides whether the toggles take effect; it fixes nothing by itself.</GNH_LocalFixes_Toggle_xmlPatchGate_Desc>
@@ -88,9 +88,9 @@ The two "Behaviour &amp; settings" entries are left alone - those are your prefe
   <GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef>Dangling Rotti reference in the animal animations ([7])</GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef>
   <GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef_Desc>The animation defs still list the removed Rotti race, causing dangling-reference errors at load.</GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef_Desc>
   <GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery>Valley turret references a removed type ([13])</GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery>
-  <GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery_Desc>The mod injects VFE Security's removed CompProperties_LongRangeArtillery into a turret, so the whole Def fails to load and the turret disappears. This removes that node.</GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery_Desc>
+  <GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery_Desc>The mod injects the CompProperties_LongRangeArtillery that VFE Security 1.6 removed into a turret, so the whole Def fails to load and the turret disappears. This removes that node.</GNH_LocalFixes_Toggle_xmlTY2ValleyArtillery_Desc>
   <GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore>Restore the removed precept issue ([30])</GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore>
-  <GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore_Desc>The incest-permission mod removes the issue node from Incestuos_Disapproved_CloseOnly while its preceptClass is empty, flooding 350 null-reference errors when the ideoligion screen opens. This restores only the issue field.</GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore_Desc>
+  <GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore_Desc>The incest-permission mod removes the issue node from Incestuos_Disapproved_CloseOnly while its preceptClass is empty, flooding 350 null-reference errors when the ideoligion screen opens. This restores only the issue field and does not resurrect the comps that were removed alongside it.</GNH_LocalFixes_Toggle_xmlIncestuosIssueRestore_Desc>
   <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>Milira navigator uniform layers / comps ([31])</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>
   <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>The uniform overrides the parent's apparel/layers and comps with whitespace-only empty elements, so every recolor logs "Failed to get last layer" and the avoid-ally-damage comp is lost.</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>
   <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>Oberonia's "unknown tsar" is missing xenotypeSet ([18])</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>
@@ -100,9 +100,9 @@ The two "Behaviour &amp; settings" entries are left alone - those are your prefe
   <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>VFE Empire royal title extensions wiped ([3])</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>
   <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>disroom.mashiro replaces every title's modExtensions with an empty list, and WorldComponent_Hierarchy does not null-check when reading them, aborting world-component initialization. This restores them per effective def. WARNING: patch-on-patch — this mod must load after disroom.mashiro.</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt_Desc>
   <GNH_LocalFixes_Toggle_xmlVfePianoFirepit>VFE piano/campfire/sarcophagus patch never ran ([8])</GNH_LocalFixes_Toggle_xmlVfePianoFirepit>
-  <GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>VFE's own PatchOperationFindMod compares display names, and under Chinese Royalty becomes a different string. This redoes those 8 operations. NOTE: if the FindMod language fix is enabled, VFE runs them itself and this one matches zero nodes.</GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>
+  <GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>VFE's own PatchOperationFindMod compares display names, and under Chinese Royalty becomes a different string. This redoes those 8 operations. NOTE: if the FindMod language fix is enabled, VFE runs them itself, and this one matches zero nodes and does nothing.</GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>
   <GNH_LocalFixes_Status_Disabled>Disabled</GNH_LocalFixes_Status_Disabled>
-  <GNH_LocalFixes_Status_TargetMissing>Target mod not installed</GNH_LocalFixes_Status_TargetMissing>
+  <GNH_LocalFixes_Status_TargetMissing>Target mod not enabled</GNH_LocalFixes_Status_TargetMissing>
   <GNH_LocalFixes_StatusSummary>This session: {0} entries — {1} installed · {2} disabled · {3} target mod missing</GNH_LocalFixes_StatusSummary>
   <GNH_LocalFixes_StatusFailed> · {0} failed</GNH_LocalFixes_StatusFailed>
 </LanguageData>

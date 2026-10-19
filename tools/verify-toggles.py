@@ -29,7 +29,9 @@ def read(p):
 toggles = read(os.path.join(SRC, 'FixToggles.cs'))
 mod = read(os.path.join(SRC, 'LocalFixesMod.cs'))
 
-ids = re.findall(r'new Entry\("([A-Za-z]+)"', toggles)
+# 开关 Id 里允许数字：xmlTY2ValleyArtillery 这种带版本号的 id 曾经被
+# [A-Za-z]+ 漏掉（实测少算一项，还连带把「没接线」的误报盖掉一个）。
+ids = re.findall(r'new Entry\("([A-Za-z0-9_]+)"', toggles)
 entry_blocks = toggles.split('new Entry("')[1:]
 class_ids = [b.split('"', 1)[0] for b in entry_blocks if 'GNH.LocalFixes.Patch_' in b]
 try_ids = re.findall(r'TryInstall\("([a-zA-Z]+)",', mod)
@@ -43,14 +45,29 @@ for fn in ('CcoeReflectionFix.cs', 'VehicleFrameworkDebugFix.cs',
            'CumpilationSettingsRestoreFix.cs'):
     scc_ids += re.findall(r'IsFixEnabled\("([a-zA-Z]+)"\)', read(os.path.join(SRC, fn)))
 
-wired = set(try_ids) | set(class_ids) | set(scc_ids)
+# XML 侧开关不走 TryInstall —— 它们由 XmlPatchGate 在运行时按
+# PatchOperation.sourceFile 的文件名拦截（见 XmlPatchGate.cs 的 BuildMap）。
+# 判据：Entry 里声明了 xmlPatchFile，且那个文件真的躺在 Patches\ 下；
+# 文件没了就等于这个开关在空转。
+xml_ids = []
+for m in re.finditer(r'new Entry\("([A-Za-z0-9_]+)"(.*?)(?=new Entry\("|\};)',
+                     toggles, re.S):
+    xf = re.search(r'xmlPatchFile:\s*"([^"]+)"', m.group(2))
+    if not xf:
+        continue
+    if os.path.exists(os.path.join(REPO, 'Patches', xf.group(1))):
+        xml_ids.append(m.group(1))
+    else:
+        print('★ %s 声明的 XML 文件不存在：%s' % (m.group(1), xf.group(1)))
+
+wired = set(try_ids) | set(class_ids) | set(scc_ids) | set(xml_ids)
 declared = set(ids)
 missing_wire = sorted(declared - wired)
 extra_wire = sorted(wired - declared)
 dup = sorted(set(x for x in ids if ids.count(x) > 1))
 
-print('声明 %d 项 / 接线 %d 项（TryInstall %d + 补丁类 %d + SCC %d）'
-      % (len(ids), len(wired), len(try_ids), len(class_ids), len(scc_ids)))
+print('声明 %d 项 / 接线 %d 项（TryInstall %d + 补丁类 %d + SCC %d + XML %d）'
+      % (len(ids), len(wired), len(try_ids), len(class_ids), len(scc_ids), len(xml_ids)))
 print('声明了但没接线 : %s' % (missing_wire or '无'))
 print('接线了但没声明 : %s' % (extra_wire or '无'))
 print('重复 Id        : %s' % (dup or '无'))

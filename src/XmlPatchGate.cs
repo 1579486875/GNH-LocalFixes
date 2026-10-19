@@ -60,13 +60,24 @@ namespace GNH.LocalFixes
     //
     //   Apply 只在**启动加载期**跑，进地图之后一次都不会再调用 ——
     //   不在任何 tick / 渲染热路径上。查表是一次字典命中，
-    //   文件名也只在启动时算一次（按 sourceFile 缓存）。
+    //   文件名也只在启动时算一次（按 sourceFile 取）。
     // ==========================================================================
     [HarmonyPatch(typeof(PatchOperation), nameof(PatchOperation.Apply))]
     internal static class Patch_PatchOperation_Apply
     {
         /// <summary>文件名（含 .xml）→ 开关 Id。只含本模组登记过的文件。</summary>
         private static readonly Dictionary<string, string> fileToToggle = BuildMap();
+
+        /// <summary>
+        /// 本模组的根目录，由 LocalFixesMod 构造函数在安装补丁之前写入。
+        ///
+        /// 用途：判定一条 Operation 是不是**我们自己的**补丁文件。
+        /// 只比文件名不够 —— 别的模组只要也有一个同名文件（例如也放一份
+        /// ConfigErrorCleanup.xml），我们的开关就会去拦别人的补丁。
+        /// 本机 6543 个 patch 文件实测零碰撞，但那是运气，不是保证。
+        /// 为空时退化为「只按文件名匹配」（并已在构造函数里打过警告）。
+        /// </summary>
+        internal static string OwnRootDir;
 
         /// <summary>已经打过「已跳过」日志的文件名，避免同一文件刷多遍。</summary>
         private static readonly HashSet<string> reportedSkip =
@@ -103,31 +114,85 @@ namespace GNH.LocalFixes
         }
 
         /// <summary>
+        /// 把一条 Operation 解析成「本模组的某个补丁文件 + 对应开关 Id」。
+        /// 解析不出来（不是本模组的补丁 / 代码里手工 new 的 / 出异常）一律返回 false，
+        /// 调用方据此放行。
+        /// </summary>
+        internal static bool Resolve(PatchOperation op, out string fileName, out string toggleId)
+        {
+            fileName = null;
+            toggleId = null;
+            try
+            {
+                if (op == null)
+                {
+                    return false;
+                }
+                string path = op.sourceFile;
+                if (path.NullOrEmpty())
+                {
+                    return false;
+                }
+                fileName = Path.GetFileName(path);
+                if (fileName.NullOrEmpty())
+                {
+                    return false;
+                }
+                if (!fileToToggle.TryGetValue(fileName, out toggleId))
+                {
+                    return false;   // 名字不在本模组的表里 —— 无条件放行
+                }
+
+                // 名字对上还不够，路径也得在本模组目录下 —— 否则别的模组放一个同名
+                // 补丁文件就会被我们误拦。OwnRootDir 为空（没取到）时跳过这一层，
+                // 退化成「只按文件名匹配」，与旧行为一致，不会因此全都不拦。
+                string root = OwnRootDir;
+                if (!root.NullOrEmpty()
+                    && !path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+                return true;
+            }
+            catch (Exception)
+            {
+                // 判定本身出错时按「不是本模组的补丁」处理 —— 放行。
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 这条 Operation 是不是「属于本模组某个被玩家关掉的补丁文件」。
+        /// Apply 与 Complete 两处共用它，保证「执行」与「报错」两个阶段的判定绝不跑偏。
+        /// </summary>
+        internal static bool IsSkippedBySettings(PatchOperation op)
+        {
+            string fileName;
+            string toggleId;
+            if (!Resolve(op, out fileName, out toggleId))
+            {
+                return false;
+            }
+            try
+            {
+                return !LocalFixesMod.IsFixEnabled(toggleId);
+            }
+            catch (Exception)
+            {
+                return false;   // 读设置出错就当没关 —— 宁可多修
+            }
+        }
+
+        /// <summary>
         /// 返回 false 表示「跳过这一条」。
         /// </summary>
         private static bool Prefix(PatchOperation __instance, ref bool __result)
         {
             try
             {
-                if (__instance == null)
-                {
-                    return true;
-                }
-
-                string path = __instance.sourceFile;
-                if (path.NullOrEmpty())
-                {
-                    return true;   // 不是从 Patches\ 文件里读出来的（例如代码里手工 new 的）
-                }
-
-                string fileName = Path.GetFileName(path);
-                if (fileName.NullOrEmpty())
-                {
-                    return true;
-                }
-
+                string fileName;
                 string toggleId;
-                if (!fileToToggle.TryGetValue(fileName, out toggleId))
+                if (!Resolve(__instance, out fileName, out toggleId))
                 {
                     return true;   // 不是本模组的补丁文件 —— 无条件放行
                 }
@@ -140,10 +205,13 @@ namespace GNH.LocalFixes
                     return true;   // 玩家没关这一项
                 }
 
-                // 玩家关掉了：跳过，且把返回值按「没成功」处理。
-                // 注意不能返回「成功」—— PatchOperation.neverSucceeded 的语义会让
-                // 上层在收尾时把「从未成功过的补丁」记一条 error，那反而制造噪音。
-                __result = false;
+                // 玩家关掉了：跳过这一条。
+                //
+                // __result 给 true 是「对 ApplyPatches 而言没出错」。
+                // 真正会制造红字的是收尾阶段的 Complete()（它看的是私有字段
+                // neverSucceeded，而那个字段只在 Apply() 体内被置 false），
+                // 那一步由下面的 Patch_PatchOperation_Complete 拦住。
+                __result = true;
 
                 if (reportedSkip.Add(fileName))
                 {
@@ -167,6 +235,60 @@ namespace GNH.LocalFixes
                 }
                 return true;
             }
+        }
+    }
+
+    // ==========================================================================
+    // 收尾阶段：被玩家关掉的那些 Operation，不许再报「failed」。
+    // ==========================================================================
+    //
+    // 【为什么必须补这一刀 —— 这是 v1.4.10 引入的一个真 bug，v1.4.12 修掉】
+    //
+    //   反编译 Verse.LoadedModManager.ClearCachedPatches（原文）：
+    //
+    //       foreach (ModContentPack runningMod in runningMods)
+    //           foreach (PatchOperation patch in runningMod.Patches)
+    //               patch.Complete(runningMod.Name);
+    //
+    //   而 Verse.PatchOperation 的收尾判据是一个私有字段 neverSucceeded：
+    //
+    //       private bool neverSucceeded = true;          // 初值 true
+    //
+    //       public bool Apply(XmlDocument xml) {
+    //           bool flag = ApplyWorker(xml);
+    //           ...                                       // success 模式换算
+    //           if (flag) { neverSucceeded = false; }     // 只有这里会清掉它
+    //           return flag;
+    //       }
+    //
+    //       public virtual void Complete(string modIdentifier) {
+    //           if (neverSucceeded)
+    //               Log.Error($"[{modIdentifier}] Patch operation {this} failed\nfile: {sourceFile}");
+    //       }
+    //
+    //   关键点：neverSucceeded **只在 Apply() 体内**被清掉。
+    //   我们在 Apply 的 Prefix 里直接返回 false、整段 Apply 根本不执行，
+    //   于是它永远保持 true —— Complete() 必然打一条
+    //   「Patch operation ... failed」外加文件路径。
+    //
+    //   换句话说：**玩家关掉一个 XML 开关，下次启动反而多一条红字**，
+    //   与「关掉就不该有噪音」的初衷正好相反。
+    //   （v1.4.10/v1.4.11 的注释曾把因果写反，以为「返回值给成功」就能避免 ——
+    //     实际上返回值根本影响不到这个字段，必须从 Complete 这一侧拦。）
+    //
+    //   PatchOperationSequence 覆写了 Complete，但反编译显示它只做了
+    //   base.Complete(...) + 清空 lastFailedOperation，所以拦基类就够。
+    // ==========================================================================
+    [HarmonyPatch(typeof(PatchOperation), nameof(PatchOperation.Complete))]
+    internal static class Patch_PatchOperation_Complete
+    {
+        /// <summary>
+        /// 返回 false = 跳过原方法 = 不打那条 failed。
+        /// 只对「本模组某个被关掉的 XML 补丁文件」生效，别的模组一概不碰。
+        /// </summary>
+        private static bool Prefix(PatchOperation __instance)
+        {
+            return !Patch_PatchOperation_Apply.IsSkippedBySettings(__instance);
         }
     }
 }

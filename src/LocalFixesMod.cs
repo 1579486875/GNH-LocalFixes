@@ -172,11 +172,24 @@ namespace GNH.LocalFixes
                     + "falls back to its built-in default (ON). Other fixes are unaffected: " + ex);
             }
 
+            // 记下本模组的根目录：XmlPatchGate 判定「这条 XML 补丁是不是我们的」时，
+            // 除了比文件名，还要比路径前缀 —— 只比文件名的话，别的模组只要也有个同名
+            // 补丁文件（例如某个作者也放一份 ConfigErrorCleanup.xml），我们的开关就会
+            // 去拦别人的补丁。本机 6543 个 patch 文件实测零碰撞，但那是运气，不是保证。
+            try
+            {
+                Patch_PatchOperation_Apply.OwnRootDir = content.RootDir;
+            }
+            catch (Exception ex)
+            {
+                SafeLogWarning("[GNH LocalFixes] 取模组根目录失败；XML 开关退化为只按文件名匹配：" + ex);
+            }
+
             // 再兜一层：把「逐类安装」这一步包起来。
             //
             // ⚠ 构造函数里其实有【两条】互相独立的安装路径，读注释时别把它们混成一条：
             //   (a) 下面这个 try 块里的 InstallAllPatchClasses() —— 只管带 [HarmonyPatch]
-            //       特性的那 4 个补丁类，内部由 InstallPatchClass 逐类 try/catch；
+            //       特性的那 8 个补丁类，内部由 InstallPatchClass 逐类 try/catch；
             //   (b) 本 try 块【之后】平铺的那些 TryInstall(...) —— 它们不在这个 try 里，
             //       也不经过 InstallAllPatchClasses，而是各自由 TryInstall 逐项 try/catch。
             // 两条路径的每一步都已经自兜了，打日志也都走 SafeLog*（自己不会抛）。
@@ -430,6 +443,54 @@ namespace GNH.LocalFixes
             // 对 GuardsForMe.dll 零编译期依赖（类型 / 方法 / 字段全走反射查找）。
             // 本步幂等：Install() 内部有自己的静态守卫。
             TryInstall("gfmIdleCombatDeepCopy", "GfmIdleCombatDeepCopyFix", GfmIdleCombatDeepCopyFix.Install);
+
+            // ------------------------------------------------------------------
+            // 最后一步：修正汇总行的记账口径
+            // ------------------------------------------------------------------
+            // 「让 XML 补丁也能单独关闭」那个总控（xmlPatchGate）关掉时，
+            // Patch_PatchOperation_Apply 根本不会被安装 —— 于是没有任何拦截，
+            // Patches\ 下 10 个文件全部照常执行（这正是 About 里写的行为）。
+            // 但它们不会再经过 FixReport.MarkLoaded，汇总行于是少 10 项：
+            // 玩家看到「共 35 项」，可已装载/已关闭/未启用加起来不够 35，像是丢了东西。
+            // 总控关掉 = 所有 XML 补丁都在执行，所以这里按「已装载」补记。
+            MarkXmlTogglesWhenGateOff();
+        }
+
+        /// <summary>
+        /// 总控（xmlPatchGate）被关掉时，把所有 XML 补丁项按「已装载」记账。
+        ///
+        /// 为什么要补：总控关闭 ⇒ 拦截器不安装 ⇒ 10 个文件全部执行，
+        /// 但它们不会经过 XmlPatchGate 的 MarkLoaded。不补记，汇总行就会少 10 项。
+        /// 总控开着时直接返回 —— 那种情况下各文件由 XmlPatchGate 按**实际执行**记账，
+        /// 被单独关掉的文件不会被误记成「已装载」。
+        /// </summary>
+        private static void MarkXmlTogglesWhenGateOff()
+        {
+            try
+            {
+                if (IsFixEnabled("xmlPatchGate"))
+                {
+                    return;
+                }
+                FixToggles.Entry[] all = FixToggles.All;
+                if (all == null)
+                {
+                    return;
+                }
+                for (int i = 0; i < all.Length; i++)
+                {
+                    FixToggles.Entry e = all[i];
+                    if (e != null && !e.XmlPatchFile.NullOrEmpty())
+                    {
+                        FixReport.MarkLoaded(e.Id);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // 记账出错不影响任何修复，但要让排查的人看得见。
+                SafeLogError("[GNH LocalFixes] 汇总记账修正失败（不影响任何修复）：" + ex);
+            }
         }
 
         // ======================================================================
@@ -589,6 +650,10 @@ namespace GNH.LocalFixes
             "GNH.LocalFixes.Patch_GenTypes_PreferTelanda",
             "GNH.LocalFixes.Patch_LoadModXML_FilterTelandaGenes",
             "GNH.LocalFixes.Patch_LoadModXML_FilterRjwpeStaleDefs",
+            // 下面两个是 XML 补丁开关的机制类。漏了它们在退化路径上不会报错，
+            // 只会让「XML 补丁也能单独关」这个功能静默消失 —— 所以必须登记。
+            "GNH.LocalFixes.Patch_PatchOperation_Apply",
+            "GNH.LocalFixes.Patch_PatchOperation_Complete",
         };
 
         private static Type[] LoadKnownPatchClassesTolerantly(Assembly assembly)
@@ -911,14 +976,19 @@ namespace GNH.LocalFixes
             // 悬停提示：光看按钮文字容易以为「行为与设置」也被关掉了，
             // 这里明说它不动 —— 那两项是玩家偏好（保不保护领袖头衔之类），不是故障修复，
             // 顺手替玩家改掉不合适。
+            //
+            // ⚠ v1.4.10 加了第五组（XML 补丁）之后，本按钮会连那 10 个 XML 开关一起关掉，
+            //    而提示当时没跟着改 —— v1.4.12 补上「XML 补丁」这一类，别再漏。
             TooltipHandler.TipRegion(onlyCrashRect,
                 Translated("GNH_LocalFixes_OnlyCrashes_Tip",
-                    "把「日志刷屏」与「兼容与判定」两类关掉，只留下不修就会崩的那些。\n"
+                    "把「日志刷屏」「兼容与判定」「XML 补丁」三类关掉，只留下不修就会崩的那些。\n"
                     + "「行为与设置」两项不动 —— 那是你自己的偏好，不是故障修复。"));
             if (Widgets.ButtonText(onlyCrashRect,
                     Translated("GNH_LocalFixes_OnlyCrashes", "只留「崩溃与卡死」")))
             {
-                // 实用预设：把「日志刷屏」与「兼容与判定」两类关掉，只留下不修就会崩的那些。
+                // 实用预设：除「行为与设置」外，只把「崩溃与卡死」这一类打开。
+                // 也就是说「日志刷屏」「兼容与判定」「XML 补丁」三类都会关掉 ——
+                // 提示文案必须与这里保持一致，否则玩家会以为 XML 补丁没被关。
                 // 「行为与设置」两项是玩家偏好（不是修 bug），保持原样不动，免得顺手改掉别人的选择。
                 for (int i = 0; i < FixToggles.All.Length; i++)
                 {
@@ -1036,6 +1106,13 @@ namespace GNH.LocalFixes
         /// 把 FixToggles.All 画成一条条开关。顺序、分组、文案全部来自那张表 ——
         /// 界面上能看到的项，就是安装侧会去查的那些项，不存在「有界面没接线」的假开关。
         /// </summary>
+        /// <summary>
+        /// CheckboxLabeled 把复选框画在整行最右端、固定 24px 宽（rect.xMax - 24 ~ xMax）。
+        /// 状态文字必须右对齐到它左边，否则会正好叠在勾 / 叉图标上 —— v1.4.12 修的就是这个重叠。
+        /// 32f = 复选框 24 + 间距 8。
+        /// </summary>
+        private const float CheckboxReserve = 32f;
+
         private static void DrawToggleList(Listing_Standard listing, GNHLocalFixesSettings settings, float width)
         {
             // 文本与高度都取自缓存 —— 与 MeasureListHeight 用的是同一份，
@@ -1078,27 +1155,34 @@ namespace GNH.LocalFixes
 
                 // 状态提示：只对**异常状态**标注，正常项不画（避免界面噪音）。
                 // 判据见 FixToggles.StatusOf —— 只有两条能确定的：开关值、前置模组在不在场。
-                // 画在标题行右端：标题都很短，不会压到它；万一将来标题变长，
-                // 它也只是被文字盖住，不会影响点击区域（点击仍然作用在左边那个方框上）。
+                // 画在标题行右端、但必须**给复选框让路**（v1.4.12）：右边界收在 CheckboxReserve 以内，
+                // 否则会正好压在勾 / 叉图标上。空间不够（标题特别长）时宁可不标注，也不叠字。
                 FixToggles.FixStatus status = FixToggles.StatusOf(entry);
                 if (status != FixToggles.FixStatus.Active)
                 {
                     string statusText = (status == FixToggles.FixStatus.Disabled)
                         ? "GNH_LocalFixes_Status_Disabled".Translate()
                         : "GNH_LocalFixes_Status_TargetMissing".Translate();
-                    Color prevColor = GUI.color;
-                    TextAnchor prevAnchor = Text.Anchor;
+
+                    float labelWidth = Text.CalcSize(cacheLabel[i]).x;
                     GameFont prevFont = Text.Font;
-                    GUI.color = (status == FixToggles.FixStatus.Disabled)
-                        ? new Color(0.62f, 0.62f, 0.62f)
-                        : new Color(0.85f, 0.72f, 0.30f);
-                    Text.Anchor = TextAnchor.MiddleRight;
                     Text.Font = GameFont.Tiny;
-                    Widgets.Label(new Rect(toggleRect.x, toggleRect.y, toggleRect.width - 4f, toggleRect.height),
-                        statusText);
+                    float statusWidth = Text.CalcSize(statusText).x;
+                    float statusRight = toggleRect.width - CheckboxReserve;
+                    if (statusRight - statusWidth > labelWidth + 12f)
+                    {
+                        Color prevColor = GUI.color;
+                        TextAnchor prevAnchor = Text.Anchor;
+                        GUI.color = (status == FixToggles.FixStatus.Disabled)
+                            ? new Color(0.62f, 0.62f, 0.62f)
+                            : new Color(0.85f, 0.72f, 0.30f);
+                        Text.Anchor = TextAnchor.MiddleRight;
+                        Widgets.Label(new Rect(toggleRect.x, toggleRect.y, statusRight, toggleRect.height),
+                            statusText);
+                        Text.Anchor = prevAnchor;
+                        GUI.color = prevColor;
+                    }
                     Text.Font = prevFont;
-                    Text.Anchor = prevAnchor;
-                    GUI.color = prevColor;
                 }
 
                 // 说明单独一行、缩进对齐到标题文字下面。
