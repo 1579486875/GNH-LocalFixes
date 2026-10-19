@@ -183,7 +183,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 | 位置 | 内容 | 删掉的后果 |
 |---|---|---|
-| `Patches\` | 10 个 XML 补丁（只改 Def 数据） | 对应的 10 个问题不再修 |
+| `Patches\` | 10 个 XML 补丁（只改 Def 数据） | 对应的 **14 项**修复不再生效（`ConfigErrorCleanup.xml` 一个文件就含【23】【33】【34】【35】【36】五项） |
 | `Assemblies\` | 一个 dll（代码级修复） | 其余修复全部失效 |
 
 删掉不想要的那部分即可，剩下部分照常工作。
@@ -345,9 +345,9 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 30 | 「乱伦许可」删掉了某条戒律的 `issue` 节点 | 那条 `PreceptDef` 的 `preceptClass` 是空的，实例化成基类 `Precept`；基类 `DrawIcon` 直接读 `def.issue.Icon`，于是打开文化界面一次刷 350 条红字，本机 10 个文化受累 | 用 `PatchOperationConditional` 幂等地把 `issue` 补回（只补这一个字段，不复活被一并删掉的 `comps`） |
 | 31 | 米莉拉领航员制服丢了 layers 与 comps | `Milira_NavigatorUniform` 把父类的 `apparel/layers` 与 `comps` 写成了空元素 —— XML 继承里这等于「覆盖成空」而不是「不覆盖」：layers 为空让 `ApparelProperties.LastLayer` 取末项时越界，每次染色刷「Failed to get last layer」；comps 为空则让这件制服丢掉「避免友伤」（`AncotLibrary.CompProperties_AvoidAllyDamage`） | 把 layers 补成 `OnSkin`（与 PawnKind 的 `apparelLayer` 要求一致；父类给的 `Shell` 本身是笔误），把空 comps 删掉、让继承阶段把父类链的完整列表拿回来 |
 | 32 | HediffDef 被当成 DamageDef 引用 | 「Fortification Industrial - Citadel」在 `damageMultipliers` 里写了 `<damageDef>PurificationBurn</damageDef>`，而它在 Monolyn Race 里是 **HediffDef** —— 每次启动报 `No Verse.DamageDef named PurificationBurn` | 摘掉那条从来没生效过的倍率条目（行为与原状完全一致）；不改写成别的 DamageDef，因为那会把倍率错套到其它伤害上、属于改平衡 |
-| 33 | 贞操带/胸罩漏写耐久与可燃字段 | 装备写了 `useHitPoints=false`，却没写 `DeteriorationRate`（默认 1.0）与 `flammable`（默认 0.7），开发者模式下每局刷「has >0 DeteriorationRate but can't deteriorate」「flammable but has no hitpoints」 | 补 `DeteriorationRate=0` + `flammable=false`；不动 `useHitPoints`（那会改玩法） |
+| 33 | 贞操带/胸罩漏写耐久与可燃字段 | 装备写了 `useHitPoints=false`，却没写 `DeteriorationRate`（默认 1.0）与 `flammable`（默认 0.7），开发者模式下每局刷「has >0 DeteriorationRate but can't deteriorate」「flammable but has no hitpoints」 | 在 `statBases` 里补 `DeteriorationRate=0` 与 `Flammability=0`（这两件是 `rjw.bondage_gear_def` 自定义类，没有顶层 `flammable` 字段，写顶层会报 XML error）；不动 `useHitPoints`（那会改玩法） |
 | 34 | 两个基因分类的排序优先级撞号 | `RS_DarkArchite` 与 `Lolium` 的 `displayPriorityInXenotype` 都是 999，报「Multiple gene categories share the same displayPriorityInXenotype」 | 把 `RS_DarkArchite` 改成 998，不改基因效果 |
-| 35 | OA 会计记录写了不存在的字段 | `CompProperties_Hackable` 里没有 `destroyOnHackComplete`，反序列化时被忽略并报 XML error | 删掉该字段 |
+| 35 | ~~OA 会计记录写了不存在的字段~~ **（已作废 · v1.4.12）** | 原判断错了：1.6 的 dll 里确有 `destoryOnHackComplete`、1.7 里确有 `destroyOnHackComplete`，各自与自己的 XML 匹配；删掉它们会让会计记录被黑后不再自毁 | **补丁已移除**，本条不再修任何东西 |
 | 36 | 三条指向不存在 def 的交叉引用 | `RI_ToggleProducerLoading_Living` 只在 1.7 目录、`SR_CarrotArmorH` 提供方已不在、`WolfeinExecutiveSteakLunch` 的模组未启用，每局各刷 3 条 | 各自删掉引用项（本来就解析失败，行为等价） |
 
 ---
@@ -553,7 +553,7 @@ IL_0015: ret
 ## 修复清单
 
 三十六项互相独立，均为最小侵入。**代码侧 24 个开关 + XML 补丁 11 个开关**都能在设置界面里逐项开关
-（只剩 1 处类型补齐【1】不在界面上 —— 见上文「24 个设置项」与「修复速览」）。
+（只剩 1 处类型补齐【1】不在界面上 —— 见上文「35 个设置项」与「修复速览」）。
 
 > 最新的版本变化见《技术说明.md》开头的版本章节；下面这段起是**按版本倒序**保留的历史记录。
 

@@ -323,7 +323,10 @@ namespace GNH.LocalFixes
 
             new Entry("xmlOasfcTsarXenotype", GroupXmlPatches,
                 "金鸢尾兰「不知名的沙皇」缺 xenotypeSet（【18】）",
-                "该模板没有 xenotypeSet，生成出来会变成普通智人。本项补一个固定的。",
+                "该模板没有 xenotypeSet，生成出来会变成普通智人（没有鼠耳尾巴、脸还发黑）。"
+                + "本项补一个固定的 Ratkin_OA —— 所以除了金鸢尾兰本体，还需要 "
+                + "「[OA]Ratkin Faction: Oberonia aurea」这个框架模组在场（Ratkin_OA 由它提供）。"
+                + "两者缺一，本项什么都不会做（补丁外层就是用那个模组名做守卫的）。",
                 xmlPatchFile: "OASFC_TsarXenotypeFix.xml"),
 
             new Entry("xmlSnowRabbitTattooIcon", GroupXmlPatches,
@@ -380,24 +383,6 @@ namespace GNH.LocalFixes
                 idByPatchClass = classes;
                 byId = ids;
             }
-        }
-
-        internal static Entry Find(string id)
-        {
-            if (id.NullOrEmpty())
-            {
-                return null;
-            }
-            BuildIndex();
-            Entry found;
-            return byId.TryGetValue(id, out found) ? found : null;
-        }
-
-        /// <summary>本项在界面上显示的中文标题（取不到翻译时用）。</summary>
-        internal static string LabelOf(string id)
-        {
-            Entry e = Find(id);
-            return (e != null) ? e.Label : id;
         }
 
         /// <summary>语言键：标题。</summary>
@@ -468,7 +453,12 @@ namespace GNH.LocalFixes
         {
             { "nmmIdeoTrackerNull", "dord.nuditymattersmore" },
             { "alliesAreHelpfulCurJobNull", "ninagoblin.alliesarehelpful" },
-            { "srceLibConcurrency", "Gugustar.SnowRabbitRaceBeta" },
+            // ⚠ 这一项修的是 SRCELib.dll 的并发缺陷，而 SRCELib.dll 由
+            //   「Snow Rabbit Commodities Expansion——Playbunny Corporation」
+            //   （工坊 3748316169，packageId SnowRabbit.CommodityExpansionPB）提供，
+            //   不是雪兔种族本体。全库实测只有它一家带这个 dll。
+            //   早先这里误填了 Gugustar.SnowRabbitRaceBeta，会让界面误报「目标模组未启用」。
+            { "srceLibConcurrency", "SnowRabbit.CommodityExpansionPB" },
             { "gfmIdleCombatDeepCopy", "arandomkiwi.guardsforme" },
             { "ccoeReflection", "keahuy.rjw.ccoe" },
             { "fixVfeeInstrumentSpace", "OskarPotocki.VFE.Empire" },

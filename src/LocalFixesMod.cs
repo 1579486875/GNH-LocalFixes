@@ -189,7 +189,7 @@ namespace GNH.LocalFixes
             //
             // ⚠ 构造函数里其实有【两条】互相独立的安装路径，读注释时别把它们混成一条：
             //   (a) 下面这个 try 块里的 InstallAllPatchClasses() —— 只管带 [HarmonyPatch]
-            //       特性的那 8 个补丁类，内部由 InstallPatchClass 逐类 try/catch；
+            //       特性的那 9 个补丁类（7 个功能类 + Apply / Complete 两个机制类），内部由 InstallPatchClass 逐类 try/catch；
             //   (b) 本 try 块【之后】平铺的那些 TryInstall(...) —— 它们不在这个 try 里，
             //       也不经过 InstallAllPatchClasses，而是各自由 TryInstall 逐项 try/catch。
             // 两条路径的每一步都已经自兜了，打日志也都走 SafeLog*（自己不会抛）。
@@ -713,6 +713,22 @@ namespace GNH.LocalFixes
             }
         }
 
+        /// <summary>
+        /// 机制类 → 它归哪个既有开关管。
+        ///
+        /// 有些补丁类玩家不需要（也不该）单独关，但它们必须跟着某个开关同生共死：
+        ///   · Patch_PatchOperation_Apply   —— 「让 XML 补丁也能单独关闭」的执行端；
+        ///   · Patch_PatchOperation_Complete —— 同一件事的收尾端（被关掉的补丁不许报 failed）。
+        /// 前者在 FixToggles 里登记为 xmlPatchGate 的 PatchClassName；
+        /// 后者没有自己的登记项，靠这张表挂到同一个开关名下 ——
+        /// 否则 InstallPatchClass 会以为「新增补丁类忘了登记」，每次启动打一条黄字。
+        /// </summary>
+        private static readonly Dictionary<string, string> mechanismClassOwner =
+            new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            { "GNH.LocalFixes.Patch_PatchOperation_Complete", "xmlPatchGate" },
+        };
+
         // 装一个补丁类。成功安装返回 true。
         private static bool InstallPatchClass(Type type)
         {
@@ -730,6 +746,17 @@ namespace GNH.LocalFixes
                 // 跳过时不写 installedPatchClasses：玩家中途把开关打开、下一次（切语言 /
                 //   热重载）触发本方法时，它就能立刻装上。
                 string toggleId = FixToggles.IdForPatchClass(type.FullName);
+                if (toggleId == null)
+                {
+                    // 没在 FixToggles 里登记？先看它是不是「机制类」——
+                    // 那类东西跟着既有开关走，不该有自己的界面项（见 mechanismClassOwner）。
+                    string owner;
+                    if (type.FullName != null
+                        && mechanismClassOwner.TryGetValue(type.FullName, out owner))
+                    {
+                        toggleId = owner;
+                    }
+                }
                 if (toggleId == null)
                 {
                     // 这个补丁类没在 FixToggles 里登记 —— 不受任何开关管辖，照常安装。

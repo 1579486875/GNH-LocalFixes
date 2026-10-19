@@ -100,6 +100,9 @@ namespace GNH.LocalFixes
                     target,
                     new HarmonyMethod(AccessTools.Method(typeof(VehicleFrameworkDebugFix), "Prefix", null, null)),
                     null, null, null);
+                // 记账：本项由 [StaticConstructorOnStartup] 直接安装、不走 TryInstall，
+                // 少了这一笔，汇总行会把它算成「未运行」，界面上的分项加起来对不上总数。
+                FixReport.MarkLoaded("vehicleFrameworkDebug");
                 Log.Message("[GNH LocalFixes] Patched Vehicle Framework " + TargetMethodName + " (developer panel log spam fixed).");
             }
             catch (Exception ex)

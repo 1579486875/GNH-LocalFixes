@@ -228,6 +228,15 @@ namespace GNH.LocalFixes
                     if (!targetDone[i]) { installed = false; break; }
                 }
 
+                // 记账：只要这一次真的挂上了东西（或之前已经挂好），就算「已装载」。
+                // 本项由 [StaticConstructorOnStartup] 直接安装、不走 TryInstall，
+                // 少了这一笔，设置界面顶部的汇总会把这一项算成「未运行」——
+                // 于是「共 35 项」的分项加起来少 1，玩家看不出它去哪了。
+                if (justPatched > 0 || installed)
+                {
+                    FixReport.MarkLoaded("ccoeReflection");
+                }
+
                 if (justPatched > 0)
                 {
                     Log.Message("[GNH LocalFixes] Patched CCOE cumSealed reflection prefixes: "

@@ -94,7 +94,7 @@ The two "Behaviour &amp; settings" entries are left alone - those are your prefe
   <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>Milira navigator uniform layers / comps ([31])</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>
   <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>The uniform overrides the parent's apparel/layers and comps with whitespace-only empty elements, so every recolor logs "Failed to get last layer" and the avoid-ally-damage comp is lost.</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>
   <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>Oberonia's "unknown tsar" is missing xenotypeSet ([18])</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>
-  <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>That template has no xenotypeSet, so pawns spawn as ordinary baseliners. This adds a fixed one.</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>
+  <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>That template has no xenotypeSet, so pawns spawn as ordinary baseliners (no rat ears or tail, dark face). This adds a fixed Ratkin_OA - which means the framework mod "[OA]Ratkin Faction: Oberonia aurea" must also be present, since that is what provides Ratkin_OA. If either one is missing, this does nothing.</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>
   <GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon>SnowRabbit tattoo icon path case mismatch ([19])</GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon>
   <GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon_Desc>The iconPath differs in case from the actual file on disk, spamming the ideoligion screen. This restores the real name.</GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon_Desc>
   <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>VFE Empire royal title extensions wiped ([3])</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>
@@ -103,6 +103,6 @@ The two "Behaviour &amp; settings" entries are left alone - those are your prefe
   <GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>VFE's own PatchOperationFindMod compares display names, and under Chinese Royalty becomes a different string. This redoes those 8 operations. NOTE: if the FindMod language fix is enabled, VFE runs them itself, and this one matches zero nodes and does nothing.</GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>
   <GNH_LocalFixes_Status_Disabled>Disabled</GNH_LocalFixes_Status_Disabled>
   <GNH_LocalFixes_Status_TargetMissing>Target mod not enabled</GNH_LocalFixes_Status_TargetMissing>
-  <GNH_LocalFixes_StatusSummary>This session: {0} entries — {1} installed · {2} disabled · {3} target mod missing</GNH_LocalFixes_StatusSummary>
+  <GNH_LocalFixes_StatusSummary>This session: {0} entries — {1} loaded · {2} disabled · {3} target mod not enabled</GNH_LocalFixes_StatusSummary>
   <GNH_LocalFixes_StatusFailed> · {0} failed</GNH_LocalFixes_StatusFailed>
 </LanguageData>

@@ -265,28 +265,30 @@
                 宿主 defName = OARK_SDAccountingRecord，
                 compClass = OberoniaAurea.CompSDAccountingRecord。
 
-          ⚠ 这里有个坑：**两个版本目录里的字段名拼写不一样**
-              Mods\Odyssey\1.6\…\Odyssey_Items.xml  ->  <destoryOnHackComplete>   （destory，拼错）
-              Mods\Odyssey\1.7\…\Odyssey_Items.xml  ->  <destroyOnHackComplete>   （destroy，拼对）
-            而本机日志里报的是 **destroyOnHackComplete** 那一条。
-            为避免「到底加载了哪一份」这种不确定性，下面**两条都删**：
-            两种拼写在 CompProperties_Hackable 里都不存在，删哪个都是对的。
+          ⚠⚠ 【本条已于 v1.4.12 作废 —— 原来的判断是错的，补丁已移除】
 
-          反编译 CompProperties_Hackable 可证：该类没有这两个字段中的任何一个，
-          XML 反序列化时被静默忽略。删掉 = 行为与原状完全一致，只是不再报 XML error。
+          原先这里写「两种拼写在 CompProperties_Hackable 里都不存在」，
+          2026-10-19 独立复审时逐版本反编译，结论相反：
 
-          自动失效：作者删掉或改正该字段后，对应 xpath 匹配 0 个节点。
+              1.6  OberoniaAureaYH.dll  public bool destoryOnHackComplete;   ← 拼错那个，真实存在
+                   同版本 Odyssey_Items.xml 写的正是 <destoryOnHackComplete>true
+              1.7  OberoniaAureaYH.dll  public bool destroyOnHackComplete;   ← 拼对那个，真实存在
+                   同版本 Odyssey_Items.xml 写的正是 <destroyOnHackComplete>true
+
+          而 OberoniaAurea.CompHackable.FinishHack 里就是
+              if (Props.destoryOnHackComplete) parent.Kill(null, null);
+          也就是说：**这条字段是生效的**，删掉它等于让「会计记录被黑完成后不再自毁」——
+          这是货真价实的行为变更，不是「与原状完全一致」。
+
+          再查日志：当前与 2026-10-19 12:01 的基线里，
+          "HackComplete" 关键字 **0 命中** —— 那条 XML error 早已不存在，
+          本段本来就没有要修的东西。
+
+          所以两条 Remove 全部删除。将来若真在某版本出现这条 XML error，
+          应当先核对**那个版本**的 dll 字段名再动手，不能两个拼写一起删。
        ================================================================ -->
 
-  <Operation Class="PatchOperationRemove">
-    <success>Always</success>
-    <xpath>Defs/ThingDef[defName="OARK_SDAccountingRecord"]/comps/li[@Class="OberoniaAurea.CompProperties_Hackable"]/destroyOnHackComplete</xpath>
-  </Operation>
 
-  <Operation Class="PatchOperationRemove">
-    <success>Always</success>
-    <xpath>Defs/ThingDef[defName="OARK_SDAccountingRecord"]/comps/li[@Class="OberoniaAurea.CompProperties_Hackable"]/destoryOnHackComplete</xpath>
-  </Operation>
 
   <!-- ================================================================
        G. 三条指向「本机不存在的 def」的交叉引用（各 3 条/局）

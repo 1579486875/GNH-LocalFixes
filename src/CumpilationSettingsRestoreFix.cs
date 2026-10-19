@@ -84,6 +84,9 @@ namespace GNH.LocalFixes
                     return;
                 }
                 new Harmony(HarmonyId).Patch(target, postfix: new HarmonyMethod(postfix));
+                // 记账：本项由 [StaticConstructorOnStartup] 直接安装、不走 TryInstall，
+                // 少了这一笔，汇总行会把它算成「未运行」，界面上的分项加起来对不上总数。
+                FixReport.MarkLoaded("cumpilationSettingsRestore");
                 Log.Message("[GNH LocalFixes] 已挂上 Cumpilation 设置恢复 —— "
                     + "「ELT 月经体液」每次启动强制关闭的那些开关，会被还原成你自己存过的值。");
             }

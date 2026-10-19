@@ -393,22 +393,29 @@
           而它们根本不在 VFE 的 Titles 名单里，纯属越界改写。
           现在只在 disroom 真正会破坏的那四个 ParentName 上兜底。
 
-       这一段用的是兜底值（修士），不是各爵位的正确值 ——
-       正确值由上面 16 条负责；能走到这里的都是「我们没预料到的」，
-       给它一个非空值只是为了让游戏不崩，而不是说它就该是修士。 -->
-  <Operation Class="PatchOperationFindMod">
-    <mods>
-      <li>Vanilla Factions Expanded - Empire</li>
-    </mods>
-    <match Class="PatchOperationAddModExtension">
-      <success>Always</success>
-      <xpath>Defs/RoyalTitleDef[@ParentName="BaseEmpireTitle" or @ParentName="DukeBase" or @ParentName="ConsulBase" or @ParentName="StellarchBase"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]</xpath>
-      <value>
-        <li Class="VFEEmpire.RoyalTitleDefExtension">
-          <kindForHierarchy>Empire_Royal_Yeoman</kindForHierarchy>
-        </li>
-      </value>
-    </match>
-  </Operation>
+       ⚠⚠ 【v1.4.12：原来的「兜底」operation 已被删除 —— 它是错的】
+
+       原先末尾还有一条兜底，xpath 是
+           @ParentName="BaseEmpireTitle" or @ParentName="DukeBase"
+           or @ParentName="ConsulBase" or @ParentName="StellarchBase"
+       实测命中 5 个：Freeholder、BaseEmpireTitleNPC、Duke、Consul、Stellarch。
+
+       而 PatchOperationAddModExtension 在目标没有 modExtensions 时新建的元素
+       **不带 Inherit="False"**（反编译原文：CreateElement("modExtensions") + AppendChild）。
+       于是继承时父模板的扩展排在子 def 自己的扩展**前面**，
+       而 Def.GetModExtension<T>() 取的是第一个匹配项 ——
+
+           Emperor.ParentName = BaseEmpireTitleNPC
+           → [父模板的 Yeoman 扩展, Emperor 自己的扩展]
+           → 取到 Yeoman → 随从被造成「修士」那一档
+
+       即：这条兜底不但没兜住，反而把本来修好的 Emperor 又弄坏了。
+       （disroom 只清空 Duke/Consul/Stellarch/HighStellarch 的 modExtensions，
+         不碰 BaseEmpireTitleNPC，所以 Emperor 这条链上没有 Inherit="False" 保护。）
+
+       上面 16 条已经逐 def 覆盖了 17 个具体爵位 + 三个模板；
+       兜底想兜「没预料到的爵位」，但写到抽象父模板上代价远大于收益 —— 已整块移除。
+       将来真遇到未知爵位缺 kindForHierarchy，请**按具体 defName 补**，
+       绝不要再往抽象模板上写扩展。 -->
 
 </Patch>

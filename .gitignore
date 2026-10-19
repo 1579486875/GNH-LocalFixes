@@ -28,3 +28,8 @@ refs/
 # 属于永远不会命中、只会误导读者的死规则，已删除。
 # 将来若真在工程根建这类目录，请按它的**实际名字**补一条 pattern。
 _backup/
+
+# RimWorldForge 的静态校验输出（每次跑 rw_validate 都会重建，不入库）
+# 顺带记一笔：rw_validate 要求 workspace 是 <root>/source/ 布局，
+# 本仓库是「仓库根即模组根」，所以它必然报 about.missing —— 别被那条吓到。
+reports/

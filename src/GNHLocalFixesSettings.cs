@@ -121,20 +121,6 @@ namespace GNH.LocalFixes
             }
         }
 
-        /// <summary>当前有多少项是**关闭**的（设置界面顶部显示用）。</summary>
-        public int CountDisabled()
-        {
-            int n = 0;
-            for (int i = 0; i < FixToggles.All.Length; i++)
-            {
-                if (!IsOn(FixToggles.All[i].Id))
-                {
-                    n++;
-                }
-            }
-            return n;
-        }
-
         public override void ExposeData()
         {
             base.ExposeData();

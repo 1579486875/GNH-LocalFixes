@@ -93,7 +93,7 @@
   <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>米莉拉领航员制服的 layers / comps（【31】）</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform>
   <GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>那件制服把父类的 apparel/layers 与 comps 写成了含空白文本的空元素，导致每次染色都报「Failed to get last layer」，还丢了「避免友伤」。</GNH_LocalFixes_Toggle_xmlMiliraNavigatorUniform_Desc>
   <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>金鸢尾兰「不知名的沙皇」缺 xenotypeSet（【18】）</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype>
-  <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>该模板没有 xenotypeSet，生成出来会变成普通智人。本项补一个固定的。</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>
+  <GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>该模板没有 xenotypeSet，生成出来会变成普通智人（没有鼠耳尾巴、脸还发黑）。本项补一个固定的 Ratkin_OA —— 所以除了金鸢尾兰本体，还需要「[OA]Ratkin Faction: Oberonia aurea」这个框架模组在场（Ratkin_OA 由它提供）；两者缺一，本项什么都不会做。</GNH_LocalFixes_Toggle_xmlOasfcTsarXenotype_Desc>
   <GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon>雪兔纹身图标大小写不符（【19】）</GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon>
   <GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon_Desc>iconPath 与磁盘文件名大小写不一致，文化界面刷红字。本项改回真实文件名。</GNH_LocalFixes_Toggle_xmlSnowRabbitTattooIcon_Desc>
   <GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>VFE Empire 爵位扩展被清空（【3】）</GNH_LocalFixes_Toggle_xmlVfeeRoyalTitleExt>
@@ -102,6 +102,6 @@
   <GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>VFE 自己的 PatchOperationFindMod 比的是显示名，中文下 Royalty 被译成「皇权」而匹配不上。本项补做那 8 条操作。★ 若「中文名判定」那一项开着，VFE 自己就会执行，本项会自动匹配 0 个节点、不动作。</GNH_LocalFixes_Toggle_xmlVfePianoFirepit_Desc>
   <GNH_LocalFixes_Status_Disabled>已关闭</GNH_LocalFixes_Status_Disabled>
   <GNH_LocalFixes_Status_TargetMissing>目标模组未启用</GNH_LocalFixes_Status_TargetMissing>
-  <GNH_LocalFixes_StatusSummary>本次启动：共 {0} 项 —— 已装载 {1} 项 · 已关闭 {2} 项 · 目标模组未安装 {3} 项</GNH_LocalFixes_StatusSummary>
+  <GNH_LocalFixes_StatusSummary>本次启动：共 {0} 项 —— 已装载 {1} 项 · 已关闭 {2} 项 · 目标模组未启用 {3} 项</GNH_LocalFixes_StatusSummary>
   <GNH_LocalFixes_StatusFailed> · 安装失败 {0} 项</GNH_LocalFixes_StatusFailed>
 </LanguageData>
