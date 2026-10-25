@@ -83,6 +83,27 @@ namespace GNH.LocalFixes
         private static readonly HashSet<string> reportedSkip =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// 本进程里 <see cref="Verse.PatchOperation.Apply"/> 被调用的总次数 ——
+        /// **不限于本模组的补丁文件**，任何模组的任何一条 Operation 都会让这个数加一。
+        ///
+        /// 【为什么要数这个】
+        ///   它回答的是「这一轮 XML 补丁到底有没有被执行」。
+        ///   正常的启动会走 thousands 次（本机实测一万两千多条 Operation）；
+        ///   而某些「Def 加载缓存」类模组（例如 DefLoadCache，packageId
+        ///   fluxxfield.defloadcache）会在命中缓存时**直接跳过整个 ApplyPatches**，
+        ///   def 数据库从磁盘上的缓存快照载入。这种情况下一次都不会加。
+        ///
+        /// 【为什么这个数能区分「缓存跳过」与「我们的开关没接上」】
+        ///   Resolve() 只对本模组登记过的 10 个文件返回 true，剩下的
+        ///   都在第一道判定就 return true 放行 —— 但它们**仍然先经过 Prefix**。
+        ///   所以只要 ApplyPatches 跑过，这个数就必然远大于 0。
+        ///   它为 0 只可能是「Apply 根本没被调用」，而不是「文件没匹配上」。
+        ///
+        /// 只在启动加载期写入（单线程），读取发生在设置界面 —— 用 volatile 足够。
+        /// </summary>
+        internal static volatile int ApplyCallsSeen;
+
         private static Dictionary<string, string> BuildMap()
         {
             Dictionary<string, string> map =
@@ -188,6 +209,8 @@ namespace GNH.LocalFixes
         /// </summary>
         private static bool Prefix(PatchOperation __instance, ref bool __result)
         {
+            // 计数放在 try 之前：即使下面出了意外，也要如实反映「Apply 确实被调用过」。
+            ApplyCallsSeen++;
             try
             {
                 string fileName;

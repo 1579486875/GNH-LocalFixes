@@ -104,4 +104,8 @@
   <GNH_LocalFixes_Status_TargetMissing>目標模組未啟用</GNH_LocalFixes_Status_TargetMissing>
   <GNH_LocalFixes_StatusSummary>本次啟動：共 {0} 項 —— 已裝載 {1} 項 · 已關閉 {2} 項 · 目標模組未啟用 {3} 項</GNH_LocalFixes_StatusSummary>
   <GNH_LocalFixes_StatusFailed> · 安裝失敗 {0} 項</GNH_LocalFixes_StatusFailed>
+  <GNH_LocalFixes_StatusNotRun> · 未運行 {0} 項</GNH_LocalFixes_StatusNotRun>
+  <GNH_LocalFixes_StatusCacheTip>10 個 XML 補丁項這次算作「已裝載」，但本輪並沒有重跑。
+原因：你裝了 Def 載入快取類模組（如 DefLoadCache），它命中了快取，整個 XML 補丁階段被跳過，Def 直接從上次「打完補丁」的快照載入。
+修復效果仍然在 —— 快取裡存的就是補丁執行後的結果。只要改動任何 Patches 檔案或本模組的 dll，快取會自動重建、補丁重新執行。</GNH_LocalFixes_StatusCacheTip>
 </LanguageData>

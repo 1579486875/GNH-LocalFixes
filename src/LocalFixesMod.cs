@@ -1038,7 +1038,29 @@ namespace GNH.LocalFixes
                 status += string.Format(Translated("GNH_LocalFixes_StatusFailed",
                     " · 安装失败 {0} 项"), failedCount);
             }
-            Widgets.Label(new Rect(rect.x, rect.y + 36f, rect.width, 22f), status);
+            // 「未运行」必须印出来。
+            //
+            // 以前只在「安装失败 > 0」时才追加，于是差额在没有报错的情况下**凭空消失**：
+            // 玩家看到「共 35 项 · 已装载 24 项 · 已关闭 0 · 未启用 0」，
+            // 剩下的 11 项在界面上无处交代（2026-10-19 玩家实际提出的疑问）。
+            // 数字必须能加得起来，哪怕最后一项叫「未运行」。
+            if (notRunCount > 0)
+            {
+                status += string.Format(Translated("GNH_LocalFixes_StatusNotRun",
+                    " · 未运行 {0} 项"), notRunCount);
+            }
+            Rect statusRect = new Rect(rect.x, rect.y + 36f, rect.width, 22f);
+            Widgets.Label(statusRect, status);
+            if (FixReport.XmlPatchesServedFromCache)
+            {
+                TooltipHandler.TipRegion(statusRect,
+                    Translated("GNH_LocalFixes_StatusCacheTip",
+                        "10 个 XML 补丁项这次算作「已装载」，但本轮并没有重跑。\n"
+                        + "原因：你装了 Def 加载缓存类模组（如 DefLoadCache），它命中了缓存，"
+                        + "整个 XML 补丁阶段被跳过，Def 直接从上次「打完补丁」的快照载入。\n"
+                        + "修复效果仍然在 —— 缓存里存的就是补丁执行后的结果。"
+                        + "只要改动任何 Patches 文件或本模组的 dll，缓存会自动重建、补丁重新执行。"));
+            }
 
             Color prevColor = GUI.color;
             GUI.color = new Color(1f, 0.85f, 0.45f);
