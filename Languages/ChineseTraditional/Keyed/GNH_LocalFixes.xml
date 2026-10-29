@@ -108,4 +108,10 @@
   <GNH_LocalFixes_StatusCacheTip>10 個 XML 補丁項這次算作「已裝載」，但本輪並沒有重跑。
 原因：你裝了 Def 載入快取類模組（如 DefLoadCache），它命中了快取，整個 XML 補丁階段被跳過，Def 直接從上次「打完補丁」的快照載入。
 修復效果仍然在 —— 快取裡存的就是補丁執行後的結果。只要改動任何 Patches 檔案或本模組的 dll，快取會自動重建、補丁重新執行。</GNH_LocalFixes_StatusCacheTip>
+  <GNH_LocalFixes_Toggle_ravenLocustWeatherQuiet>渡鴉蝗蟲雨每幀刷 Unity 數學棧異常（【38】）</GNH_LocalFixes_Toggle_ravenLocustWeatherQuiet>
+  <GNH_LocalFixes_Toggle_ravenLocustWeatherQuiet_Desc>RavenRace 的「蝗蟲雨」天氣組件在 1.7 的 Waylith 引擎下調 Unity.Mathematics.math.normalize(float2)，而 UnityStubs 裡沒有這個重載 —— 一進地圖就每幀拋 MissingMethodException，實測 6 分鐘刷 12,671 行、約 4 MB/分鐘。本項把該天氣組件從地圖組件列表裡摘掉；它依賴的 Jobs/Burst 粒子在換引擎後本就跑不起來，功能損失為零。★ 只在 1.7+ 生效：1.6 的 Unity.Mathematics 有這個重載，那個組件本身工作正常，無條件摘掉等於白丟一個天氣（守衛用 Verse.MaterialDef 判版本）。</GNH_LocalFixes_Toggle_ravenLocustWeatherQuiet_Desc>
+  <GNH_LocalFixes_Toggle_xmlRjw17SraeLibField>1.7 下 SRAELib 欄位缺失刷紅字（【36】）</GNH_LocalFixes_Toggle_xmlRjw17SraeLibField>
+  <GNH_LocalFixes_Toggle_xmlRjw17SraeLibField_Desc>雪兔服裝擴展（工坊 3668025052）的 1.6\Assemblies 裡躺著兩個程式集名都是 SRAELib 1.0.0.0 的 dll —— SRAELib.dll（19,456 位元組，有 targetNullifyingHediffs）與 SRAELib_old.dll（18,944 位元組，沒有），遊戲載入到舊的那個，於是 ThoughtDef_HediffAttraction 報「doesn't correspond to any field」。本項在 1.7+ 刪掉那個欄位；1.6 下不執行（守衛用 Verse.MaterialDef 判版本）—— 因為 1.6 的 SRAELib 裡該欄位有效，無條件刪會把「認知護盾免疫」一起刪掉。</GNH_LocalFixes_Toggle_xmlRjw17SraeLibField_Desc>
+  <GNH_LocalFixes_Toggle_xmlRjw17HediffVisible>HediffStage.visible 欄位不存在（【37】）</GNH_LocalFixes_Toggle_xmlRjw17HediffVisible>
+  <GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>某些模組給 HediffStage 寫了 visible 欄位，而 1.6 與 1.7 的 Verse.HediffStage 都沒有這個欄位（只有 becomeVisible）→ 每次載入刷「doesn't correspond to any field in type HediffStage」。刪掉不改變任何行為，只消日誌。兩個版本都成立，無需版本守衛。</GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>
 </LanguageData>

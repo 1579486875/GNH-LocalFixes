@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+
+	<!--
+	  ── 1.7 下 ThoughtDef_HediffAttraction 缺 targetNullifyingHediffs 字段 ──
+
+	  报错原文：
+	    XML error: <targetNullifyingHediffs>... doesn't correspond to any field
+	    in type ThoughtDef_HediffAttraction
+
+	  根因不在 XML，在 dll：雪兔服装扩展（3668025052）的 1.6\Assemblies 目录里
+	  同时躺着两个 dll，程序集名都是 SRAELib 1.0.0.0 ——
+	    SRAELib.dll      19,456 字节  4 个字段  有 targetNullifyingHediffs
+	    SRAELib_old.dll  18,944 字节  3 个字段  没有
+	  游戏实际加载到的是旧的 SRAELib_old.dll，所以字段不存在。
+	  （2026-10-28 逐个反编译比对的结论。）
+
+	  ⚠ 版本守卫是必须的，不是保险：
+	    在 1.6 下 SRAELib.dll 能正常加载、这个字段是有效的，
+	    若无条件删掉，会把「认知护盾免疫」这个功能一并删掉。
+	    所以整段只在 1.7+ 执行。
+
+	  守卫用 MaterialDef 判断版本：Verse.MaterialDef 是 1.7 换引擎（Waylith）后
+	  新增的 Def 类型，1.6 的 Assembly-CSharp 里根本没有这个类型，
+	  而 1.7 的 Data\Core\Defs\Materials.Generated.xml 里有大量 <MaterialDef> 节点。
+	  已反编译核对：1.6 查不到该类型，1.7 有。
+
+	  Sequence 是短路的（Verse.PatchOperationSequence.ApplyWorker：任一子项返回 false
+	  就 return false），Test 不命中时后面的 Remove 不会执行 —— 正是我们要的。
+
+	  ── 2026-10-29 拆分说明 ──
+	  原先本项与【37】挤在 RJW17_XmlFieldCleanup.xml 一个文件里，而「一个 XML 文件
+	  只能挂一个开关」（FixToggles.Entry.XmlPatchFile 是单个文件名），
+	  结果两项都进不了设置界面、也进不了统计。拆开之后各占一个开关。
+	-->
+	<Operation Class="PatchOperationSequence">
+		<operations>
+			<li Class="PatchOperationTest">
+				<xpath>//MaterialDef</xpath>
+			</li>
+			<li Class="PatchOperationRemove">
+				<xpath>//ThoughtDef[@Class="SRAELib.ThoughtDef_HediffAttraction"]/targetNullifyingHediffs</xpath>
+			</li>
+		</operations>
+	</Operation>
+</Patch>

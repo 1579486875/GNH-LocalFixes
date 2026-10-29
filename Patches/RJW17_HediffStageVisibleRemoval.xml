@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+
+	<!--
+	  ── 1.7 / 1.6 的 HediffStage 都没有 visible 字段 ──
+
+	  ⚠ 这一条不需要版本守卫，而且 1.6 下同样成立：
+	    反编译核对过，1.6 的 Verse.HediffStage 也没有 visible（只有 becomeVisible）。
+	    也就是说这个字段在两个版本下都读不到，删掉不改变任何行为，
+	    只会让日志里那条 "doesn't correspond to any field in type HediffStage" 消失。
+
+	  ── 2026-10-29 拆分说明 ──
+	  原先与【36】挤在 RJW17_XmlFieldCleanup.xml 一个文件里，一个文件只能挂一个开关，
+	  两项都进不了设置界面。拆开之后各占一个开关。
+	-->
+	<Operation Class="PatchOperationRemove">
+		<xpath>//HediffDef/stages/li/visible</xpath>
+	</Operation>
+</Patch>

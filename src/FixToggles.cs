@@ -197,6 +197,19 @@ namespace GNH.LocalFixes
                 "生成古代神殿时，每个小格子都会刷一条「找不到 mimicSpawner 规则」的警告（实测一次开局 34 条）。"
                 + "原版那条路径本来就是「拒绝 + 什么都不做」，所以本项只是不再刷警告，行为完全等价。"),
 
+            // 2026-10-29 补登记：这一项在 2026-10-28 就装上了（见 LocalFixesMod.cs 的
+            // TryInstall("ravenLocustWeatherQuiet", …)），但当时忘了在 FixToggles.All 里
+            // 建条目 —— 结果是「补丁在跑、设置界面看不到、统计也不数它」。
+            // 现在补上，界面上多一行、统计从 35 变 38。
+            new Entry("ravenLocustWeatherQuiet", GroupSpam,
+                "渡鸦蝗虫雨每帧刷 Unity 数学栈异常（【38】）",
+                "RavenRace 的「蝗虫雨」天气组件在 1.7 的 Waylith 引擎下调 "
+                + "Unity.Mathematics.math.normalize(float2)，而 UnityStubs 里没有这个重载 —— "
+                + "一进地图就每帧抛 MissingMethodException，实测 6 分钟刷 12,671 行、约 4 MB/分钟。"
+                + "本项把该天气组件从地图组件列表里摘掉；它依赖的 Jobs/Burst 粒子在换引擎后本就跑不起来，功能损失为零。"
+                + "★ 只在 1.7+ 生效：1.6 的 Unity.Mathematics 有这个重载，那个组件本身工作正常，"
+                + "无条件摘掉等于白丢一个天气（守卫用 Verse.MaterialDef 判版本）。"),
+
             new Entry("rjwGenesSpamQuiet", GroupSpam,
                 "RJW-Genes 调试刷屏",
                 "开发者模式下每帧都写一行 [RJW-Genes] multipreg checks（实测一局 3 万条、占整份日志 65%），"
@@ -348,6 +361,27 @@ namespace GNH.LocalFixes
                 + "本项补做那 8 条操作。"
                 + "★ 若「中文名判定」那一项（findModLanguage）开着，VFE 自己就会执行，本项会自动匹配 0 个节点、不动作。",
                 xmlPatchFile: "VFEPianoFirepitRestore.xml"),
+
+            // 2026-10-29 补登记：下面两项原先与「HediffStage.visible」那条一起挤在
+            // RJW17_XmlFieldCleanup.xml 一个文件里。而一个 Entry 只能挂一个文件名
+            // （Entry.XmlPatchFile 是单个字符串），于是两项都进不了设置界面、也进不了统计。
+            // 已把那个文件拆成两个（各留原注释），这里各建一个开关。
+            new Entry("xmlRjw17SraeLibField", GroupXmlPatches,
+                "1.7 下 SRAELib 字段缺失刷红字（【36】）",
+                "雪兔服装扩展（工坊 3668025052）的 1.6\\Assemblies 里躺着两个程序集名都是 "
+                + "SRAELib 1.0.0.0 的 dll —— SRAELib.dll（19,456 字节，有 targetNullifyingHediffs）"
+                + "与 SRAELib_old.dll（18,944 字节，没有），游戏加载到旧的那个，"
+                + "于是 ThoughtDef_HediffAttraction 报「doesn't correspond to any field」。"
+                + "本项在 1.7+ 删掉那个字段；1.6 下**不执行**（守卫用 Verse.MaterialDef 判版本）—— "
+                + "因为 1.6 的 SRAELib 里该字段有效，无条件删会把「认知护盾免疫」一起删掉。",
+                xmlPatchFile: "RJW17_SraeLibFieldCleanup.xml"),
+
+            new Entry("xmlRjw17HediffVisible", GroupXmlPatches,
+                "HediffStage.visible 字段不存在（【37】）",
+                "某些模组给 HediffStage 写了 visible 字段，而 1.6 与 1.7 的 Verse.HediffStage 都没有这个字段"
+                + "（只有 becomeVisible）→ 每次加载刷「doesn't correspond to any field in type HediffStage」。"
+                + "删掉不改变任何行为，只消日志。两个版本都成立，无需版本守卫。",
+                xmlPatchFile: "RJW17_HediffStageVisibleRemoval.xml"),
         };
 
         // ======================================================================
@@ -479,6 +513,13 @@ namespace GNH.LocalFixes
             { "xmlSnowRabbitTattooIcon", "Gugustar.SnowRabbitRaceBeta" },
             { "xmlVfeeRoyalTitleExt", "OskarPotocki.VFE.Empire" },
             { "xmlVfePianoFirepit", "VanillaExpanded.VFECore" },
+
+            // ── 2026-10-29 补登记：10-28 加的三项修复此前没登记前置，
+            //    所以「目标模组未启用」这个状态对它们永远不会出现。
+            //    【37】不登记：它删的是「任何模组写错的 HediffStage.visible」，
+            //    没有单一目标模组，硬填一个会误报。
+            { "xmlRjw17SraeLibField", "HahaSnowRabbitPB.ApparelPatch" },
+            { "ravenLocustWeatherQuiet", "ZuoYao.RavenRaceNSFW" },
         };
 
         /// <summary>
