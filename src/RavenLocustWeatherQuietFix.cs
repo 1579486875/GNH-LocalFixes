@@ -141,6 +141,49 @@ namespace GNH.LocalFixes
                     return;
                 }
 
+                // ★ 「作者修好了就自动让路」的精确判据（2026-10-29 补）。
+                //
+                //   上面那道判据只回答「是不是 1.7」。但真正让我们动手的缺陷是
+                //   「UnityStubs 的 Unity.Mathematics.math 里没有 normalize(float2)」——
+                //   实测（2026-10-29 用 DecompilerServer 摊开 UnityStubs.dll 数过）：
+                //     Unity.Mathematics.math 共 110 个成员，normalize 只有 1 个：
+                //       ✅ float3 normalize(float3 x)
+                //       ❌ 没有 float2 normalize(float2 x)
+                //   而同一个类的 dot 做了 float2 / float3 两版 —— 说明这是**漏做**，
+                //   不是有意不做。Waylith 只要把二维那版补上，这个缺陷就消失了。
+                //
+                //   所以这里再问一句「那个二维函数现在有没有」。有 → 什么都不做，
+                //   把天气原样还给玩家。没有 → 继续摘。
+                //   没有这道判据的话，上游哪天补好了，我们还会一直摘下去 ——
+                //   那就是白丢一个能用的天气，而不是修复。
+                try
+                {
+                    Type mathType = AccessTools.TypeByName("Unity.Mathematics.math");
+                    Type float2Type = AccessTools.TypeByName("Unity.Mathematics.float2");
+                    if (mathType != null && float2Type != null)
+                    {
+                        MethodInfo normalize2 = AccessTools.Method(
+                            mathType, "normalize", new[] { float2Type });
+                        if (normalize2 != null)
+                        {
+                            installed = true;
+                            Log.Message("[GNH LocalFixes] UnityStubs 已经提供 "
+                                + "Unity.Mathematics.math.normalize(float2) ——"
+                                + "蝗虫雨天气在当前引擎下能正常计算，"
+                                + "蝗虫雨刷屏消音补丁自动让路、不再摘组件。"
+                                + "（这一项可以从设置里关掉，或留给自检提示。）");
+                            return;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 探测本身失败就当「缺陷还在」处理 —— 宁可继续保护，
+                    // 也不要因为一次反射失败就把每帧刷屏放回来。
+                    Log.Warning("[GNH LocalFixes] 探测 normalize(float2) 时出错，"
+                        + "按「缺陷仍在」处理，继续安装摘除补丁：" + ex.Message);
+                }
+
                 // 再确认模组在不在。不在就安静跳过 —— 这是本包一贯的「自动让路」。
                 Type locustType = AccessTools.TypeByName(TargetTypeName);
                 if (locustType == null)
