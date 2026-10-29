@@ -307,6 +307,30 @@ namespace GNH.LocalFixes
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
             TryInstall("xmlExtensionsFindMod", "XmlExtensionsFindModFix", XmlExtensionsFindModFix.Install);
 
+            // 2026-10-28 新增：消掉 1.7 下「一进地图就每帧刷」的
+            //     ERROR [Verse] System.MissingMethodException: Method not found:
+            //         'Unity.Mathematics.float2 Unity.Mathematics.math.normalize(Unity.Mathematics.float2)'
+            // 实测（2026-10-28 15:43 进图后 6 分钟）：12,671 行，日志约 4 MB/分钟。
+            //
+            // 来源是 RavenRace（渡鸦种族，ZuoYao.RavenRaceNSFW）的「蝗虫雨」天气组件：
+            // 它在 MapComponentUpdate 里每帧调 Unity.Mathematics.math.normalize(float2)，
+            // 而 1.7 换引擎后 UnityEngine.* 全部被重定向到 UnityStubs
+            // （RimWorld.runtimeconfig.json 的 AssemblyNameRedirects），
+            // UnityStubs 的 Unity.Mathematics.math 里**没有 normalize 这个重载**。
+            //
+            // ⚠ 不能直接给那个方法打 Prefix —— 第一版那么写，补丁自己装不上：
+            //   Harmony 的 MethodBodyReader 读目标方法 IL 时会因为那个缺失的方法引用
+            //   当场抛 MissingMethodException（已实测复现）。
+            //   所以改成 patch 原版的遍历器 Verse.MapComponentUtility.MapComponentUpdate，
+            //   在它的 Prefix 里把该组件从 map.components 摘掉。
+            //   那个遍历器本来就是每个组件独立 try/catch，摘掉一个不影响其它组件。
+            //
+            // 该天气效果依赖的 Jobs/Burst 粒子在换引擎后本就跑不起来，摘掉功能损失为零。
+            // 详见 RavenLocustWeatherQuietFix.cs 的文件头注释（含两次实测的证据）。
+            // 目标类型来自第三方 dll，所以本步走反射：RavenRace 没装时只打一条 Message 就跳过。
+            // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
+            TryInstall("ravenLocustWeatherQuiet", "RavenLocustWeatherQuietFix", RavenLocustWeatherQuietFix.Install);
+
             // 2026-10-06 新增：NudityMattersMore 的 CoverBody.UpdateIdeo 会因为
             // 「调用方传 null + 它自己的静态字典里已有一条同号残留」而解引用空引用，
             // 把整条 Pawn 生成流程掀翻 —— 表现就是同一个进程里连续开新局会卡死在生成阶段

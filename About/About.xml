@@ -4,14 +4,14 @@
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.4.13</modVersion>
+  <modVersion>1.4.15</modVersion>
   <supportedVersions>
     <li>1.6</li>
     <li>1.7</li>
   </supportedVersions>
   <description>RimWorld 装了几百上千个模组之后，总会遇到这类毛病：某个模组自己写错一行，或者和另一个模组撞上。游戏不崩，只是日志被刷满屏、某个功能悄悄失效、玩着玩着莫名卡顿。
 
-报给作者要等，自己又改不动。这个补丁把它们一条条揪出来修掉 —— 现在 35 条，条条独立。
+报给作者要等，自己又改不动。这个补丁把它们一条条揪出来修掉 —— 现在 38 条，条条独立。
 
 修复速览
 
@@ -50,12 +50,15 @@
 【33】贞操装备缺耐久与可燃字段
 【34】基因分类排序撞号
 【35】三条指向不存在 def 的交叉引用
+【36】1.7 下 SRAELib 字段缺失刷红字
+【37】1.7 已移除的 HediffStage.visible
+【38】渡鸦蝗虫雨每帧刷 Unity 数学栈异常
 
 怎么用
 
 装进 Mods 目录、在游戏里启用即可，没有必填设置。位置建议靠下：排在 Harmony 之后，最好也排在它要修的那些模组之后。
 
-两部分组成：Patches 目录下是 10 个 XML 补丁，Assemblies 目录里是一个 dll，互不依赖 —— 删掉哪一半，就只有那一半不生效。
+两部分组成：Patches 目录下是 11 个 XML 补丁，Assemblies 目录里是一个 dll，互不依赖 —— 删掉哪一半，就只有那一半不生效。
 
 设置里有 35 个开关，默认全开，分五组：崩溃与卡死、日志刷屏、兼容与判定、行为与设置、XML 补丁。只有第 1 条没有开关 —— 它是类型补齐，跟 dll 一起生效。每条右侧会标出异常状态（灰色「已关闭」／暗黄「目标模组未启用」），顶部有一行汇总，告诉你这次实际装上了多少条。
 
