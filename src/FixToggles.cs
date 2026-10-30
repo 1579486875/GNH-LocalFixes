@@ -210,6 +210,19 @@ namespace GNH.LocalFixes
                 + "★ 只在 1.7+ 生效：1.6 的 Unity.Mathematics 有这个重载，那个组件本身工作正常，"
                 + "无条件摘掉等于白丢一个天气（守卫用 Verse.MaterialDef 判版本）。"),
 
+            // 2026-10-30 新增：原版只让「需要实时绘制」的建筑进 DynamicDrawPhase 循环，
+            // RavenRace 的史莱姆覆盖层在那里读一个没有判空的静态设置，取不到就每帧抛 NRE。
+            new Entry("realtimeDrawNreSwallow", GroupSpam,
+                "实时绘制空引用刷屏（【39】）",
+                "某些建筑（如 Dubs Rimatomics 的反应堆控制台）需要逐帧绘制，"
+                + "而 RavenRace 的史莱姆覆盖层在这条路上读一个没有判空的静态设置 —— "
+                + "取不到就每帧抛一次 NullReferenceException。实测 8.5 小时刷出 66 万条 ERROR、"
+                + "2.07 GB 日志、进程内存涨到 28 GB。"
+                + "本项只吞空引用并按 500 次一条记录，其它异常照常抛出。"
+                + "★ 找不到 RavenRace 的史莱姆覆盖层时会自动让路、什么都不做；"
+                + "上游补上判空后异常不再出现，本项也就自然不再动作。",
+                "GNH.LocalFixes.Patch_Thing_DynamicDrawPhase_SwallowRealtimeNre"),
+
             new Entry("rjwGenesSpamQuiet", GroupSpam,
                 "RJW-Genes 调试刷屏",
                 "开发者模式下每帧都写一行 [RJW-Genes] multipreg checks（实测一局 3 万条、占整份日志 65%），"

@@ -53,6 +53,8 @@
   <GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>与上一项是同一场崩溃的另一条路：把「取工坊信息」这条链路上的空值与异常接住。两项都开着最稳。</GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>
   <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>古代神殿警告刷屏</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>
   <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>生成古代神殿时，每个小格子都会刷一条「找不到 mimicSpawner 规则」的警告（实测一次开局 34 条）。原版那条路径本来就是「拒绝 + 什么都不做」，所以本项只是不再刷警告，行为完全等价。</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>
+  <GNH_LocalFixes_Toggle_realtimeDrawNreSwallow>实时绘制空引用刷屏（【39】）</GNH_LocalFixes_Toggle_realtimeDrawNreSwallow>
+  <GNH_LocalFixes_Toggle_realtimeDrawNreSwallow_Desc>需要逐帧绘制的建筑（如 Dubs Rimatomics 的反应堆控制台）会走进这条绘制路径，而 RavenRace 的史莱姆覆盖层在这里读一个没有判空的静态设置，取不到就每帧抛空引用。实测 8.5 小时刷出 66 万条 ERROR、2.07 GB 日志、内存涨到 28 GB。本项只吞空引用并按 500 次一条记录，其它异常照常抛出。</GNH_LocalFixes_Toggle_realtimeDrawNreSwallow_Desc>
   <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>RJW-Genes 调试刷屏</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>
   <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>开发者模式下每帧都写一行 [RJW-Genes] multipreg checks（实测一局 3 万条、占整份日志 65%），把真正要看的问题全埋掉。本项只拦这一句，该模组的报错与警告照常输出。</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>
   <GNH_LocalFixes_Toggle_vehicleFrameworkDebug>Vehicle Framework 调试菜单报错</GNH_LocalFixes_Toggle_vehicleFrameworkDebug>
