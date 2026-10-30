@@ -189,7 +189,7 @@ namespace GNH.LocalFixes
             //
             // ⚠ 构造函数里其实有【两条】互相独立的安装路径，读注释时别把它们混成一条：
             //   (a) 下面这个 try 块里的 InstallAllPatchClasses() —— 只管带 [HarmonyPatch]
-            //       特性的那 9 个补丁类（7 个功能类 + Apply / Complete 两个机制类），内部由 InstallPatchClass 逐类 try/catch；
+            //       特性的那 10 个补丁类（8 个功能类 + Apply / Complete 两个机制类），内部由 InstallPatchClass 逐类 try/catch；
             //   (b) 本 try 块【之后】平铺的那些 TryInstall(...) —— 它们不在这个 try 里，
             //       也不经过 InstallAllPatchClasses，而是各自由 TryInstall 逐项 try/catch。
             // 两条路径的每一步都已经自兜了，打日志也都走 SafeLog*（自己不会抛）。
@@ -475,7 +475,7 @@ namespace GNH.LocalFixes
             // Patch_PatchOperation_Apply 根本不会被安装 —— 于是没有任何拦截，
             // Patches\ 下 10 个文件全部照常执行（这正是 About 里写的行为）。
             // 但它们不会再经过 FixReport.MarkLoaded，汇总行于是少 10 项：
-            // 玩家看到「共 35 项」，可已装载/已关闭/未启用加起来不够 35，像是丢了东西。
+            // 玩家看到「共 39 项」，可已装载/已关闭/未启用加起来不够 39，像是丢了东西。
             // 总控关掉 = 所有 XML 补丁都在执行，所以这里按「已装载」补记。
             MarkXmlTogglesWhenGateOff();
         }
@@ -674,6 +674,10 @@ namespace GNH.LocalFixes
             "GNH.LocalFixes.Patch_GenTypes_PreferTelanda",
             "GNH.LocalFixes.Patch_LoadModXML_FilterTelandaGenes",
             "GNH.LocalFixes.Patch_LoadModXML_FilterRjwpeStaleDefs",
+            // 【39】实时绘制空引用：这条也是 [HarmonyPatch] 类（带 [HarmonyPrepare] 让路）。
+            // 漏登记它不会在正常路径上出问题（GetTypes 成功时按特性扫得到），
+            // 但在「GetTypes() 整体失败」的退化路径上，【39】会被静默漏装 —— 所以必须登记。
+            "GNH.LocalFixes.Patch_Thing_DynamicDrawPhase_SwallowRealtimeNre",
             // 下面两个是 XML 补丁开关的机制类。漏了它们在退化路径上不会报错，
             // 只会让「XML 补丁也能单独关」这个功能静默消失 —— 所以必须登记。
             "GNH.LocalFixes.Patch_PatchOperation_Apply",
@@ -1028,7 +1032,7 @@ namespace GNH.LocalFixes
             // 这里明说它不动 —— 那两项是玩家偏好（保不保护领袖头衔之类），不是故障修复，
             // 顺手替玩家改掉不合适。
             //
-            // ⚠ v1.4.10 加了第五组（XML 补丁）之后，本按钮会连那 10 个 XML 开关一起关掉，
+            // ⚠ v1.4.10 加了第五组（XML 补丁）之后，本按钮会连那 12 个 XML 开关一起关掉，
             //    而提示当时没跟着改 —— v1.4.12 补上「XML 补丁」这一类，别再漏。
             TooltipHandler.TipRegion(onlyCrashRect,
                 Translated("GNH_LocalFixes_OnlyCrashes_Tip",
@@ -1065,7 +1069,7 @@ namespace GNH.LocalFixes
             // 「未运行」必须印出来。
             //
             // 以前只在「安装失败 > 0」时才追加，于是差额在没有报错的情况下**凭空消失**：
-            // 玩家看到「共 35 项 · 已装载 24 项 · 已关闭 0 · 未启用 0」，
+            // 玩家看到「共 39 项 · 已装载 26 项 · 已关闭 0 · 未启用 0」，
             // 剩下的 11 项在界面上无处交代（2026-10-19 玩家实际提出的疑问）。
             // 数字必须能加得起来，哪怕最后一项叫「未运行」。
             if (notRunCount > 0)
@@ -1079,7 +1083,7 @@ namespace GNH.LocalFixes
             {
                 TooltipHandler.TipRegion(statusRect,
                     Translated("GNH_LocalFixes_StatusCacheTip",
-                        "10 个 XML 补丁项这次算作「已装载」，但本轮并没有重跑。\n"
+                        "12 个 XML 补丁项这次算作「已装载」，但本轮并没有重跑。\n"
                         + "原因：你装了 Def 加载缓存类模组（如 DefLoadCache），它命中了缓存，"
                         + "整个 XML 补丁阶段被跳过，Def 直接从上次「打完补丁」的快照载入。\n"
                         + "修复效果仍然在 —— 缓存里存的就是补丁执行后的结果。"

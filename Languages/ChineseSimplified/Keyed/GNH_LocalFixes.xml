@@ -107,7 +107,7 @@
   <GNH_LocalFixes_StatusSummary>本次启动：共 {0} 项 —— 已装载 {1} 项 · 已关闭 {2} 项 · 目标模组未启用 {3} 项</GNH_LocalFixes_StatusSummary>
   <GNH_LocalFixes_StatusFailed> · 安装失败 {0} 项</GNH_LocalFixes_StatusFailed>
   <GNH_LocalFixes_StatusNotRun> · 未运行 {0} 项</GNH_LocalFixes_StatusNotRun>
-  <GNH_LocalFixes_StatusCacheTip>10 个 XML 补丁项这次算作「已装载」，但本轮并没有重跑。
+  <GNH_LocalFixes_StatusCacheTip>12 个 XML 补丁项这次算作「已装载」，但本轮并没有重跑。
 原因：你装了 Def 加载缓存类模组（如 DefLoadCache），它命中了缓存，整个 XML 补丁阶段被跳过，Def 直接从上次「打完补丁」的快照载入。
 修复效果仍然在 —— 缓存里存的就是补丁执行后的结果。只要改动任何 Patches 文件或本模组的 dll，缓存会自动重建、补丁重新执行。</GNH_LocalFixes_StatusCacheTip>
   <GNH_LocalFixes_Toggle_ravenLocustWeatherQuiet>渡鸦蝗虫雨每帧刷 Unity 数学栈异常（【38】）</GNH_LocalFixes_Toggle_ravenLocustWeatherQuiet>

@@ -108,7 +108,7 @@ The two "Behaviour &amp; settings" entries are left alone - those are your prefe
   <GNH_LocalFixes_StatusSummary>This session: {0} entries — {1} loaded · {2} disabled · {3} target mod not enabled</GNH_LocalFixes_StatusSummary>
   <GNH_LocalFixes_StatusFailed> · {0} failed</GNH_LocalFixes_StatusFailed>
   <GNH_LocalFixes_StatusNotRun> · {0} not run</GNH_LocalFixes_StatusNotRun>
-  <GNH_LocalFixes_StatusCacheTip>The 10 XML patch entries count as loaded, but they were not re-applied this session.
+  <GNH_LocalFixes_StatusCacheTip>The 12 XML patch entries count as loaded, but they were not re-applied this session.
 Reason: a Def load cache mod (e.g. DefLoadCache) is installed and hit its cache, so the whole XML patch stage was skipped and defs came straight from the previously patched snapshot.
 The fixes are still in effect - the cache holds the post-patch result. Changing any Patches file or this mod&apos;s dll rebuilds the cache and re-applies the patches.</GNH_LocalFixes_StatusCacheTip>
   <GNH_LocalFixes_Toggle_ravenLocustWeatherQuiet>RavenRace locust-rain spam: Unity math stack exception every frame (#38)</GNH_LocalFixes_Toggle_ravenLocustWeatherQuiet>

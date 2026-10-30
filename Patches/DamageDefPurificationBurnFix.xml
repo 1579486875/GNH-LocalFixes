@@ -72,4 +72,22 @@
     <xpath>Defs/ThingDef[@Name="FTC_BasePermanentTurret_Mannable"]/damageMultipliers/li[damageDef="PurificationBurn"]</xpath>
   </Operation>
 
+
+  <!-- 2026-10-30 补全（第三处）：上面两条只按模板名删，
+       而全库扫描发现还有第三个 @Name 也在写这条死引用 ——
+         · Fortification Industrial（工坊 2561619583，Aoba.Fortress.Industrial）
+           1.6\Vanilla\Defs\FT_Security_Medium.xml
+           1.6\CombatExtended\Defs\FT_Security_Medium_CE.xml
+           两处都是 ThingDef[@Name="FT_BaseCannonBuilding_WithShieldOrCementBase"]
+       （Citadel 是它的扩展包，所以两个工坊条目各有一份）
+
+       于是每次加载仍会飘一条
+         Could not resolve cross-reference: No Verse.DamageDef named PurificationBurn
+       这条改成按 damageDef 全局删：PurificationBurn 在 Monolyn Race 里是 HediffDef，
+       任何地方把它当 DamageDef 写都必然解析失败，删掉不改变任何行为。
+       上面两条具体的留着当兜底（先跑，删掉后本条的 xpath 自然匹配 0 个节点）。 -->
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/ThingDef/damageMultipliers/li[damageDef="PurificationBurn"]</xpath>
+  </Operation>
 </Patch>

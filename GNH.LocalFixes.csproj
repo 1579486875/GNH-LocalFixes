@@ -26,7 +26,7 @@
          AssemblyInfo.cs，所以这里改多少，DLL 里就是多少
          （2026-10-13 实测：改成 1.4.2 后 DLL 自报 1.4.2.0）。
          切勿照抄 MKC/UBFC 的注释，会判断反。 -->
-    <Version>1.4.16</Version>
+    <Version>1.4.17</Version>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DebugType>none</DebugType>
     <!-- 编译产物不掺入 git 提交号：相同源码在任何机器上都编译出完全相同的 dll -->
@@ -112,7 +112,14 @@
   -->
   <PropertyGroup>
     <RimWorldDir Condition="'$(RimWorldDir)' == ''">D:\steam\steamapps\common\RimWorld</RimWorldDir>
-    <ManagedDir>$(RimWorldDir)\RimWorldWin64_Data\Managed</ManagedDir>
+    <!-- 游戏程序集所在的目录，两代引擎不一样，这里自动认：
+           · 1.6 及以前（Unity / Mono）—— <RimWorldDir>\RimWorldWin64_Data\Managed\
+           · 1.7 起（Waylith 引擎，2026-10-27 换装）—— **所有 dll 平铺在 <RimWorldDir>\ 根目录**，
+             没有 RimWorldWin64_Data 这个文件夹了。
+         判据只看「那个位置到底有没有 Assembly-CSharp.dll」，不去猜版本号。 -->
+    <ManagedDir Condition="Exists('$(RimWorldDir)\RimWorldWin64_Data\Managed\Assembly-CSharp.dll')">$(RimWorldDir)\RimWorldWin64_Data\Managed</ManagedDir>
+    <ManagedDir Condition="'$(ManagedDir)' == '' and Exists('$(RimWorldDir)\Assembly-CSharp.dll')">$(RimWorldDir)</ManagedDir>
+    <ManagedDir Condition="'$(ManagedDir)' == ''">$(RimWorldDir)\RimWorldWin64_Data\Managed</ManagedDir>
   </PropertyGroup>
 
   <!-- 编译前只做「文件在不在」的检查（Exists 是 MSBuild 内置函数，任何版本都支持）。

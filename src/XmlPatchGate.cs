@@ -84,6 +84,34 @@ namespace GNH.LocalFixes
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Apply 阶段「正常返回 false」的文件名集合 —— 也就是「目标节点 / 目标模组
+        /// 不在场，这条补丁按设计让路」。
+        ///
+        /// 【为什么需要它】
+        ///   本模组的 12 个 XML 补丁都是「装上目标模组才需要修」的那种。目标没装时
+        ///   它们当然打不中，但 RimWorld 的收尾阶段
+        ///   （<c>LoadedModManager.ClearCachedPatches</c> → <c>PatchOperation.Complete</c>）
+        ///   会把任何「一次都没成功过」的操作报成
+        ///   <c>Patch operation ... failed</c> 的 **ERROR**。
+        ///   于是 1.6 那个精简环境里，只要目标模组没装，一开游戏就刷一屏红字 ——
+        ///   而实际上什么都没坏。
+        ///
+        /// 【怎么区分「按设计让路」和「真出错」】
+        ///   反编译 <c>Verse.PatchOperation.Apply</c>：
+        ///   · <c>ApplyWorker</c> 正常返回 false → <c>Apply</c> 返回 false，**不打日志**；
+        ///   · <c>ApplyWorker</c> 抛异常          → <c>Apply</c> 内部**已经** Log.Error 过一次。
+        ///   所以「返回 false 且日志里没有 Error」精确等于「目标不在场」。
+        ///   真出错（xpath 语法错、类型解析失败……）在 Apply 那一层就已经红过了，
+        ///   这里放过 Complete 的那条 failed，不会让任何真问题被埋掉。
+        /// </summary>
+        private static readonly HashSet<string> failedFiles =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>已经为「目标不在场」打过说明日志的文件名（一个文件只打一次）。</summary>
+        private static readonly HashSet<string> reportedMissingTarget =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
         /// 本进程里 <see cref="Verse.PatchOperation.Apply"/> 被调用的总次数 ——
         /// **不限于本模组的补丁文件**，任何模组的任何一条 Operation 都会让这个数加一。
         ///
@@ -95,7 +123,7 @@ namespace GNH.LocalFixes
         ///   def 数据库从磁盘上的缓存快照载入。这种情况下一次都不会加。
         ///
         /// 【为什么这个数能区分「缓存跳过」与「我们的开关没接上」】
-        ///   Resolve() 只对本模组登记过的 10 个文件返回 true，剩下的
+        ///   Resolve() 只对本模组登记过的 12 个文件返回 true，剩下的
         ///   都在第一道判定就 return true 放行 —— 但它们**仍然先经过 Prefix**。
         ///   所以只要 ApplyPatches 跑过，这个数就必然远大于 0。
         ///   它为 0 只可能是「Apply 根本没被调用」，而不是「文件没匹配上」。
@@ -259,6 +287,68 @@ namespace GNH.LocalFixes
                 return true;
             }
         }
+
+        /// <summary>
+        /// Apply 之后记账：这条属于本模组的 Operation 是不是「目标不在场，按设计让路」。
+        ///
+        /// <para>
+        /// 只处理 <c>__result == false</c> 的情况，也就是 <c>ApplyWorker</c> **正常**返回 false。
+        /// 真正抛异常的那种，<c>PatchOperation.Apply</c> 内部已经 Log.Error 过一次，
+        /// 异常本身仍然可见，这里再补一刀只会变成噪音。
+        /// </para>
+        /// </summary>
+        private static void Postfix(PatchOperation __instance, bool __result)
+        {
+            if (__result)
+            {
+                return;    // 补丁成功执行，什么都不用记
+            }
+            try
+            {
+                string fileName;
+                string toggleId;
+                if (!Resolve(__instance, out fileName, out toggleId))
+                {
+                    return;    // 不是本模组的文件，一概不碰
+                }
+                failedFiles.Add(fileName);
+                if (reportedMissingTarget.Add(fileName))
+                {
+                    LocalFixesMod.SafeLogMessage(
+                        "[GNH LocalFixes] XML 补丁按「目标不在场」跳过：" + fileName
+                        + " [" + toggleId + "]。这一条要修的目标模组 / Def 当前没有安装或没有启用，"
+                        + "属于设计内的让路，不是故障；装上目标模组后下次启动会自动生效。"
+                        + "（如果目标模组明明启用着还看到这一行，那就是这条 xpath 写错了，"
+                        + "请把这一行连同 Player.log 反馈给作者。）");
+                }
+            }
+            catch (Exception)
+            {
+                // 记账本身失败不影响补丁执行；宁可少一条日志，也不要从补丁里漏异常出去。
+            }
+        }
+
+        /// <summary>
+        /// 这条 Operation 是不是「刚才在 Apply 阶段因为目标不在场而正常失败过」。
+        /// 收尾阶段据此放过那条 <c>failed</c>，避免 1.6 精简环境一开游戏就刷红字。
+        /// </summary>
+        internal static bool IsKnownMissingTarget(PatchOperation op)
+        {
+            try
+            {
+                string fileName;
+                string toggleId;
+                if (!Resolve(op, out fileName, out toggleId))
+                {
+                    return false;
+                }
+                return failedFiles.Contains(fileName);
+            }
+            catch (Exception)
+            {
+                return false;   // 判定出错时照常报，宁可多一条红字也不埋问题
+            }
+        }
     }
 
     // ==========================================================================
@@ -311,7 +401,17 @@ namespace GNH.LocalFixes
         /// </summary>
         private static bool Prefix(PatchOperation __instance)
         {
-            return !Patch_PatchOperation_Apply.IsSkippedBySettings(__instance);
+            // ① 玩家在设置里关掉了这个补丁文件 —— 它本来一次都没跑，不该报 failed。
+            if (Patch_PatchOperation_Apply.IsSkippedBySettings(__instance))
+            {
+                return false;
+            }
+
+            // ② 目标模组 / Def 不在场，ApplyWorker 正常返回了 false —— 那是设计内的
+            //    让路，Apply 的后置已经打过一条说明，这里不再补一条 ERROR。
+            //    （判据见 Patch_PatchOperation_Apply.failedFiles 的注释：
+            //     真正的故障在 Apply 那一层就已经 Log.Error 过了。）
+            return !Patch_PatchOperation_Apply.IsKnownMissingTarget(__instance);
         }
     }
 }

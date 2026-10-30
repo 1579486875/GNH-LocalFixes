@@ -129,7 +129,7 @@ namespace GNH.LocalFixes
         }
 
         /// <summary>
-        /// 本轮 10 个 XML 补丁项是否「没有重跑、直接由 Def 加载缓存提供」。
+        /// 本轮 12 个 XML 补丁项是否「没有重跑、直接由 Def 加载缓存提供」。
         ///
         /// 界面读它来决定要不要多印一行解释。含义见 MarkXmlTogglesWhenApplySkipped。
         /// </summary>
@@ -149,7 +149,7 @@ namespace GNH.LocalFixes
             missingCount = 0; failedCount = 0; notRunCount = 0;
 
             // 先做一次「本轮 XML 补丁有没有被跳过」的迟到记账，
-            // 否则下面数出来的「未运行」会把 10 个 XML 项全算进去。
+            // 否则下面数出来的「未运行」会把 12 个 XML 项全算进去。
             MarkXmlTogglesWhenApplySkipped();
 
             FixToggles.Entry[] all = FixToggles.All;
@@ -213,8 +213,8 @@ namespace GNH.LocalFixes
         //   与所有 Defs/Patches/Assemblies 文件的指纹都没变时**直接跳过整个
         //   ApplyPatches**，把上次「读完 + 打完补丁」的 Def 数据库原样载回来。
         //
-        //   于是本轮 PatchOperation.Apply 一次都不会被调用 —— 那 10 个 XML 项
-        //   一条也没记账，汇总行就变成「共 35 项、已装载 24 项」，
+        //   于是本轮 PatchOperation.Apply 一次都不会被调用 —— 那 12 个 XML 项
+        //   一条也没记账，汇总行就变成「共 39 项、已装载 26 项」，
         //   剩下的 11 项在界面上无处交代（2026-10-19 玩家实际遇到的疑问）。
         //
         // 【为什么这不是功能问题】
@@ -291,7 +291,7 @@ namespace GNH.LocalFixes
                     announcedCacheSkip = true;
                     LocalFixesMod.SafeLogMessage(
                         "[GNH LocalFixes] 本轮的 XML 补丁阶段被整体跳过（检测到 Def 加载缓存模组，"
-                        + "PatchOperation.Apply 一次都没有被调用），10 个 XML 修复按「结果来自缓存」计为已装载。"
+                        + "PatchOperation.Apply 一次都没有被调用），12 个 XML 修复按「结果来自缓存」计为已装载。"
                         + "缓存里存的是上次打完补丁的 Def 快照，修复效果仍然在；"
                         + "改动任何 Patches\\*.xml 或本模组的 dll 都会让缓存自动重建并重新执行补丁。");
                 }

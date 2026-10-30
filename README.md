@@ -67,7 +67,7 @@ Mods\
     ├── Assemblies\
     │   └── GNH.LocalFixes.dll
     └── Patches\
-        └── （10 个 XML 补丁）
+        └── （12 个 XML 补丁）
 ```
 
 **第 3 步**：启动游戏 → 主菜单点「模组」→ 找到「多模组兼容修复补丁」→ 勾选启用。
@@ -84,7 +84,7 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 
 **不用做任何事。** 装好、启用、进游戏，它就自动开始工作了。
 
-### 35 个设置项（每一项都能单独关）
+### 39 个设置项（每一项都能单独关）
 
 **选项 → 模组设置 → 多模组兼容修复补丁**
 
@@ -93,7 +93,10 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 > 开关右侧会对**异常状态**做标注（正常项不标 —— 没标就是好的）：
 > 灰色「已关闭」= 你关掉了；暗黄「目标模组未启用」= 这一项要修的模组不在场（没装、或者装了没勾选，都算），它在空转。
 
-> ✅ **39 项修复每一项都有独立开关**（含类型补齐【1】，它跟 dll 一起生效）。改完要重启游戏才生效。
+> ✅ **39 项修复每一项都有独立开关**。
+> 【1】「类型清单作废」的实现虽然不是 `[HarmonyPatch]` 类（它是给 `Assembly.GetTypes()`
+> 挂的一层兜底），但它同样登记在 `FixToggles` 里、同样可以在界面里关掉。
+> 改完要重启游戏才生效。
 > 12 个 XML 补丁从 v1.4.10 起都能在界面最下面那一组里单独关掉；
 > 删掉对应 XML 文件同样有效 —— 两种方式等价。
 >
@@ -105,7 +108,7 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 | 分组 | 项数 | 里面是什么 |
 |---|---|---|
 | **崩溃与卡死** | 11 | 不修就会崩、卡死、或者「一处失败连累一片」的那些 |
-| **日志刷屏** | 5 | 只刷日志、不影响玩法的：神殿警告、RJW-Genes 调试输出、载具调试菜单、RJW PE 废弃定义、RI-Furniture 房间要求自检 |
+| **日志刷屏** | 7 | 只刷日志、不影响玩法的：神殿警告、RJW-Genes 调试输出、载具调试菜单、RJW PE 废弃定义、RI-Furniture 房间要求自检、渡鸦蝗虫雨【38】、实时绘制空引用【39】 |
 | **兼容与判定** | 6 | 中文环境下判定失效、两个模组抢同一批 defName 之类 |
 | **行为与设置** | 2 | 领袖头衔保护、抵消「月经体液」每次启动强制关设置 |
 
@@ -183,7 +186,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 
 | 位置 | 内容 | 删掉的后果 |
 |---|---|---|
-| `Patches\` | 10 个 XML 补丁（只改 Def 数据） | 对应的 **13 项**修复不再生效（`ConfigErrorCleanup.xml` 一个文件就含【23】【33】【34】【35】四项） |
+| `Patches\` | 12 个 XML 补丁（只改 Def 数据） | 对应的 **15 项**修复不再生效（`ConfigErrorCleanup.xml` 一个文件就含【23】【33】【34】【35】四项） |
 | `Assemblies\` | 一个 dll（代码级修复） | 其余修复全部失效 |
 
 删掉不想要的那部分即可，剩下部分照常工作。
@@ -301,7 +304,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | **只留 XML 补丁** | 删掉 `Assemblies\` 整个目录 |
 | **只留代码修复** | 删掉 `Patches\` 整个目录 |
 | **只留某几项 XML 补丁** | 进 `Patches\` 删掉对应的 `.xml` 文件（文件名即用途） |
-| **只留某几项修复** | **设置界面里逐项开关**（v1.4.0 起代码侧能单独关，v1.4.10 起 XML 补丁也能；现共 39 个开关；改完重启生效） |
+| **只留某几项修复** | **设置界面里逐项开关**（v1.4.0 起代码侧能单独关，v1.4.10 起 XML 补丁也能；共 39 项，每一项都有开关；改完重启生效） |
 
 > ⚠ 改完记得重启游戏。
 
@@ -348,6 +351,10 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 33 | 贞操带/胸罩漏写耐久与可燃字段 | 装备写了 `useHitPoints=false`，却没写 `DeteriorationRate`（默认 1.0）与 `flammable`（默认 0.7），开发者模式下每局刷「has >0 DeteriorationRate but can't deteriorate」「flammable but has no hitpoints」 | 在 `statBases` 里补 `DeteriorationRate=0` 与 `Flammability=0`（这两件是 `rjw.bondage_gear_def` 自定义类，没有顶层 `flammable` 字段，写顶层会报 XML error）；不动 `useHitPoints`（那会改玩法） |
 | 34 | 两个基因分类的排序优先级撞号 | `RS_DarkArchite` 与 `Lolium` 的 `displayPriorityInXenotype` 都是 999，报「Multiple gene categories share the same displayPriorityInXenotype」 | 把 `RS_DarkArchite` 改成 998，不改基因效果 |
 | 35 | 三条指向不存在 def 的交叉引用 | `RI_ToggleProducerLoading_Living` 只在 1.7 目录、`SR_CarrotArmorH` 提供方已不在、`WolfeinExecutiveSteakLunch` 的模组未启用，每局各刷 3 条 | 各自删掉引用项（本来就解析失败，行为等价） |
+| 36 | 雪兔服装扩展的 SRAELib 字段对不上 | 它的 `1.6\Assemblies` 里躺着两个**程序集名都是 `SRAELib 1.0.0.0`** 的 dll（一个 19,456 字节有 `targetNullifyingHediffs`、一个 18,944 字节没有），游戏加载到旧的那个 → `ThoughtDef_HediffAttraction` 报「doesn't correspond to any field」 | 只在 **1.7+** 删掉那条字段；1.6 下**不执行**（那里该字段有效，删了会把「认知护盾免疫」一起删掉）。版本判据用只存在于 1.7 的 `MaterialDef` |
+| 37 | 有人给 `HediffStage` 写了 `visible` 字段 | 1.6 与 1.7 的 `Verse.HediffStage` 都只有 `becomeVisible`，没有 `visible` → 每次加载刷「doesn't correspond to any field in type HediffStage」 | 删掉那个字段。两版都不认它，删了不改变任何行为，只消日志 |
+| 38 | 渡鸦的「蝗虫雨」每帧抛 `MissingMethodException` | 1.7 换了 Waylith 引擎，`Unity.Mathematics.math.normalize(float2)` 这个符号在新引擎的 `UnityStubs` 里不存在；那个天气组件每帧都调它 | **不碰它自己**（它坏在 IL 层，任何针对它的补丁都会装不上），改为在 `MapComponentUtility.MapComponentUpdate` 里把这个组件从地图上摘掉，并补一个 1.7 版本守卫 |
+| 39 | RavenRace 的史莱姆覆盖层在实时绘制时抛空引用 | 每帧刷一次 `Exception drawing ...`，把真正的报错埋掉 | 在 `Thing.DynamicDrawPhase` 上挂收尾器，只吞 `NullReferenceException`，其余原样抛；每 500 次记一条。**目标类型探测不到就自动让路**（`HarmonyPrepare` 里查 `SlimeThingOverlayCapture`） |
 
 ---
 
@@ -368,12 +375,12 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | **① 条件不满足就不动手** | 补丁的判断里写着「只有在它还是坏的时候才匹配」。作者一改好，条件自然不成立，补丁静默跳过 | 多数 XML 补丁 |
 | **② 先问原版，真需要才接管** | 代码里一大串 `return true`（= 让原版自己跑），只在确认「原版这条路会崩」时才插手 | 多数 C# 补丁 |
 | **③ 主动探测原版是否已安全** | 自己检查那个缺陷还在不在，不在了就完全不动 | 第 5 项（乐器空间） |
-| **④ 你手动关掉它** | 设置界面里每一项都有开关。关掉之后，那一项在下次启动时**根本不会被安装**（不是在运行时动态摘除） | **全部代码侧开关**（v1.4.0 起，现共 24 个） |
+| **④ 你手动关掉它** | 设置界面里每一项都有开关。关掉之后，那一项在下次启动时**根本不会被安装**（不是在运行时动态摘除） | **全部代码侧开关**（v1.4.0 起，现共 26 个） |
 
 > **③ 是 v1.3.32 新加的，④ 是 v1.4.0 新加的。**
 > 起因是复核时发现：第 5 项是唯一一个「替原版做判断」而不是「先问原版」的补丁 ——
 > 万一 VFE Empire 日后改了那句判断的写法，它就会盖掉作者的改动。现在它自己会检测。
-> v1.4.0 则把开关从 2 项扩展到全部 22 项（后续版本涨到 24 个）：
+> v1.4.0 则把开关从 2 项扩展到全部 22 项（后续版本涨到 26 个）：
 > **「自动让路」是治本**（我们判断得准），**「手动开关」是兜底**（我们判断不准时你还有办法）。
 
 ### 逐项对照表
