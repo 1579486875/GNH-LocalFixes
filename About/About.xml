@@ -54,6 +54,9 @@
 【37】1.7 已移除的 HediffStage.visible
 【38】渡鸦蝗虫雨每帧刷 Unity 数学栈异常
 【39】实时绘制空引用刷屏（RavenRace × 实时绘制建筑）
+【40】两处调试输出刷屏（WeaponStats 炮塔名 / RimImmortal 的 ::Start）
+【41】DeepProfiler 跟着「详细日志」一起跑（日志与内存）
+【42】读档刷 132 条 /fixPawn 报错
 
 怎么用
 
