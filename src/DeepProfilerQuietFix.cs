@@ -46,30 +46,46 @@ namespace GNH.LocalFixes
     //   DeepProfiler 的输出对他毫无用处（几千行调用树，只有开发者做性能剖析时才看），
     //   两者本来就不该绑在一起。所以这里**只关 DeepProfiler，保留 logVerbose**。
     //
-    // ── 为什么直接写字段，而不是 patch --Start/End ──
+    // ── 为什么光写字段不够（v1.4.18 第一次实机就撞了）──
+    //
+    //   原版 `Verse.PlayDataLoader.DoPlayLoad` 里有这样一对模式（反编译 IL 实证，
+    //   偏移 446/449 与 461/464，另有一组 487/490 与 502/505）：
+    //
+    //       ldc.i4.0 ; volatile. ; stsfld DeepProfiler.enabled     ← 临时关
+    //       … ResolveAllReferences(…) …                            ← 干活不记
+    //       ldc.i4.1 ; volatile. ; stsfld DeepProfiler.enabled     ← 又开回来
+    //
+    //   也就是说**读档会把 enabled 设回 true**。只置一次 false 的话，
+    //   22:16:46 装上、23:01 读档就又开始了（实测 1,178 次调用树）。
+    //
+    //   所以本项**两层**一起上：
+    //     ① 仍然把 enabled 置 false（连 Get() 都不进，省得白建对象）；
+    //     ② 给 Start / End 各挂一个返回 false 的前缀 —— 无论 enabled 被谁改成什么值，
+    //        这两个方法都直接返回。
+    //
+    // ── 为什么直接写字段，而不是只 patch --Start/End ──
     //
     //   `enabled` 是 `public static volatile bool`，直接置 false 等价于「官方开关」：
-    //   Start 和 End 在**第一道判断**就返回，连 `Get()` 都不会调用 ——
-    //   比 patch 两个方法更彻底，也不会在栈里留 Harmony 的痕迹。
+    //   Start 和 End 在**第一道判断**就返回，连 `Get()` 都不会调用。
+    //   配上 ② 之后，即使原版中途把它开回来，也不会真的去记。
     //
     //   代价：游戏内开发者的「性能分析」功能会失效（MeasureTool 的耗时统计也会一起没）。
     //   那是开发用途，普通玩家用不到；需要时把本项开关关掉重开游戏即可恢复。
     //
     // ── 什么情况下它会自动失效 ──
     //
-    //   · 玩家关掉本项 → 这个 Install 根本不会被调用，enabled 保持原值。
-    //   · 原版把 `enabled` 改名或改成非静态 → 找不到字段，本次跳过并留 Error，下次重试。
+    //   · 玩家关掉本项 → Install 根本不会被调用，enabled 与 Start/End 都保持原样。
+    //   · 原版删掉/改名 `enabled` → ① 跳过并留 Message，但 ② 仍然装上（照样能静音）。
     //   · 原版把 DeepProfiler 整个移除 → 类型找不到，打一条 Message 说明后跳过。
     //
     // ── 性能 ──
     //
-    //   安装时反射读一次、写一次，之后零开销（连 Harmony 补丁都没挂）。
+    //   两个前缀各只做一次 `return false`；没有反射、没有分配。
     //   它省下的是「每次 LongEvent 都遍历整棵调用树」和一份持续增长的对象列表。
     // ==========================================================================
     internal static class DeepProfilerQuietFix
     {
         private const string ProfilerTypeName = "Verse.DeepProfiler";
-        private const string EnabledFieldName = "enabled";
 
         private static bool installed;
 
@@ -92,39 +108,84 @@ namespace GNH.LocalFixes
                     return;
                 }
 
-                FieldInfo f = AccessTools.Field(t, EnabledFieldName);
+                // ── 第一层：把 enabled 置 false ──
+                string stateNote;
+                FieldInfo f = AccessTools.Field(t, "enabled");
                 if (f == null)
                 {
-                    // 字段在、名字变了 → 留给下次重试，并留一条 Error 线索。
-                    Log.Error("[GNH LocalFixes] 在 " + ProfilerTypeName + " 上找不到 "
-                        + EnabledFieldName + " 字段；【41】本次未安装，下次会重试。");
-                    return;
-                }
-
-                object before = f.GetValue(null);
-                f.SetValue(null, false);
-                object after = f.GetValue(null);
-
-                // 复核：写进去了才算装好（volatile 字段在个别运行时会拒绝写入）。
-                if (after is bool b && b == false)
-                {
-                    installed = true;
-                    Log.Message("[GNH LocalFixes] 已安装【41】DeepProfiler 关闭（原值 " + before + "）。"
-                        + "它跟着 Prefs.logVerbose 一起跑，每次 LongEvent 都打印整棵调用树并累积对象 ——"
-                        + "实测一局 14.5 小时涨了 6.5 GB 内存。"
-                        + "logVerbose 本身保留，其它日志一条不少；"
-                        + "需要游戏内的性能剖析时，把本项开关关掉重开游戏即可。");
+                    stateNote = "找不到 enabled 字段（只靠第二层静音）";
                 }
                 else
                 {
-                    Log.Error("[GNH LocalFixes] 【41】写入 " + ProfilerTypeName + "." + EnabledFieldName
-                        + " 失败（写后读回 = " + after + "），下次会重试。");
+                    object before = f.GetValue(null);
+                    f.SetValue(null, false);
+                    object after = f.GetValue(null);
+                    stateNote = "enabled " + before + " → " + after;
                 }
+
+                // ── 第二层：Start / End 各挂一个直接返回 false 的前缀 ──
+                //   这一层才是真正的保险 —— 原版 DoPlayLoad 会把 enabled 改回 true。
+                int patched = 0;
+                patched += PatchNoOp(t, "Start");
+                patched += PatchNoOp(t, "End");
+
+                if (patched == 0)
+                {
+                    Log.Error("[GNH LocalFixes] 【41】在 " + ProfilerTypeName
+                        + " 上没能给 Start/End 挂上前缀；本次未安装，下次会重试。");
+                    return;
+                }
+
+                installed = true;
+                Log.Message("[GNH LocalFixes] 已安装【41】DeepProfiler 关闭（" + stateNote
+                    + "，Start/End 前缀 " + patched + "/2）。"
+                    + "它跟着 Prefs.logVerbose 一起跑，每次 LongEvent 都打印整棵调用树并累积对象 ——"
+                    + "实测一局 14.5 小时涨了 6.5 GB 内存。"
+                    + "★ 光把 enabled 置 false 不够：原版 PlayDataLoader.DoPlayLoad 读档时会把它设回 true，"
+                    + "所以另外给 Start/End 挂了直接返回的前缀。"
+                    + "logVerbose 本身保留，其它日志一条不少；"
+                    + "需要游戏内的性能剖析时，把本项开关关掉重开游戏即可。");
             }
             catch (Exception ex)
             {
                 Log.Error("[GNH LocalFixes] 安装【41】DeepProfiler 关闭失败（下次会重试）：" + ex);
             }
+        }
+
+        // ==================================================================
+        // 给 DeepProfiler 上的某个无参静态方法挂一个「直接返回」的前缀。
+        // ==================================================================
+        //
+        // 成功返回 1，找不到方法返回 0（调用方据此判断要不要重试）。
+        private static int PatchNoOp(Type profilerType, string methodName)
+        {
+            MethodInfo target = AccessTools.Method(profilerType, methodName, Type.EmptyTypes, null);
+            if (target == null)
+            {
+                // 有的版本可能带默认参数（Start(string label = null)），补一次「一个 string」的尝试。
+                target = AccessTools.Method(profilerType, methodName, new[] { typeof(string) }, null);
+            }
+
+            if (target == null)
+            {
+                return 0;
+            }
+
+            LocalFixesMod.HarmonyInstance.Patch(
+                target,
+                new HarmonyMethod(AccessTools.Method(
+                    typeof(DeepProfilerQuietFix), nameof(NoOpPrefix), null, null)),
+                null,
+                null,
+                null);
+
+            return 1;
+        }
+
+        // 前缀：永远返回 false → 原方法整个跳过（不打印、不累积）。
+        public static bool NoOpPrefix()
+        {
+            return false;
         }
     }
 }
