@@ -277,6 +277,14 @@ namespace GNH.LocalFixes
             TryInstall("riFurnitureRoyalCompatQuiet", "RIFurnitureRoyalCompatQuietFix",
                 RIFurnitureRoyalCompatQuietFix.Install);
 
+            // ── 2026-10-31 新增三项（1.7 移交清单的 A 类）──
+            //    40：模组作者留在正式版里的调试输出（WeaponStats 炮塔名 / RimImmortal 的 ::Start）
+            //    41：DeepProfiler 跟着 logVerbose 一起跑，打印整棵调用树并累积对象
+            //    42：读档时 /fixPawn 的空引用登记
+            TryInstall("logSpamFilter", "LogSpamFilterFix", LogSpamFilterFix.Install);
+            TryInstall("deepProfilerQuiet", "DeepProfilerQuietFix", DeepProfilerQuietFix.Install);
+            TryInstall("fixPawnScribeNull", "FixPawnScribeNullFix", FixPawnScribeNullFix.Install);
+
             // ⚠ CcoeReflectionFix 曾经也在这里装，2026-10-06 移走了。
             //
             // 原因：Harmony 打补丁这个动作会触发**目标程序集里其它类型**的静态构造，
@@ -475,7 +483,7 @@ namespace GNH.LocalFixes
             // Patch_PatchOperation_Apply 根本不会被安装 —— 于是没有任何拦截，
             // Patches\ 下 10 个文件全部照常执行（这正是 About 里写的行为）。
             // 但它们不会再经过 FixReport.MarkLoaded，汇总行于是少 10 项：
-            // 玩家看到「共 39 项」，可已装载/已关闭/未启用加起来不够 39，像是丢了东西。
+            // 玩家看到「共 42 项」，可已装载/已关闭/未启用加起来不够 39，像是丢了东西。
             // 总控关掉 = 所有 XML 补丁都在执行，所以这里按「已装载」补记。
             MarkXmlTogglesWhenGateOff();
         }
@@ -1069,7 +1077,7 @@ namespace GNH.LocalFixes
             // 「未运行」必须印出来。
             //
             // 以前只在「安装失败 > 0」时才追加，于是差额在没有报错的情况下**凭空消失**：
-            // 玩家看到「共 39 项 · 已装载 26 项 · 已关闭 0 · 未启用 0」，
+            // 玩家看到「共 42 项 · 已装载 26 项 · 已关闭 0 · 未启用 0」，
             // 剩下的 11 项在界面上无处交代（2026-10-19 玩家实际提出的疑问）。
             // 数字必须能加得起来，哪怕最后一项叫「未运行」。
             if (notRunCount > 0)

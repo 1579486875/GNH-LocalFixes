@@ -249,6 +249,37 @@ namespace GNH.LocalFixes
                 + " RI 的家具因此必然加不进去，属于预期中的设计冲突。"
                 + "本项只静音这一类自检结论，该模组的其它日志一律照常输出。"),
 
+            // ── 2026-10-31 新增三项（来自 1.7 移交清单，都是日志/内存层的噪音）──
+
+            new Entry("logSpamFilter", GroupSpam,
+                "两处调试输出刷屏（【40】）",
+                "WeaponStats（工坊 974066449）在 Source\\WeaponsTab\\Turret.cs:74 里写着 "
+                + "Log.Message(th.def.defName) —— 每开一次武器统计面板，每个炮塔就刷一行"
+                + "（实测 21 点一小时 2,737 条，Turret_MiniTurret 552 次）；同文件还有固定串「Update weapons list」。"
+                + "RimImmortal.Core（工坊 3296476341）有个前缀方法每次进来都写一行「…::Start」（实测 190 条）。"
+                + "两处都是作者留在正式版里的调试输出，不是报错。"
+                + "本项在 Verse.Log.Message 上按三个收紧的判据拦下它们，其它日志一律照常输出。"),
+
+            new Entry("deepProfilerQuiet", GroupSpam,
+                "DeepProfiler 拖日志与内存（【41】）",
+                "Verse.DeepProfiler 的开关条件是两个：`enabled && Prefs.LogVerbose`。"
+                + "enabled 默认就是 true，所以真正决定它跑不跑的是玩家自己的「详细日志」——"
+                + "只要那个开着，它每次 LongEvent 都打印整棵调用树 + Hotspot analysis"
+                + "（实测一局 14.5 小时：7,105 次调用树、8,001 次 hotspot，20:56 那 8 秒写了 54,094 行），"
+                + "而它内部维护的调用列表会持续累积对象（11.5h 9.2 GB → 14.5h 15.7 GB）。"
+                + "本项只把 DeepProfiler.enabled 置 false：logVerbose 保留、其它日志一条不少，"
+                + "代价是游戏内的性能剖析功能失效（需要时把本项关掉重开即可）。"),
+
+            new Entry("fixPawnScribeNull", GroupSpam,
+                "读档刷 132 条 /fixPawn 报错（【42】）",
+                "「裸体评价」的 Fixation 组件在 PostExposeData 里**无条件**执行 "
+                + "Scribe_References.Look(ref fixPawn, \"fixPawn\")，而这些存档里的 fixPawn "
+                + "在 1.6→1.7 迁移后解析不出来（null）—— 于是登记了一个 null loadID，"
+                + "每次读档固定刷「Tried to register the same load ID twice」与"
+                + "「never added during LoadingVars」各 66 条（实测涉及 100 个 Pawn）。"
+                + "本项只在「label 是 fixPawn 且引用本身是 null」时跳过登记；"
+                + "有效引用一个字节都不动，存档序列化格式完全不变。"),
+
             // ---------------- 兼容与判定 ----------------
             new Entry("patchVerbPropertiesAdjustedRange", GroupCompat,
                 "射程计算空引用",
