@@ -258,7 +258,7 @@ namespace GNH.LocalFixes
                 + "代价是游戏内的性能剖析功能失效（需要时把本项关掉重开即可）。"),
 
             new Entry("fixPawnScribeNull", GroupSpam,
-                "读档刷 132 条 /fixPawn 报错（【42】）",
+                "读档刷上百条 /fixPawn 报错（【42】）",
                 "「裸体评价」的 Fixation 组件在 PostExposeData 里**无条件**执行 "
                 + "Scribe_References.Look(ref fixPawn, \"fixPawn\")，而这些存档里的 fixPawn "
                 + "在 1.6→1.7 迁移后解析不出来（null）—— 于是登记了一个 null loadID，"

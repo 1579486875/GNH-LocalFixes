@@ -69,6 +69,11 @@ namespace GNH.LocalFixes
         private static int patchedTargets;
         private static int replacedCalls;
 
+        // RimImmortal 那条「按内容过滤」的钩子装上了没有。
+        // 单独记一个标志，是为了让安装日志能说清「到底哪一半生效了」——
+        // patchedTargets 把「转译器」和「内容过滤」混在一起数，单看它会误判。
+        private static bool contentFilterInstalled;
+
         internal static void Install()
         {
             if (installed)
@@ -90,6 +95,37 @@ namespace GNH.LocalFixes
                 if (AnyTypeNameContains(RimImmortalTypeHint))
                 {
                     TryInstallContentFilter();
+                }
+
+                // 一个目标都没找到（玩家没装 WeaponStats / RimImmortal）→ 这一项空转。
+                // 必须留一条说明「为什么什么都没做」，否则日志里会写成
+                // 「已安装…改了 0 个目标方法、替换 0 处」，读起来像装好了（模板 §3.1 的反向要求）。
+                if (patchedTargets == 0)
+                {
+                    installed = true;
+                    Log.Message("[GNH LocalFixes] 【40】让路：没找到 WeaponStats 的 "
+                        + "Turret.fillFromThing / MainTabWindow_WeaponStats.UpdateList，"
+                        + "也没找到 RimImmortal —— 相关模组都没装，这一项本次无事可做。"
+                        + "（这不影响其它任何修复。）");
+                    return;
+                }
+
+                // 目标方法找到了、但里面一条 Log.Message 都没有 → 作者已经自己删掉了调试输出。
+                // 同样要如实说，不能报成「已安装」。
+                //
+                // 注意这里**不能**用「contentFilterInstalled 为假」当前提：
+                // RimImmortal 那条内容过滤装上了、而 WeaponStats 两处已经不需要，
+                // 同样是「替换 0 处」，也得说清楚是哪一半还在生效。
+                if (replacedCalls == 0)
+                {
+                    installed = true;
+                    Log.Message("[GNH LocalFixes] 【40】部分让路：找到了目标方法（" + patchedTargets
+                        + " 个），但 WeaponStats 那两处里已经没有 Log.Message 调用 —— "
+                        + "多半是作者自己删掉了调试输出。"
+                        + (contentFilterInstalled
+                            ? "RimImmortal 的 ::Start 内容过滤已经装上，这一半照常生效。"
+                            : "本项这一次没有替换任何指令。"));
+                    return;
                 }
 
                 installed = true;
@@ -186,6 +222,7 @@ namespace GNH.LocalFixes
                 null,
                 null);
             patchedTargets++;
+            contentFilterInstalled = true;
         }
 
         // 前缀：只拦「以 ::Start 结尾」这一种（RimImmortal 的前缀调试日志形态）。

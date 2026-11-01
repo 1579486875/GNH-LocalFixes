@@ -227,9 +227,38 @@ namespace GNH.LocalFixes
         //   · 覆写者（MonoAssembly / RuntimeAssembly 之类）满足；
         //   · 若某个版本里 GetTypes 不是虚方法而是直接在 Assembly 上实现的，也满足；
         //   · 单纯继承基类实现的派生类会被排除，避免同一个方法被重复打补丁。
+        //
+        // ⚠ 2026-11-01 修复（1.6 侧实测事故）：这里**必须容错**，否则会死在一个很尴尬的地方。
+        //
+        //   事故现场（`D:\RimWorld-1.6`，Mono）：
+        //     Failed to install the Assembly.GetTypes() safety net (will retry):
+        //     System.TypeLoadException: Could not load type of field
+        //     'RigorMortis.QuestNode_GiveDialogManager:dialogManager' … expected class
+        //     'QuestEditor_Library.DialogManagerDef' in assembly 'QuestEditor_Library'
+        //       at System.RuntimeTypeHandle.type_is_assignable_from(System.Type, System.Type)
+        //
+        //   症状是「这一项没装上，而且每次重进都重试一次、次次失败」。根因有两条，缺一不可：
+        //     ① `Assembly.GetTypes()` 对「字段引用了不存在的程序集」的程序集**不抛异常**，
+        //        而是抛 ReflectionTypeLoadException 并附一份 partial 列表 —— 那些 partial 类型
+        //        对象的**签名仍然解析不了**；
+        //     ② 对**这种半残类型**调用 `typeof(Assembly).IsAssignableFrom(type)` 时，
+        //        Mono 会去解析它的字段类型 → 直接抛 TypeLoadException。
+        //   也就是说：**这个补丁本来是为了兜住「坏程序集拖垮类型扫描」，结果自己被同一个坏程序集拖垮了。**
+        //   1.7（CoreCLR）上不会触发，所以之前只在 1.6 侧露头。
+        //
+        //   现在两条一起兜：
+        //     · 每次 IsAssignableFrom 单独 try/catch，判断不了的类型直接跳过；
+        //     · **无条件先登记基类 `System.Reflection.Assembly` 自己的 GetTypes()** ——
+        //       反编译已证当前运行时就是靠这一个方法干活（见本文件上方 2026-10-08 的订正），
+        //       就算整轮子类扫描全部失败，至少还有它，安全网照样生效。
         private static List<MethodBase> FindAllGetTypesImplementations()
         {
             List<MethodBase> result = new List<MethodBase>();
+
+            // ① 先无条件收基类实现 —— 这一条不依赖任何扫描，绝不可能因为别人的坏程序集而丢掉。
+            AddGetTypesCandidate(typeof(Assembly), result);
+
+            // ② 再扫子类（防御性：万一将来 Mono/Unity 把实现挪进子类）。
             Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
 
             for (int i = 0; i < assemblies.Length; i++)
@@ -244,36 +273,71 @@ namespace GNH.LocalFixes
                 for (int j = 0; j < types.Length; j++)
                 {
                     Type type = types[j];
-                    if (type == null || !typeof(Assembly).IsAssignableFrom(type))
+                    if (type == null)
                     {
                         continue;
                     }
 
-                    MethodInfo method;
+                    // ⚠ 这一句会抛（见上面的事故记录）：半残类型在 Mono 上解析不了签名。
+                    bool isAssemblyType;
                     try
                     {
-                        method = type.GetMethod("GetTypes", BindingFlags.Public | BindingFlags.Instance,
-                            null, Type.EmptyTypes, null);
+                        isAssemblyType = typeof(Assembly).IsAssignableFrom(type);
                     }
                     catch (Exception)
                     {
                         continue;
                     }
-
-                    if (method == null || method.IsAbstract)
-                    {
-                        continue;
-                    }
-                    if (method.DeclaringType != type)
+                    if (!isAssemblyType)
                     {
                         continue;
                     }
 
-                    result.Add(method);
+                    AddGetTypesCandidate(type, result);
                 }
             }
 
             return result;
+        }
+
+        // 把一个类型登记成候选（自己去重）。任何一步失败都只跳过这一个类型。
+        private static void AddGetTypesCandidate(Type type, List<MethodBase> result)
+        {
+            if (type == null || result == null)
+            {
+                return;
+            }
+
+            MethodInfo method;
+            try
+            {
+                method = type.GetMethod("GetTypes", BindingFlags.Public | BindingFlags.Instance,
+                    null, Type.EmptyTypes, null);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+
+            if (method == null || method.IsAbstract)
+            {
+                return;
+            }
+            if (method.DeclaringType != type)
+            {
+                return;
+            }
+            // 去重：第 ① 步已经把基类收进去了，扫子类时会再遇到它一次。
+            // 同一个方法被打两遍补丁 = 收尾器叠两层，白跑一趟（结果不变，但没必要）。
+            for (int i = 0; i < result.Count; i++)
+            {
+                if (result[i] == method)
+                {
+                    return;
+                }
+            }
+
+            result.Add(method);
         }
 
         // 安装期间本补丁还没装上，所以这里必须先自己兜一次。

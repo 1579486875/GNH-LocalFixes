@@ -61,8 +61,10 @@ namespace GNH.LocalFixes
     //
     // 【为什么开新局开得越多越容易炸】
     //
-    // PawnInteractionManager.ideoTrackers 是个 public static 字段
-    // （Dictionary<int, PawnIdeoTracker>），它活在进程里、跨局不清空；
+    // PawnInteractionManager.ideoTrackers 是个 public static 静态成员
+    // （早期版本是字段 `Dictionary<int, PawnIdeoTracker>`，2026-10 之后的版本改成了
+    //   静态属性 `=> State?.IdeoTrackers ?? fallbackIdeoTrackers`，两种都要认），
+    // 它活在进程里、跨局不清空；
     // 而 RimWorld 每开一局都会新建 UniqueIDsManager，thingIDNumber 从 1 重新数。
     // 两件事叠在一起：新局里刚生成的殖民者，拿到的 thingIDNumber 很可能正好命中
     // 上一局（或更早某一局）留下的记录 → ContainsKey 为 true → tracker 仍是 null → 崩。
@@ -212,8 +214,20 @@ namespace GNH.LocalFixes
         //（Harmony 补丁是叠加的，装两层会让同一个方法跑两遍这里的逻辑）。
         private static bool installed;
 
-        // 静态字典的字段句柄。拿不到就退化成「只有收尾器兜底」，并在安装时打一条 Warning。
+        // 静态字典的句柄。拿不到就退化成「只有收尾器兜底」，并在安装时打一条 Warning。
+        //
+        // ⚠ 2026-11-01 实测补正：NMM 现在把 `ideoTrackers` 写成了**静态属性**，不是字段
+        //   （`Source/PawnInteraction/PawnInteractionManager.cs:24`：
+        //     `public static Dictionary<int, PawnIdeoTracker> ideoTrackers
+        //          => State?.IdeoTrackers ?? fallbackIdeoTrackers;`）。
+        //   旧代码只按 `AccessTools.Field` 找，于是每次启动都刷
+        //     `Could not locate NudityMattersMore.PawnInteractionManager.ideoTrackers;
+        //      the stale-tracker removal step is disabled this session`
+        //   —— 也就是说【16】的「先摘掉残留再跑原方法」那半边一直是死的，
+        //   只剩 Finalizer 在吞空引用（等于退化成拦截）。
+        //   现在两种形态都找：字段优先，找不到再找属性 getter，谁在就用谁。
         private static FieldInfo trackerDictField;
+        private static MethodInfo trackerDictGetter;
 
         // 日志限流：前缀和后缀都可能被高频调用，不能每次都刷。
         //
@@ -297,12 +311,36 @@ namespace GNH.LocalFixes
                 trackerDictField = (managerType != null)
                     ? AccessTools.Field(managerType, TrackerDictFieldName)
                     : null;
-                if (trackerDictField == null)
+
+                // 字段找不到就按属性再试一次（NMM 现在用的是静态属性，见上面 trackerDictField 的订正）。
+                // 只取 public / non-public 的静态 getter，避免误抓到实例成员。
+                trackerDictGetter = null;
+                if (trackerDictField == null && managerType != null)
+                {
+                    try
+                    {
+                        PropertyInfo prop = managerType.GetProperty(TrackerDictFieldName,
+                            BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+                        MethodInfo getter = (prop != null) ? prop.GetGetMethod(true) : null;
+                        if (getter != null && getter.IsStatic && getter.GetParameters().Length == 0)
+                        {
+                            trackerDictGetter = getter;
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // 属性反射失败不算错：下面照旧报 Warning、只装收尾器。
+                        trackerDictGetter = null;
+                    }
+                }
+
+                if (trackerDictField == null && trackerDictGetter == null)
                 {
                     // 字典拿不到：前缀的核心动作做不了，但收尾器仍然值得装 ——
                     // 它还能挡住 memes / precepts 那两条 null 路径。
                     Log.Warning("[GNH LocalFixes] Could not locate " + TrackerManagerTypeName + "." + TrackerDictFieldName
-                        + "; the stale-tracker removal step is disabled this session, "
+                        + " (tried both a static field and a static property); "
+                        + "the stale-tracker removal step is disabled this session, "
                         + "but the NullReferenceException guard is still installed.");
                 }
 
@@ -376,7 +414,7 @@ namespace GNH.LocalFixes
         {
             try
             {
-                if (trackerDictField == null || pawn == null)
+                if ((trackerDictField == null && trackerDictGetter == null) || pawn == null)
                 {
                     return;
                 }
@@ -392,7 +430,12 @@ namespace GNH.LocalFixes
                     return;
                 }
 
-                IDictionary trackers = trackerDictField.GetValue(null) as IDictionary;
+                // 字段或属性，谁在就用谁。两者都是「拿到同一个静态字典」，
+                // 属性形态每次会现算一次 `State?.IdeoTrackers ?? fallback`（几个字段读 + 一次判空），
+                // 频率是「每生成一个 Pawn 一次」，可以忽略。
+                IDictionary trackers = (trackerDictField != null)
+                    ? trackerDictField.GetValue(null) as IDictionary
+                    : trackerDictGetter.Invoke(null, null) as IDictionary;
                 if (trackers == null)
                 {
                     return;
