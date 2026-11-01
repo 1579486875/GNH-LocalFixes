@@ -6,76 +6,88 @@
 // ---------------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Reflection;
+using System.Reflection.Emit;
 using HarmonyLib;
 using Verse;
 
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【42】每次读档刷 132 条 `/fixPawn` 的 loadID 报错
+    // 【42】读档刷 138 条 `/fixPawn` 的 loadID 报错
     //
-    // 症状（成对出现，各 66 条）：
+    // ── 症状（用户 2026-11-01 实机复现，v1.4.19 没拦住）──
     //
-    //   Tried to register the same load ID twice: null, pathRelToParent=/fixPawn, parent=…
-    //   Could not get load ID. … never added during LoadingVars. pathRelToParent=/fixPawn, parent=…
+    //   读档瞬间（13:33:22 起）一口气刷出：
+    //     Tried to register the same load ID twice: null, pathRelToParent=/fixPawn, parent=…
+    //     Could not get load ID. We're asking for something which was never added during LoadingVars…
+    //   共 138 条，涉及 NivarianRace / Axolotl / Milira / Yuran / SnowRabbit 等 ~69 个 Pawn。
     //
-    // ── 根因：模组把一个「可能为 null 的引用」无条件交给了 Scribe ──
+    // ── 根因 ──
     //
-    //   RJW 的「裸体评价」（dord.nuditymattersmore）里有个 ThingComp `Fixation`，
-    //   它的 PostExposeData 是这么写的（源码 ThingComps/Fixation.cs）：
+    //   RJW「裸体评价」（`dord.nuditymattersmore`）的 `Fixation.PostExposeData`：
     //
     //       private Pawn fixPawn;
-    //       …
-    //       Scribe_References.Look(ref fixPawn, "fixPawn");     ← 无条件
+    //       Scribe_References.Look(ref fixPawn, "fixPawn");     // ← 无条件
     //       …
     //       if (Scribe.mode != LoadSaveMode.PostLoadInit) return;
     //       if (!hasFixation || fixPawn == null || fixPawn.Dead) { hasFixation = false; fixPawn = null; }
     //
-    //   注意顺序：**引用早就交出去了**，清空是在之后才做的。
-    //   而 `Scribe_References.Look` 会拿 `target` 的 loadID 去登记；`fixPawn` 是 null 时，
-    //   登记的就是一个 **null loadID** —— 于是「register the same load ID twice」。
+    //   `Scribe_References.Look<T>` 在**两个阶段各跑一次**：
+    //     · LoadingVars        → `RegisterLoadIDReadFromXml(targetLoadID, typeof(T), label)`
+    //                            `targetLoadID` 是 null → 登记了一个 **null loadID** → 「register the same load ID twice」
+    //     · ResolvingCrossRefs → `TakeResolvedRef<T>(label)` → 内部 `Take<T>` 查 `idsRead`
+    //                            查不到 → 「never added during LoadingVars」
     //
-    //   这些存档里的 fixPawn 之所以是 null：1.6 → 1.7 迁移后目标的 loadID 解析不出来
-    //   （对象没进 loadedObjectDirectory，或者引用的是已被替换的旧对象）。
-    //   属于**脏数据**，不是崩溃 —— 但它每读一次档刷 132 条，把真正的问题埋掉。
+    //   也就是说：**LightingVars 阶段登记的那个 null，正是 ResolvingCrossRefs 阶段报错的来源。**
+    //   只要把 null 那一次跳过，两条报错就同时消失。
     //
-    // ── 修法：只拦「label 是 fixPawn 且 target 确实是 null」这一种 ──
+    // ── 为什么 v1.4.19 没拦住（实测教训）──
     //
-    //   那种情况下 `Scribe_References.Look` 做的事没有意义（null 引用不需要登记），
-    //   跳过它与原版行为等价 —— 而且紧接着那段 PostLoadInit 本来就会把它置空。
+    //   原来 patch 的是 `Scribe_References.Look<Pawn>`（**封闭泛型实例**）。
+    //   补丁报「已安装」，但用户读档时 138 条照刷，而「已开始过滤」一次都没打印 ——
+    //   说明前缀**从没被调用**。**Harmony 对封闭泛型方法实例的 patch 不可靠。**
+    //   而 `Take<T>` / `TakeResolvedRef<T>` 同样是泛型，也靠不住。
     //
-    //   **只在 target == null 时才跳**：如果 fixPawn 是有效引用，一个字节都不改，
-    //   存档的序列化格式、向后兼容性完全不变（这一点很重要 —— 258 MB 的存档不能拿来冒险）。
+    // ── 现在的做法：改调用方，不改被调方 ──
     //
-    // ── 为什么不去改模组本身 ──
+    //   用 Transpiler 进 `Fixation.PostExposeData` 的 IL，把那一条
+    //   `call Scribe_References::Look` **换成我们自己的** `SafeLook(ref Pawn, string, bool)`：
     //
-    //   把 `Scribe_References.Look` 换成「先存 thingID 再解析」确实更彻底，
-    //   但那会改变存档格式：老档里没有 thingID 字段，新档写法不同，来回切版本会丢数据。
-    //   本项是纯读侧的过滤，删掉本模组就完全恢复原状。
+    //       static void SafeLook(ref Pawn p, string label, bool save)
+    //       {
+    //           if (label == "fixPawn" && p == null) return;   // ← 只跳这一个
+    //           Scribe_References.Look(ref p, label, save);    // 其余原样转发
+    //       }
     //
-    // ── 什么情况下它会自动失效 ──
+    //   好处：
+    //     · **两个阶段一起解决**（不登记 → 也就不会去查）
+    //     · 签名完全一致（`ref Pawn, string, bool`），栈平衡不变，只换 call 目标
+    //     · **有效引用一个字节都不动**，存档格式完全不变
+    //     · 不用碰泛型方法，绕开 Harmony 那个坑
     //
-    //   · 用户关掉本项 → 前缀不装，Scribe 完全不受影响。
-    //   · 目标模组改了 label（不叫 "fixPawn" 了）→ 前缀匹配不到，本项不动作。
-    //   · 存档里没有脏数据（fixPawn 都是有效引用）→ 前缀一次都不拦，也不打日志。
-    //   · 原版 Scribe_References.Look 泛型签名变了 → 找不到目标，本次跳过并留 Error。
+    // ── 什么情况下自动失效 ──
+    //
+    //   · RJW「裸体评价」没装 → 找不到 `Fixation` 类型 → 跳过
+    //   · 作者改了字段名（不叫 `fixPawn`）→ Transpiler 找不到那条 call → 什么都不改
+    //   · 作者自己补上判空 → 那条 call 的形态变了，Transpiler 不命中 → 自然让路
+    //   · 玩家关掉这一项 → 什么都不装
     //
     // ── 性能 ──
     //
-    //   `Scribe_References.Look<Pawn>` 只在**存读档**时调用，不在 tick / 渲染路径上。
-    //   前缀里一次字符串比较 + 一次 null 判断。
+    //   `SafeLook` 只在**存读档**时被调用，不在 tick / 渲染路径上。
+    //   Transpiler 只在安装期跑一次。
     // ==========================================================================
     internal static class FixPawnScribeNullFix
     {
-        private const string ScribeRefsTypeName = "Verse.Scribe_References";
-        private const string LookMethodName = "Look";
-
-        // 只处理这一个 label。改别的 label 的引用不动。
+        private const string FixationTypeName = "NudityMattersMore.Fixation";
+        private const string ExposeMethodName = "PostExposeData";
         private const string TargetLabel = "fixPawn";
+        private const string ScribeRefsTypeName = "Verse.Scribe_References";
 
         private static bool installed;
-        private static int suppressed;
+        private static int replacedCalls;
         private static bool announced;
 
         internal static void Install()
@@ -87,49 +99,48 @@ namespace GNH.LocalFixes
 
             try
             {
-                Type t = AccessTools.TypeByName(ScribeRefsTypeName);
-                if (t == null)
+                Type fixationType = AccessTools.TypeByName(FixationTypeName);
+                if (fixationType == null)
                 {
                     installed = true;
-                    Log.Message("[GNH LocalFixes] 未找到 " + ScribeRefsTypeName
-                        + "；【42】/fixPawn 脏数据过滤本次跳过。");
+                    Log.Message("[GNH LocalFixes] 未找到 " + FixationTypeName
+                        + "（裸体评价未安装或已改版）；【42】/fixPawn 过滤已跳过。");
                     return;
                 }
 
-                // ⚠ 这里不能用 AccessTools.Method(t, "Look", null, new[]{ typeof(Pawn) }) ——
-                //   Verse.Scribe_References 有**两个**同名泛型重载，泛型参数都能是 Pawn：
-                //       Look<T>(ref T              refee, string label, bool saveDestroyedThings)
-                //       Look<T>(ref WeakReference<T> refee, string label, bool saveDestroyedThings)
-                //   所以按「方法名 + 泛型参数」找会抛 AmbiguousMatchException（v1.4.18 第一次实机就撞上了）。
-                //   这里改成自己遍历：只认「第一个参数是 ref T、且 T 就是那个泛型参数本身」的那个重载。
-                MethodInfo generic = FindLookByRefMethod(t);
-                if (generic == null)
-                {
-                    Log.Error("[GNH LocalFixes] 在 " + ScribeRefsTypeName + " 上找不到 Look<T>(ref T, string, bool)；"
-                        + "【42】本次未安装，下次会重试。");
-                    return;
-                }
-
-                MethodInfo target = generic.MakeGenericMethod(typeof(Pawn));
+                MethodInfo target = AccessTools.Method(fixationType, ExposeMethodName, Type.EmptyTypes, null);
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] Look<T> 封闭到 Pawn 失败；【42】本次未安装，下次会重试。");
+                    Log.Error("[GNH LocalFixes] 在 " + FixationTypeName + " 上找不到 "
+                        + ExposeMethodName + "()；【42】本次未安装，下次会重试。");
                     return;
                 }
 
+                replacedCalls = 0;
                 LocalFixesMod.HarmonyInstance.Patch(
                     target,
+                    null,
+                    null,
                     new HarmonyMethod(AccessTools.Method(
-                        typeof(FixPawnScribeNullFix), nameof(Prefix), null, null)),
-                    null,
-                    null,
+                        typeof(FixPawnScribeNullFix), nameof(Transpiler), null, null)),
                     null);
+
+                if (replacedCalls == 0)
+                {
+                    Log.Warning("[GNH LocalFixes] 【42】没能在 " + FixationTypeName + "." + ExposeMethodName
+                        + " 里找到 Scribe_References.Look 调用（作者可能改了写法）；本项本局不生效，下次会重试。");
+                    return;
+                }
 
                 installed = true;
                 Log.Message("[GNH LocalFixes] 已安装【42】/fixPawn 脏数据过滤"
-                    + "（" + ScribeRefsTypeName + ".Look<Pawn>）。"
-                    + "只在「label = " + TargetLabel + " 且引用本身是 null」时跳过登记，"
-                    + "有效引用一个字节都不动，存档格式不变。");
+                    + "（Transpiler 改 " + FixationTypeName + "." + ExposeMethodName
+                    + " 里的 Scribe_References.Look 调用，替换 " + replacedCalls + " 处）。"
+                    + "只在「label = " + TargetLabel + " 且引用本身是 null」时跳过，"
+                    + "有效引用一个字节都不动，存档格式不变。"
+                    + "★ 这版换了拦法：v1.4.19 patch 的是 Look<Pawn>（封闭泛型实例），"
+                    + "Harmony 对它不可靠 —— 补丁报「已安装」但一次都没拦到，138 条照刷。"
+                    + "现在改成改调用方，绕开泛型。");
             }
             catch (Exception ex)
             {
@@ -138,81 +149,73 @@ namespace GNH.LocalFixes
         }
 
         // ==================================================================
-        // 前缀：label 是 fixPawn、且要登记的引用确实是 null → 整个跳过。
+        // Transpiler：call Scribe_References::Look  →  call SafeLook
         // ==================================================================
         //
-        // 参数用位置绑定：`ref Pawn __0` 就是 `Look<Pawn>(ref Pawn target, …)` 的第一个参数。
-        // label 用名字绑定（它在该方法上叫 label，且不是泛型参数，名字稳定）。
-        public static bool Prefix(ref Pawn __0, string label)
+        // 只换 call 的目标，不动任何其它指令 —— 签名完全一致，栈平衡天然成立。
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            if (label != TargetLabel || __0 != null)
+            MethodInfo replacement = AccessTools.Method(
+                typeof(FixPawnScribeNullFix), nameof(SafeLook),
+                new[] { typeof(Pawn).MakeByRefType(), typeof(string), typeof(bool) }, null);
+
+            if (replacement == null)
             {
-                return true;
+                Log.Error("[GNH LocalFixes] 【42】连自己的 SafeLook 都找不到，无法替换。");
+                foreach (CodeInstruction ci in instructions)
+                {
+                    yield return ci;
+                }
+                yield break;
             }
 
-            suppressed++;
-            if (!announced)
+            foreach (CodeInstruction ci in instructions)
             {
-                announced = true;
-                Log.Message("[GNH LocalFixes] 已开始过滤 /fixPawn 的空引用登记。"
-                    + "成因：1.6→1.7 迁移后这些存档里的引用解析不出来，模组又无条件交给了 Scribe，"
-                    + "于是每次读档刷 132 条 loadID 报错。跳过的是「登记一个 null」，"
-                    + "与原版后续把它置空的行为等价；有效引用不受影响。之后不再重复打印。");
-            }
+                if ((ci.opcode == OpCodes.Call || ci.opcode == OpCodes.Callvirt)
+                    && ci.operand is MethodInfo mi
+                    && mi.Name == "Look"
+                    && mi.DeclaringType != null
+                    && mi.DeclaringType.FullName == ScribeRefsTypeName)
+                {
+                    // 只换「第一个参数是 ref Pawn」的那个重载（即 Look<Pawn>(ref Pawn, string, bool)）
+                    ParameterInfo[] ps = mi.GetParameters();
+                    if (ps.Length == 3
+                        && ps[0].ParameterType.IsByRef
+                        && ps[0].ParameterType.GetElementType() == typeof(Pawn))
+                    {
+                        ci.operand = replacement;
+                        replacedCalls++;
+                    }
+                }
 
-            return false;
+                yield return ci;
+            }
         }
 
         // ==================================================================
-        // 从 Verse.Scribe_References 上挑出 `Look<T>(ref T, string, bool)` 这个重载。
+        // 安全版 Look：null 的 fixPawn 直接不登记（于是也不会去查）
         // ==================================================================
         //
-        // 判据（三条都要满足）：
-        //   ① 名字是 Look
-        //   ② 是泛型方法定义（还没封闭到具体 T）
-        //   ③ 第一个参数是 **by-ref**，且解引用后的类型**就是那个泛型参数本身**
-        //      —— 这一条把 `ref WeakReference<T>` 那个重载排除掉了
-        //      （它的解引用类型是 WeakReference`1，不是泛型参数）。
-        private static MethodInfo FindLookByRefMethod(Type scribeRefsType)
+        // 必须 public static：Transpiler 生成的是跨类 call。
+        // 参数签名要与被替换的完全一致：ref Pawn / string / bool。
+        public static void SafeLook(ref Pawn refee, string label, bool saveDestroyedThings)
         {
-            MethodInfo[] methods = scribeRefsType.GetMethods(
-                BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly);
-
-            for (int i = 0; i < methods.Length; i++)
+            if (label == TargetLabel && refee == null)
             {
-                MethodInfo m = methods[i];
-                if (m.Name != LookMethodName)
+                // 这一条正是 138 条报错的来源：登记一个 null loadID，然后在解析阶段又去查它。
+                // 跳过它 = 既不登记也不查询，两条报错同时消失；有效引用不受影响。
+                if (!announced)
                 {
-                    continue;
+                    announced = true;
+                    Log.Message("[GNH LocalFixes] 【42】已开始跳过 /fixPawn 的空引用登记"
+                        + "（成因：1.6→1.7 迁移后这些引用解析不出来，模组又无条件交给了 Scribe）。"
+                        + "跳过的是「登记一个 null」，有效引用不受影响。之后不再重复打印。");
                 }
 
-                if (!m.IsGenericMethodDefinition)
-                {
-                    continue;
-                }
-
-                ParameterInfo[] ps = m.GetParameters();
-                if (ps.Length != 3)
-                {
-                    continue;
-                }
-
-                Type first = ps[0].ParameterType;
-                if (!first.IsByRef)
-                {
-                    continue;
-                }
-
-                Type element = first.GetElementType();
-                if (element == null || !element.IsGenericParameter)
-                {
-                    continue;
-                }
-
-                return m;
+                return;
             }
 
-            return null;
+            Scribe_References.Look(ref refee, label, saveDestroyedThings);
         }
     }
 }
