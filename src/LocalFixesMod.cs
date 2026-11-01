@@ -844,14 +844,18 @@ namespace GNH.LocalFixes
                 GNHLocalFixesSettings settings = Settings;
                 if (settings == null)
                 {
-                    return true;
+                    // 设置还没读出来（极早期）。按出厂默认值走 ——
+                    // 不能一律 true：「性能剖析」那一项默认是关的，
+                    // 一律 true 会让它在「设置没读出来」这条冷门路径上被装上，
+                    // 与界面显示相反。
+                    return !FixToggles.IsDefaultOff(toggleId);
                 }
                 return settings.IsOn(toggleId);
             }
             catch (Exception)
             {
-                // IsOn 本身只是几次字典查找，理论上不会抛。真抛了也按「开启」处理，理由同上。
-                return true;
+                // IsOn 本身只是几次字典查找，理论上不会抛。真抛了也按出厂默认值处理，理由同上。
+                return !FixToggles.IsDefaultOff(toggleId);
             }
         }
 
@@ -956,7 +960,7 @@ namespace GNH.LocalFixes
             {
                 // 设置对象没取到（理论上不会发生）：给一句提示，别让窗口一片空白。
                 Widgets.Label(inRect, Translated("GNH_LocalFixes_SettingsUnavailable",
-                    "设置读取失败。本补丁按内置默认值（全部开启）继续工作。"));
+                    "设置读取失败。本补丁按出厂默认值继续工作（只有「性能剖析」那一项默认是关的）。"));
                 return;
             }
 
@@ -1002,7 +1006,7 @@ namespace GNH.LocalFixes
             Rect row = new Rect(rect.x, rect.y, rect.width, 30f);
 
             if (Widgets.ButtonText(new Rect(row.x, row.y, buttonWidth, 30f),
-                    Translated("GNH_LocalFixes_EnableAll", "全部开启（默认）")))
+                    Translated("GNH_LocalFixes_EnableAll", "全部开启")))
             {
                 settings.SetAll(true);
             }

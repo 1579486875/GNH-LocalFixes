@@ -20,10 +20,11 @@
   <GNH_LocalFixes_Group_Spam>日志刷屏</GNH_LocalFixes_Group_Spam>
   <GNH_LocalFixes_Group_Compat>兼容与判定</GNH_LocalFixes_Group_Compat>
   <GNH_LocalFixes_Group_Behaviour>行为与设置</GNH_LocalFixes_Group_Behaviour>
+  <GNH_LocalFixes_Group_Advanced>性能剖析（默认关闭）</GNH_LocalFixes_Group_Advanced>
 
   <GNH_LocalFixes_SettingsCategory>多模组兼容修复补丁</GNH_LocalFixes_SettingsCategory>
-  <GNH_LocalFixes_SettingsUnavailable>设置读取失败。本补丁按内置默认值（全部开启）继续工作。</GNH_LocalFixes_SettingsUnavailable>
-  <GNH_LocalFixes_EnableAll>全部开启（默认）</GNH_LocalFixes_EnableAll>
+  <GNH_LocalFixes_SettingsUnavailable>设置读取失败。本补丁按出厂默认值继续工作（只有「性能剖析」那一项默认是关的）。</GNH_LocalFixes_SettingsUnavailable>
+  <GNH_LocalFixes_EnableAll>全部开启</GNH_LocalFixes_EnableAll>
   <GNH_LocalFixes_DisableAll>全部关闭</GNH_LocalFixes_DisableAll>
   <GNH_LocalFixes_OnlyCrashes>只留「崩溃与卡死」</GNH_LocalFixes_OnlyCrashes>
   <GNH_LocalFixes_OnlyCrashes_Tip>把「日志刷屏」「兼容与判定」「XML 补丁」三类关掉，只留下不修就会崩的那些。
@@ -116,7 +117,7 @@
   <GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>某些模组给 HediffStage 写了 visible 字段，而 1.6 与 1.7 的 Verse.HediffStage 都没有这个字段（只有 becomeVisible）→ 每次加载刷「doesn't correspond to any field in type HediffStage」。删掉不改变任何行为，只消日志。两个版本都成立，无需版本守卫。</GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>
   <GNH_LocalFixes_Toggle_logSpamFilter>两处调试输出刷屏（【39】）</GNH_LocalFixes_Toggle_logSpamFilter>
   <GNH_LocalFixes_Toggle_logSpamFilter_Desc>WeaponStats（工坊 974066449）在 Turret.cs:74 每开一次武器统计面板就 Log.Message 一遍炮塔 defName（实测 1 小时 2,737 条），另有固定串「Update weapons list」；RimImmortal.Core（工坊 3296476341）有个前缀方法每次都写一行「…::Start」（实测 190 条）。两处都是作者留在正式版里的调试输出，不是报错。本项在 Verse.Log.Message 上按三个收紧的判据拦下它们，其余日志一律照常输出。</GNH_LocalFixes_Toggle_logSpamFilter_Desc>
-  <GNH_LocalFixes_Toggle_deepProfilerQuiet>DeepProfiler 拖日志与内存（【40】）</GNH_LocalFixes_Toggle_deepProfilerQuiet>
+  <GNH_LocalFixes_Toggle_deepProfilerQuiet>DeepProfiler 拖日志与内存（【40】，默认关闭）</GNH_LocalFixes_Toggle_deepProfilerQuiet>
   <GNH_LocalFixes_Toggle_deepProfilerQuiet_Desc>Verse.DeepProfiler 的开关条件是 enable 与 logVerbose 两个条件同时为真：enabled 默认 true，所以只要玩家开着「详细日志」，它每次 LongEvent 都打印整棵调用树 + Hotspot analysis（实测一局 14.5 小时：7,105 次调用树、8,001 次 hotspot，8 秒写 54,094 行），内部调用列表还持续累积对象（11.5h 9.2 GB → 14.5h 15.7 GB）。本项只把 enabled 置 false：logVerbose 保留、其它日志一条不少；代价是游戏内性能剖析失效（需要时关掉本项重开即可）。</GNH_LocalFixes_Toggle_deepProfilerQuiet_Desc>
   <GNH_LocalFixes_Toggle_fixPawnScribeNull>读档刷上百条 /fixPawn 报错（【41】）</GNH_LocalFixes_Toggle_fixPawnScribeNull>
   <GNH_LocalFixes_Toggle_fixPawnScribeNull_Desc>「裸体评价」的 Fixation 组件无条件执行 Scribe_References.Look(ref fixPawn, "fixPawn")，而这些存档里的 fixPawn 在 1.6→1.7 迁移后解析不出来，于是登记了一个 null loadID —— 每次读档固定刷「register the same load ID twice」与「never added during LoadingVars」各 66 条（涉及 100 个 Pawn）。本项只在「label 是 fixPawn 且引用本身是 null」时跳过登记；有效引用与存档格式都不动。</GNH_LocalFixes_Toggle_fixPawnScribeNull_Desc>

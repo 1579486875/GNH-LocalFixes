@@ -5,6 +5,7 @@
 // designed, reviewed and validated by the human author.
 // ---------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using Verse;
 
@@ -59,6 +60,7 @@ namespace GNH.LocalFixes
         internal const string GroupSpam = "GNH_LocalFixes_Group_Spam";
         internal const string GroupCompat = "GNH_LocalFixes_Group_Compat";
         internal const string GroupBehaviour = "GNH_LocalFixes_Group_Behaviour";
+        internal const string GroupAdvanced = "GNH_LocalFixes_Group_Advanced";
         internal const string GroupXmlPatches = "GNH_LocalFixes_Group_XmlPatches";
 
         /// <summary>
@@ -72,8 +74,30 @@ namespace GNH.LocalFixes
             if (groupKey == GroupSpam) return "日志刷屏";
             if (groupKey == GroupCompat) return "兼容与判定";
             if (groupKey == GroupBehaviour) return "行为与设置";
+            if (groupKey == GroupAdvanced) return "性能剖析（默认关闭）";
             if (groupKey == GroupXmlPatches) return "XML 补丁（可单独关闭）";
             return groupKey;
+        }
+
+        /// <summary>
+        /// 这一项的**出厂默认值是不是「关」**。
+        ///
+        /// <para>
+        /// 全表 41 项里只有「性能剖析」（deepProfilerQuiet）默认关 ——
+        /// 它关掉的是游戏自带的功能，值不值得关应该由玩家自己决定，不该替玩家做。
+        /// 其余 40 项修的都是「模组写错导致的毛病」，默认开着才是对的。
+        /// </para>
+        ///
+        /// <para>
+        /// ⚠ 这个判断**只有这一处**：`GNHLocalFixesSettings.IsOn()`（玩家没存过这一项时）
+        /// 与 `LocalFixesMod.IsFixEnabled()`（设置还没读出来时）都调它。
+        /// 千万别在别的文件里再写一份 id 字符串 —— 一旦两边写岔，
+        /// 现象是「界面上显示关着，实际却装上了」，而日志里看不出任何异常。
+        /// </para>
+        /// </summary>
+        internal static bool IsDefaultOff(string id)
+        {
+            return string.Equals(id, "deepProfilerQuiet", StringComparison.Ordinal);
         }
 
         internal sealed class Entry
@@ -247,16 +271,6 @@ namespace GNH.LocalFixes
                 + "两处都是作者留在正式版里的调试输出，不是报错。"
                 + "本项在 Verse.Log.Message 上按三个收紧的判据拦下它们，其它日志一律照常输出。"),
 
-            new Entry("deepProfilerQuiet", GroupSpam,
-                "DeepProfiler 拖日志与内存（【40】）",
-                "Verse.DeepProfiler 的开关条件是两个：`enabled && Prefs.LogVerbose`。"
-                + "enabled 默认就是 true，所以真正决定它跑不跑的是玩家自己的「详细日志」——"
-                + "只要那个开着，它每次 LongEvent 都打印整棵调用树 + Hotspot analysis"
-                + "（实测一局 14.5 小时：7,105 次调用树、8,001 次 hotspot，20:56 那 8 秒写了 54,094 行），"
-                + "而它内部维护的调用列表会持续累积对象（11.5h 9.2 GB → 14.5h 15.7 GB）。"
-                + "本项只把 DeepProfiler.enabled 置 false：logVerbose 保留、其它日志一条不少，"
-                + "代价是游戏内的性能剖析功能失效（需要时把本项关掉重开即可）。"),
-
             new Entry("fixPawnScribeNull", GroupSpam,
                 "读档刷上百条 /fixPawn 报错（【41】）",
                 "「裸体评价」的 Fixation 组件在 PostExposeData 里**无条件**执行 "
@@ -310,6 +324,28 @@ namespace GNH.LocalFixes
                 "「RJW Menstruation Fluids」每次启动都会把 Cumpilation 的 9 个开关无条件写成关闭，"
                 + "你在设置界面里打开也没用（下次启动又被按回去，而且它只改内存、从不写盘）。"
                 + "本项在它之后按你自己存过的值恢复，不写死任何开关。"),
+
+            // ---------------- 性能剖析（默认关闭） ----------------
+            //
+            // 这一项**单独成段，而且默认是关的**（用户 2026-11-01 明确要求）。
+            //
+            // 为什么它跟「日志刷屏」那组不一样：那八项修的都是「模组写错了、日志被刷爆」，
+            // 开着只有好处；而这一项关掉的是**游戏自带的功能** —— 关掉之后，
+            // 开发者模式里的性能剖析就用不了了。它值不值得开，取决于玩家自己要不要那个功能，
+            // 所以默认站在「不动原版功能」那一边，想省日志/内存的人自己去打开。
+            //
+            // 默认值由 FixToggles.IsDefaultOff() 统一给出（设置类与 IsFixEnabled 都读它），
+            // 不要在各处各写一份，否则「界面上显示关、实际却装了」这类错会很难查。
+            new Entry("deepProfilerQuiet", GroupAdvanced,
+                "DeepProfiler 拖日志与内存（【40】，默认关闭）",
+                "Verse.DeepProfiler 的开关条件是两个：`enabled && Prefs.LogVerbose`。"
+                + "enabled 默认就是 true，所以真正决定它跑不跑的是玩家自己的「详细日志」——"
+                + "只要那个开着，它每次 LongEvent 都打印整棵调用树 + Hotspot analysis"
+                + "（实测一局 14.5 小时：7,105 次调用树、8,001 次 hotspot，20:56 那 8 秒写了 54,094 行），"
+                + "而它内部维护的调用列表会持续累积对象（11.5h 9.2 GB → 14.5h 15.7 GB）。"
+                + "★ 本项**默认关闭**：只把 DeepProfiler.enabled 置 false，"
+                + "logVerbose 保留、其它日志一条不少，代价是游戏内的性能剖析功能失效。"
+                + "你不看那个剖析、又嫌日志大或内存涨，再来把它打开。"),
 
             // ---------------- XML 补丁（可单独关闭） ----------------
             //

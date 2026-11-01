@@ -92,7 +92,9 @@ namespace GNH.LocalFixes
             {
                 return value;
             }
-            return true;
+            // 玩家从没动过这一项 —— 用它的出厂默认值。
+            // 40 项默认开；「性能剖析」默认关（理由见 FixToggles.IsDefaultOff 的注释）。
+            return !FixToggles.IsDefaultOff(id);
         }
 
         /// <summary>设置某一项。两个老字段写回它们自己的键，其余写字典。</summary>
