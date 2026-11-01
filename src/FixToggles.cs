@@ -197,19 +197,6 @@ namespace GNH.LocalFixes
                 "生成古代神殿时，每个小格子都会刷一条「找不到 mimicSpawner 规则」的警告（实测一次开局 34 条）。"
                 + "原版那条路径本来就是「拒绝 + 什么都不做」，所以本项只是不再刷警告，行为完全等价。"),
 
-            // 2026-10-29 补登记：这一项在 2026-10-28 就装上了（见 LocalFixesMod.cs 的
-            // TryInstall("ravenLocustWeatherQuiet", …)），但当时忘了在 FixToggles.All 里
-            // 建条目 —— 结果是「补丁在跑、设置界面看不到、统计也不数它」。
-            // 现在补上，界面上多一行、统计从 35 变 38。
-            new Entry("ravenLocustWeatherQuiet", GroupSpam,
-                "渡鸦蝗虫雨每帧刷 Unity 数学栈异常（【38】）",
-                "RavenRace 的「蝗虫雨」天气组件在 1.7 的 Waylith 引擎下调 "
-                + "Unity.Mathematics.math.normalize(float2)，而 UnityStubs 里没有这个重载 —— "
-                + "一进地图就每帧抛 MissingMethodException，实测 6 分钟刷 12,671 行、约 4 MB/分钟。"
-                + "本项把该天气组件从地图组件列表里摘掉；它依赖的 Jobs/Burst 粒子在换引擎后本就跑不起来，功能损失为零。"
-                + "★ 只在 1.7+ 生效：1.6 的 Unity.Mathematics 有这个重载，那个组件本身工作正常，"
-                + "无条件摘掉等于白丢一个天气（守卫用 Verse.MaterialDef 判版本）。"),
-
             // 2026-10-30 新增：原版只让「需要实时绘制」的建筑进 DynamicDrawPhase 循环，
             // RavenRace 的史莱姆覆盖层在那里读一个没有判空的静态设置，取不到就每帧抛 NRE。
             new Entry("realtimeDrawNreSwallow", GroupSpam,
@@ -563,7 +550,6 @@ namespace GNH.LocalFixes
             //    【37】不登记：它删的是「任何模组写错的 HediffStage.visible」，
             //    没有单一目标模组，硬填一个会误报。
             { "xmlRjw17SraeLibField", "HahaSnowRabbitPB.ApparelPatch" },
-            { "ravenLocustWeatherQuiet", "ZuoYao.RavenRaceNSFW" },
         };
 
         /// <summary>

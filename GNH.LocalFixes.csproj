@@ -26,7 +26,7 @@
          AssemblyInfo.cs，所以这里改多少，DLL 里就是多少
          （2026-10-13 实测：改成 1.4.2 后 DLL 自报 1.4.2.0）。
          切勿照抄 MKC/UBFC 的注释，会判断反。 -->
-    <Version>1.4.18</Version>
+    <Version>1.4.19</Version>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <DebugType>none</DebugType>
     <!-- 编译产物不掺入 git 提交号：相同源码在任何机器上都编译出完全相同的 dll -->
@@ -157,6 +157,16 @@
     <Reference Include="UnityEngine.CoreModule"><HintPath>refs\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.IMGUIModule"><HintPath>refs\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.TextRenderingModule"><HintPath>refs\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+    <!-- 1.7 才有（Waylith 引擎的 Unity 替身）。里面是 Unity.Mathematics / Unity.Jobs 的托管实现。
+         程序集引用是惰性解析：1.6 下只要不碰这些类型就不会报错，所以【38】的
+         NormalizeFloat2(float2) 在 1.6 分支永远不会被 JIT，引用它安全。
+         ⚠ 必须给 Aliases —— 这个 dll 把 UnityEngine.Rect / Vector2 等也实现了一遍，
+            不加别名会和 UnityEngine.CoreModule 撞类型（CS0433）。 -->
+    <Reference Include="UnityStubs">
+      <HintPath>refs\UnityStubs.dll</HintPath>
+      <Private>false</Private>
+      <Aliases>unitystubs</Aliases>
+    </Reference>
   </ItemGroup>
 
   <!--

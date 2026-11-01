@@ -2,7 +2,7 @@
 
 > **多项针对性修复 —— 每一项都对应一次真实故障，每一项都独立生效。**
 
-> **当前版本：1.4.18** · 共 42 项修复，**42 个独立开关**（每一条都能在游戏设置里单独关；准确条数以设置界面顶部汇总为准）。`Patches\` 下 12 个 XML 补丁自 v1.4.10 起也各有开关。完整版本变迁见《技术说明.md》。
+> **当前版本：1.4.18** · 共 41 项修复，**41 个独立开关**（每一条都能在游戏设置里单独关；准确条数以设置界面顶部汇总为准）。`Patches\` 下 12 个 XML 补丁自 v1.4.10 起也各有开关。完整版本变迁见《技术说明.md》。
 
 | 项目 | 说明 |
 |---|---|
@@ -84,7 +84,7 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 
 **不用做任何事。** 装好、启用、进游戏，它就自动开始工作了。
 
-### 42 个设置项（每一项都能单独关）
+### 41 个设置项（每一项都能单独关）
 
 **选项 → 模组设置 → 多模组兼容修复补丁**
 
@@ -93,7 +93,7 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 > 开关右侧会对**异常状态**做标注（正常项不标 —— 没标就是好的）：
 > 灰色「已关闭」= 你关掉了；暗黄「目标模组未启用」= 这一项要修的模组不在场（没装、或者装了没勾选，都算），它在空转。
 
-> ✅ **42 项修复每一项都有独立开关**。
+> ✅ **41 项修复每一项都有独立开关**。
 > 【1】「类型清单作废」的实现虽然不是 `[HarmonyPatch]` 类（它是给 `Assembly.GetTypes()`
 > 挂的一层兜底），但它同样登记在 `FixToggles` 里、同样可以在界面里关掉。
 > 改完要重启游戏才生效。
@@ -108,7 +108,7 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 | 分组 | 项数 | 里面是什么 |
 |---|---|---|
 | **崩溃与卡死** | 11 | 不修就会崩、卡死、或者「一处失败连累一片」的那些 |
-| **日志刷屏** | 7 | 只刷日志、不影响玩法的：神殿警告、RJW-Genes 调试输出、载具调试菜单、RJW PE 废弃定义、RI-Furniture 房间要求自检、渡鸦蝗虫雨【38】、实时绘制空引用【39】 |
+| **日志刷屏** | 6 | 只刷日志、不影响玩法的：神殿警告、RJW-Genes 调试输出、载具调试菜单、RJW PE 废弃定义、RI-Furniture 房间要求自检、渡鸦蝗虫雨【38】、实时绘制空引用【39】 |
 | **兼容与判定** | 6 | 中文环境下判定失效、两个模组抢同一批 defName 之类 |
 | **行为与设置** | 2 | 领袖头衔保护、抵消「月经体液」每次启动强制关设置 |
 
@@ -304,7 +304,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | **只留 XML 补丁** | 删掉 `Assemblies\` 整个目录 |
 | **只留代码修复** | 删掉 `Patches\` 整个目录 |
 | **只留某几项 XML 补丁** | 进 `Patches\` 删掉对应的 `.xml` 文件（文件名即用途） |
-| **只留某几项修复** | **设置界面里逐项开关**（v1.4.0 起代码侧能单独关，v1.4.10 起 XML 补丁也能；共 42 项，每一项都有开关；改完重启生效） |
+| **只留某几项修复** | **设置界面里逐项开关**（v1.4.0 起代码侧能单独关，v1.4.10 起 XML 补丁也能；共 41 项，每一项都有开关；改完重启生效） |
 
 > ⚠ 改完记得重启游戏。
 
@@ -353,7 +353,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 35 | 三条指向不存在 def 的交叉引用 | `RI_ToggleProducerLoading_Living` 只在 1.7 目录、`SR_CarrotArmorH` 提供方已不在、`WolfeinExecutiveSteakLunch` 的模组未启用，每局各刷 3 条 | 各自删掉引用项（本来就解析失败，行为等价） |
 | 36 | 雪兔服装扩展的 SRAELib 字段对不上 | 它的 `1.6\Assemblies` 里躺着两个**程序集名都是 `SRAELib 1.0.0.0`** 的 dll（一个 19,456 字节有 `targetNullifyingHediffs`、一个 18,944 字节没有），游戏加载到旧的那个 → `ThoughtDef_HediffAttraction` 报「doesn't correspond to any field」 | 只在 **1.7+** 删掉那条字段；1.6 下**不执行**（那里该字段有效，删了会把「认知护盾免疫」一起删掉）。版本判据用只存在于 1.7 的 `MaterialDef` |
 | 37 | 有人给 `HediffStage` 写了 `visible` 字段 | 1.6 与 1.7 的 `Verse.HediffStage` 都只有 `becomeVisible`，没有 `visible` → 每次加载刷「doesn't correspond to any field in type HediffStage」 | 删掉那个字段。两版都不认它，删了不改变任何行为，只消日志 |
-| 38 | 渡鸦的「蝗虫雨」每帧抛 `MissingMethodException` | 1.7 换了 Waylith 引擎，`Unity.Mathematics.math.normalize(float2)` 这个符号在新引擎的 `UnityStubs` 里不存在；那个天气组件每帧都调它 | **不碰它自己**（它坏在 IL 层，任何针对它的补丁都会装不上），改为在 `MapComponentUtility.MapComponentUpdate` 里把这个组件从地图上摘掉，并补一个 1.7 版本守卫 |
+| 38 | 渡鸦「迪克雨」的粒子动画抛 `MissingMethodException`（发情玩法保留） | 1.7 换了 Waylith 引擎，`Unity.Mathematics.math.normalize(float2)` 这个符号在新引擎的 `UnityStubs` 里不存在；那个天气组件每帧都调它 | **不碰它自己**（它坏在 IL 层，任何针对它的补丁都会装不上），改为在 `MapComponentUtility.MapComponentUpdate` 里把这个组件从地图上摘掉，并补一个 1.7 版本守卫 |
 | 39 | RavenRace 的史莱姆覆盖层在实时绘制时抛空引用 | 每帧刷一次 `Exception drawing ...`，把真正的报错埋掉 | 在 `Thing.DynamicDrawPhase` 上挂收尾器，只吞 `NullReferenceException`，其余原样抛；每 500 次记一条。**目标类型探测不到就自动让路**（`HarmonyPrepare` 里查 `SlimeThingOverlayCapture`） |
 
 ---
@@ -365,7 +365,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 本补丁包修的是**别人模组的 bug**。所以必然要回答一个问题：
 **如果那些作者自己修好了，本补丁会不会反过来把已经正常的代码改坏？**
 
-答案：**绝大多数会自动让路**。而且从 **v1.4.0** 起代码侧的修复都能在设置界面里单独关掉，**v1.4.10** 起 XML 补丁也能（现共 42 个开关）——
+答案：**绝大多数会自动让路**。而且从 **v1.4.0** 起代码侧的修复都能在设置界面里单独关掉，**v1.4.10** 起 XML 补丁也能（现共 41 个开关）——
 就算遇到这里没预料到的情况，你也可以自己把那一项关掉，不必等本补丁包更新。
 
 ### 三种「让路」机制
