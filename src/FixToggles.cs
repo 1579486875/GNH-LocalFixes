@@ -200,7 +200,7 @@ namespace GNH.LocalFixes
             // 2026-10-30 新增：原版只让「需要实时绘制」的建筑进 DynamicDrawPhase 循环，
             // RavenRace 的史莱姆覆盖层在那里读一个没有判空的静态设置，取不到就每帧抛 NRE。
             new Entry("realtimeDrawNreSwallow", GroupSpam,
-                "实时绘制空引用刷屏（【39】）",
+                "实时绘制空引用刷屏（【38】）",
                 "某些建筑（如 Dubs Rimatomics 的反应堆控制台）需要逐帧绘制，"
                 + "而 RavenRace 的史莱姆覆盖层在这条路上读一个没有判空的静态设置 —— "
                 + "取不到就每帧抛一次 NullReferenceException。实测 8.5 小时刷出 66 万条 ERROR、"
@@ -239,7 +239,7 @@ namespace GNH.LocalFixes
             // ── 2026-10-31 新增三项（来自 1.7 移交清单，都是日志/内存层的噪音）──
 
             new Entry("logSpamFilter", GroupSpam,
-                "两处调试输出刷屏（【40】）",
+                "两处调试输出刷屏（【39】）",
                 "WeaponStats（工坊 974066449）在 Source\\WeaponsTab\\Turret.cs:74 里写着 "
                 + "Log.Message(th.def.defName) —— 每开一次武器统计面板，每个炮塔就刷一行"
                 + "（实测 21 点一小时 2,737 条，Turret_MiniTurret 552 次）；同文件还有固定串「Update weapons list」。"
@@ -248,7 +248,7 @@ namespace GNH.LocalFixes
                 + "本项在 Verse.Log.Message 上按三个收紧的判据拦下它们，其它日志一律照常输出。"),
 
             new Entry("deepProfilerQuiet", GroupSpam,
-                "DeepProfiler 拖日志与内存（【41】）",
+                "DeepProfiler 拖日志与内存（【40】）",
                 "Verse.DeepProfiler 的开关条件是两个：`enabled && Prefs.LogVerbose`。"
                 + "enabled 默认就是 true，所以真正决定它跑不跑的是玩家自己的「详细日志」——"
                 + "只要那个开着，它每次 LongEvent 都打印整棵调用树 + Hotspot analysis"
@@ -258,7 +258,7 @@ namespace GNH.LocalFixes
                 + "代价是游戏内的性能剖析功能失效（需要时把本项关掉重开即可）。"),
 
             new Entry("fixPawnScribeNull", GroupSpam,
-                "读档刷上百条 /fixPawn 报错（【42】）",
+                "读档刷上百条 /fixPawn 报错（【41】）",
                 "「裸体评价」的 Fixation 组件在 PostExposeData 里**无条件**执行 "
                 + "Scribe_References.Look(ref fixPawn, \"fixPawn\")，而这些存档里的 fixPawn "
                 + "在 1.6→1.7 迁移后解析不出来（null）—— 于是登记了一个 null loadID，"
