@@ -15,23 +15,16 @@ namespace GNH.LocalFixes
     // 【39】实时绘制阶段每帧抛空引用，日志被刷到几个 GB。
     // ==========================================================================
     //
-    // 【① 修的是什么问题】
+    // 【① 真实存在，有日志为证】
     //
-    // 日志里每秒几十条：
-    //
-    //     Exception drawing ReactorControl331370: System.NullReferenceException
-    //        at Verse.Thing.DynamicDrawPhase_Patch2(Thing this, DrawPhase phase)
-    //        at Verse.DynamicDrawManager.DynamicDrawThings(DynamicDrawManager this)
-    //
-    // 2026-10-30 实测一局：8.5 小时刷出 661,441 条 ERROR / 2.07 GB 日志 / 进程内存 28 GB。
-    // 中招的不止一种建筑 —— 尾部 5 MB 里 ReactorControl 1074、TowerOfLight 537、
-    // ResearchReactor 537，全是 Dubs Rimatomics 的。
+    // 2026-10-30 那局尾部 5 MB 日志里有 **2,148 条** `Exception drawing ...：NullReferenceException`：
+    //   ReactorControl331370 / ReactorControl331372 / ResearchReactor330669 / TowerOfLight321575
+    //   —— 各 537 条。整局 8.5 小时刷出 661,441 条 ERROR / 2.07 GB 日志 / 进程内存 28 GB。
     //
     // 【为什么偏偏是它们】
     //
-    // 原版的 DynamicDrawManager 只把「需要实时绘制」的 Thing 放进这个循环
-    // （def.drawerType 不是 MapMeshOnly 的那些）。所以不是 Rimatomics 有毛病，
-    // 而是地图上**只有它们走这条路** —— 换别的实时绘制建筑一样会炸。
+    // 原版的 DynamicDrawManager 只把「需要实时绘制」的 Thing 放进这个循环。
+    // 所以不是 Rimatomics 有毛病，而是地图上**只有它们走这条路** —— 换别的实时绘制建筑一样会炸。
     //
     // 【根因在哪一层】（DecompilerServer 逐层反编译核对）
     //
@@ -39,25 +32,35 @@ namespace GNH.LocalFixes
     //     ├─ ZuoYao.RavenRace：Patch_SlimeOverlayThingDynamicDraw
     //     │    Prefix → SlimeThingOverlayCapture.BeginDynamic
     //     │             └ CaptureEnabled => RavenRaceMod.Settings.enableRavenLiquidCoveredVisuals
-    //     │                ★ 这里裸读一个静态属性，整条链上唯一没有判空的点
+    //     │                ★ 这里裸读一个静态属性，可疑度最高
     //     └─ ChezhouLib：Patch_ClSceneThingDraw
     //          Prefix → new ClSceneThingDrawing.Scope(thing)
     //                   └ Supported / TryGet / Matrix / Dispose  ← 逐项核对都判了
     //
-    // RavenRace 那一侧：`RavenRaceMod.Settings` 是个 `get; private set;` 的静态属性，
-    // 绘制阶段如果它还是 null（模组类还没构造完 / 被别的东西重置），取 `.Settings` 就是裸 NRE。
-    // 堆栈只到 `_Patch2` 而不到更深一层，也符合「属性 getter 被 JIT 内联进包装方法」的形态。
+    // 【② 为什么现在仍然只能「吞」—— 诚实交代】
     //
-    // 【② 为什么这样修】
+    // ⚠ 2026-11-01 复查发现：这条链上**每一环我都核过判空，找不到确切的空值点**：
+    //     · `TryGetThingOverlay`  → 完整判空（`target/ Spawned / Map / CanReceiveOverlay` 全查）
+    //     · `GetCached(Map)`      → 开头就 `if (map == null) return null;`
+    //     · `AppendPrintedSilhouetteRequests` → 四个参数全判空
+    //     · `RavenRaceMod.Settings` → 在 `RavenRaceMod..ctor` 里就赋值了，且没有 `Error while instantiating`
+    //   而日志里的堆栈**只到 `Thing.DynamicDrawPhase_Patch2`**，没有再往下一层 ——
+    //   说明 NRE 抛在被 JIT 内联进来的某一层，靠静态阅读区分不出来。
     //
-    // 不直接改 `BeginDynamic` 里那一行 —— 那是别人的功能开关，上游哪天补上判空，
-    // 我们的改动就白做一遍。改在 `Thing.DynamicDrawPhase` 上加 Finalizer，
-    // 能同时兜住两个模组的任意一层，而且**只在真的抛异常时才动作**。
+    //   **所以这一项从「猜根因去改上游」改成「先把证据留全」**：
+    //   第一次吞掉时，把 `Exception.ToString()`（含完整堆栈与所有内层帧）打进日志。
+    //   下次真出这个毛病时，就能看到具体是哪一层的哪个字段为空，再决定怎么真修。
     //
-    // 只吞 NullReferenceException；其它异常（越界、类型转换失败等）原样抛回，
-    // 不把真正的 bug 一起埋掉。
+    //   在那之前不动上游 —— 上次【38】的教训就是：凭"理论上会崩"去改别人的代码，
+    //   结果改掉的是一个本来正常的功能。
     //
-    // 【③ 什么情况下它自动失效 / 跳过】
+    // 【③ 为什么用 Finalizer 而不是 Prefix 打断】
+    //
+    // 不直接改 `BeginDynamic` 里那一行 —— 那是别人的功能开关。改在 `Thing.DynamicDrawPhase`
+    // 上加 Finalizer，能同时兜住两个模组的任意一层，而且**只在真的抛异常时才动作**。
+    // 只吞 NullReferenceException；其它异常（越界、类型转换失败等）原样抛回，不把真正的 bug 一起埋掉。
+    //
+    // 【④ 什么情况下它自动失效 / 跳过】
     //
     // 两层退场机制：
     //   1. 安装期（Prepare）：找不到 RavenRace 的 SlimeThingOverlayCapture 就不装 ——
@@ -68,7 +71,7 @@ namespace GNH.LocalFixes
     // 【关于异常处理边界】
     //
     // Finalizer 里没有 try/catch，这是刻意的：整段只有 int 自增、GetType().Name
-    // 和一个 SafeLogWarning 调用 —— 前两个不可能抛，最后一个由 LocalFixesMod 保证不抛
+    // 和 SafeLogWarning 调用 —— 前两个不可能抛，最后一个由 LocalFixesMod 保证不抛
     // （它内部已经吞掉日志子系统自己的异常，2026-10-07 极端场景测试过的老问题）。
     // 所以这里不存在「需要保护的临界区」，也就不该用空 catch 把问题盖住。
     [HarmonyPatch(typeof(Thing), nameof(Thing.DynamicDrawPhase))]
@@ -80,6 +83,13 @@ namespace GNH.LocalFixes
         private static int swallowed;
         private static int nextReportAt = 1;   // 第一条立刻报，证明它真的在干活
         private static string lastType = "?";
+
+        // Harmony 的 [HarmonyPrepare] 每局会被问不止一次（模组列表重建时会再来问），
+        // 不加守卫的话「已启用」那条日志会打两遍（2026-11-01 实测确认）。
+        private static bool preparedOnce;
+
+        // 完整堆栈只打一次 —— 它可能很长，每次抛都打等于换个方式刷屏。
+        private static bool stackDumped;
 
         /// <summary>
         /// 安装前的让路判断。返回 false 时 Harmony 不会给方法挂 Finalizer。
@@ -99,8 +109,14 @@ namespace GNH.LocalFixes
                 return false;
             }
 
-            LocalFixesMod.SafeLogMessage("[GNH LocalFixes] 【39】已启用：实时绘制抛空引用时拦截，"
-                + "每 " + ReportEvery + " 次记一条。");
+            if (!preparedOnce)
+            {
+                preparedOnce = true;
+                LocalFixesMod.SafeLogMessage("[GNH LocalFixes] 【39】已启用：实时绘制抛空引用时拦截，"
+                    + "每 " + ReportEvery + " 次记一条。**第一次吞的时候会把完整堆栈打进日志**"
+                    + "（只打一次）—— 那一份堆栈是用来定位根因的，定位到之后就能改成真修。");
+            }
+
             return true;
         }
 
@@ -123,6 +139,22 @@ namespace GNH.LocalFixes
             if (__instance != null)
             {
                 lastType = __instance.GetType().Name;
+            }
+
+            // ★ 第一次吞掉时把完整异常（含堆栈、InnerException、Data）写进日志。
+            //
+            //   为什么必须做：这是个「吞掉」补丁，没有堆栈就永远查不到是谁在抛 ——
+            //   2026-10-30 那局刷了 2,148 条，日志里却只有一行
+            //   「Exception drawing ReactorControl331370: NullReferenceException」，
+            //   连是哪一层抛的都看不出。有了这份堆栈，下次就能定位到具体字段，改成真修。
+            //   只打一次，不刷屏。
+            if (!stackDumped)
+            {
+                stackDumped = true;
+                LocalFixesMod.SafeLogWarning("[GNH LocalFixes] 【39】首次吞掉实时绘制空引用。"
+                    + "下面这份完整堆栈是定位根因用的（只打一次，含所有内层帧）。"
+                    + "确定是哪一层的空值之后，就可以把它改成真修而不是吞掉："
+                    + Environment.NewLine + __exception);
             }
 
             if (swallowed >= nextReportAt)

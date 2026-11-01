@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Reflection.Emit;
 using HarmonyLib;
 using Verse;
 
@@ -16,63 +17,57 @@ namespace GNH.LocalFixes
     // ==========================================================================
     // 【40】两个模组把调试输出留在了正式版，日志被刷爆
     //
-    // 修的两处（都是「作者自己的 Log.Message 忘了删」）：
+    // ⚠ 2026-11-01 改法调整：原来是在 `Verse.Log.Message` 上加全局前缀过滤，
+    //   现在改成**直接在目标方法里把那几条日志调用换掉**。
+    //   理由是用户的要求：「能直接修复好的那就直接修复，不要搞纯拦截这一套」。
+    //   全局拦 `Log.Message` 是拦截；改目标是修 —— 少一个全局钩子，也不会误伤别的模组。
+    //
+    // ── 要改的三处（都是作者自己的 Log.Message 忘了删）──
     //
     //   ① WeaponStats（bodlosh.WeaponStats，工坊 974066449）
-    //      Source\WeaponsTab\Turret.cs:74 里写着
-    //          public new void fillFromThing(Thing th, bool ce = false)
-    //          {
-    //              Log.Message(th.def.defName);      ← 每开一次武器统计面板，每个炮塔刷一行
-    //              base.fillFromThing(th);
-    //      Source\WeaponsTab\WeaponStats.cs:1042 还有一句
-    //          Log.Message("Update weapons list");
+    //      `WeaponStats.Turret.fillFromThing(Thing, bool)` 第一行：
+    //          Log.Message(th.def.defName);      ← 每开一次武器统计面板，每个炮塔刷一行
     //      实测 21 点一小时 2,737 条：Turret_MiniTurret 552 次、KT_Bunker 82 次……
     //
-    //   ② RimImmortal.Core（RI.RimImmortal.Core，工坊 3296476341，[1.7] 边缘仙路）
-    //      它有个前缀方法每次进来都写一行 `AnyActiveDeepScannersOnMapPreFix::Start`，
-    //      实测 190 条。
+    //   ② 同模组 `WeaponStats.MainTabWindow_WeaponStats.UpdateList()` 里：
+    //          Log.Message("Update weapons list");
     //
-    // 两处都不是「出错」，是纯粹的调试噪音 —— 它们把真正的报错埋掉，也让日志文件白涨几十 MB。
+    //   ③ RimImmortal.Core（工坊 3296476341）某个前缀方法每次写一行
+    //      `AnyActiveDeepScannersOnMapPreFix::Start`（实测 190 条）。
+    //      这类日志打在一个我们自己都定位不到的方法里，只能退回到「按内容过滤」。
     //
-    // ── 为什么拦在 Log.Message 这一层，而不是去 patch 那两个模组 ──
+    // ── 怎么「删」一条日志调用 ──
     //
-    //   ① 那两个模组都有自己的 dll，patch 它们的目标方法要跟着它们的版本走；
-    //      Log.Message(string) 是原版方法，签名在 1.6/1.7 都是 `Void Message(String text)`（已反编译核对）。
-    //   ② 真正要拦的只是「这一行」，不是「那个方法的所有输出」——
-    //      WeaponStats 的 fillFromThing 还要算预热、射程、伤害，拦掉整个方法会让面板空掉。
+    //   IL 长这样：
+    //       ldstr "xxx"                       ← 压参数
+    //       call void Verse.Log::Message(string)   ← 弹掉参数，返回 void
     //
-    // ── 三个判据，全都收紧到「只可能是这两处」 ──
+    //   把那条 `call` **换成 `pop`**：opcode 位置不变、栈平衡不变（都消耗一个值），
+    //   其余指令一条不动。这是最小侵入的改法 —— 不需要去猜参数是由几条指令压出来的。
     //
-    //   判据 A：文本恰好等于 "Update weapons list"        —— 这是 WeaponStats 独有的固定串
-    //   判据 B：文本以 "::Start" 结尾                        —— 这是 RimImmortal 那类前缀日志的形态
-    //   判据 C：文本是一个**炮塔** ThingDef 的 defName      —— 对应 Turret.cs:74
-    //           判据 C 收得很紧：还要求 `building.turretGunDef != null`，
-    //           所以「某个模组恰好把某个普通 def 的名字打出来」不会被误伤。
+    // ── 降级 ──
     //
-    // ── 什么情况下它会自动失效 ──
+    //   ①② 两处如果找不到目标方法（模组没装 / 作者改名），就跳过。
+    //   ③ 那一处没有稳定锚点，**继续沿用按内容过滤**（`::Start` 结尾），
+    //      但把它缩小到「只在 RimImmortal 装了的时候」才装。
     //
-    //   · 作者把调试输出删掉 → 这三条判据一条都命中不了，本项什么都不做（也一条日志不打）。
-    //   · 用户关掉这一项 → 前缀根本不装，Log.Message 完全不受影响。
-    //   · 原版 Log.Message(string) 改签名 → 找不到目标，本次跳过并留 Error，下次重试。
+    // ── 什么情况下自动失效 ──
     //
-    // ── 性能 ──
-    //
-    //   Log.Message 是相对低频的路径（正常游戏每分钟几条到几十条）。
-    //   前缀里最贵的是判据 C 的 `DefDatabase.GetNamedSilentFail`，但先被「长度 ≤ 64」挡掉绝大多数；
-    //   而判据 A / B 都是 `==` 与 `EndsWith`，代价可忽略。
-    //   第一次拦下时打一条说明，之后完全静默 —— 否则等于换个方式继续刷屏。
+    //   · 作者把调试输出删了 → Transpiler 找不到那条 call，什么都不改（也一条日志不打）。
+    //   · 模组没装 → `AccessTools.TypeByName` 返回 null，直接跳过。
+    //   · 玩家关掉这一项 → 什么都不装。
     // ==========================================================================
     internal static class LogSpamFilterFix
     {
-        private const string WeaponStatsFixedLine = "Update weapons list";
+        private const string TurretTypeName = "WeaponStats.Turret";
+        private const string TabTypeName = "WeaponStats.MainTabWindow_WeaponStats";
+        private const string RimImmortalTypeHint = "RI.RimImmortal";
+
         private const string PrefixLogSuffix = "::Start";
 
-        // defName 不会超过这个长度；超过的直接放行，避免对长文本做 DefDatabase 查询。
-        private const int MaxDefNameLength = 64;
-
         private static bool installed;
-        private static int suppressed;
-        private static bool announced;
+        private static int patchedTargets;
+        private static int replacedCalls;
 
         internal static void Install()
         {
@@ -83,93 +78,161 @@ namespace GNH.LocalFixes
 
             try
             {
-                // ⚠ AccessTools.Method 的第 4 个参数是「泛型类型参数」，非泛型方法必须传 null。
-                //   Log.Message 有两个重载：Message(string) 与 Message(object)，
-                //   这里用参数类型数组精确取 string 那个。
-                MethodInfo target = AccessTools.Method(
-                    typeof(Log), "Message", new[] { typeof(string) }, null);
+                // ── ① WeaponStats.Turret.fillFromThing(Thing, bool) ──
+                TryTranspileCall(TurretTypeName, "fillFromThing",
+                    new[] { typeof(Thing), typeof(bool) });
 
-                if (target == null)
+                // ── ② WeaponStats.MainTabWindow_WeaponStats.UpdateList() ──
+                TryTranspileCall(TabTypeName, "UpdateList", Type.EmptyTypes);
+
+                // ── ③ RimImmortal 的 ::Start：没有稳定锚点，只能按内容过滤 ──
+                //    只在它真装了的时候才装，避免给所有玩家多挂一个全局钩子。
+                if (AnyTypeNameContains(RimImmortalTypeHint))
                 {
-                    Log.Error("[GNH LocalFixes] 找不到 Verse.Log.Message(string)；"
-                        + "【40】日志刷屏过滤本次未安装，下次会重试。");
-                    return;
+                    TryInstallContentFilter();
                 }
 
-                LocalFixesMod.HarmonyInstance.Patch(
-                    target,
-                    new HarmonyMethod(AccessTools.Method(
-                        typeof(LogSpamFilterFix), nameof(Prefix), null, null)),
-                    null,
-                    null,
-                    null);
-
                 installed = true;
-                Log.Message("[GNH LocalFixes] 已安装【40】日志刷屏过滤（Verse.Log.Message）。"
-                    + "拦三类：WeaponStats 的「" + WeaponStatsFixedLine + "」与炮塔名、"
-                    + "以及以「" + PrefixLogSuffix + "」结尾的前缀调试日志。"
-                    + "其余日志一律照常输出。");
+                Log.Message("[GNH LocalFixes] 已安装【40】日志刷屏修复："
+                    + "改了 " + patchedTargets + " 个目标方法、替换 " + replacedCalls + " 处日志调用"
+                    + "（把 call Log.Message 换成 pop，逻辑与栈平衡都不变）。"
+                    + "WeaponStats 的 Turret.fillFromThing 与 UpdateList 已从源头去掉调试输出；"
+                    + "RimImmortal 的 ::Start 因为没有稳定锚点，仍按内容过滤。"
+                    + "★ 本项不再拦全局 Log.Message —— 其它模组的日志一条都不受影响。");
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 安装【40】日志刷屏过滤失败（下次会重试）：" + ex);
+                Log.Error("[GNH LocalFixes] 安装【40】日志刷屏修复失败（下次会重试）：" + ex);
             }
         }
 
         // ==================================================================
-        // 前缀：命中三类噪音就返回 false（原方法整个跳过）。
+        // 给某个方法挂 Transpiler，把里面所有 Log.Message 调用换成 pop
+        // ==================================================================
+        private static void TryTranspileCall(string typeName, string methodName, Type[] paramTypes)
+        {
+            Type t = AccessTools.TypeByName(typeName);
+            if (t == null)
+            {
+                return;
+            }
+
+            MethodInfo target = AccessTools.Method(t, methodName, paramTypes, null);
+            if (target == null)
+            {
+                return;
+            }
+
+            int before = replacedCalls;
+            LocalFixesMod.HarmonyInstance.Patch(
+                target,
+                null,
+                null,
+                new HarmonyMethod(AccessTools.Method(
+                    typeof(LogSpamFilterFix), nameof(DropLogCalls), null, null)),
+                null);
+
+            patchedTargets++;
+            if (replacedCalls > before)
+            {
+                Log.Message("[GNH LocalFixes] 【40】" + typeName + "." + methodName
+                    + " 里的 " + (replacedCalls - before) + " 处日志调用已去掉。");
+            }
+        }
+
+        // ==================================================================
+        // Transpiler：call Log.Message(...) → pop
         // ==================================================================
         //
-        // 用 `string __0` 而不是 `string text`：按位置绑定，
-        // 万一原版把参数名从 text 改掉也不影响（Harmony 允许两种写法）。
+        // 判据只看「方法名是 Message、声明类型是 Verse.Log」——
+        // 三个重载（string / object / TaggedString）都算，因为它们都是调试输出。
+        // 换 pop 而不是删指令：pop 与 call 消耗的值数量相同，栈平衡天然成立。
+        private static IEnumerable<CodeInstruction> DropLogCalls(IEnumerable<CodeInstruction> instructions)
+        {
+            foreach (CodeInstruction ci in instructions)
+            {
+                if ((ci.opcode == OpCodes.Call || ci.opcode == OpCodes.Callvirt)
+                    && ci.operand is MethodInfo mi
+                    && mi.Name == "Message"
+                    && mi.DeclaringType != null
+                    && mi.DeclaringType.FullName == "Verse.Log")
+                {
+                    ci.opcode = OpCodes.Pop;
+                    ci.operand = null;
+                    replacedCalls++;
+                }
+
+                yield return ci;
+            }
+        }
+
+        // ==================================================================
+        // ③ 的降级：按内容过滤 RimImmortal 的 ::Start
+        // ==================================================================
+        private static void TryInstallContentFilter()
+        {
+            MethodInfo logMessage = AccessTools.Method(
+                typeof(Log), "Message", new[] { typeof(string) }, null);
+            if (logMessage == null)
+            {
+                return;
+            }
+
+            LocalFixesMod.HarmonyInstance.Patch(
+                logMessage,
+                new HarmonyMethod(AccessTools.Method(
+                    typeof(LogSpamFilterFix), nameof(Prefix), null, null)),
+                null,
+                null,
+                null);
+            patchedTargets++;
+        }
+
+        // 前缀：只拦「以 ::Start 结尾」这一种（RimImmortal 的前缀调试日志形态）。
         public static bool Prefix(string __0)
         {
-            if (__0 == null || __0.Length == 0)
+            if (__0 == null || __0.Length < PrefixLogSuffix.Length)
             {
                 return true;
             }
 
-            bool hit = false;
-            string why = null;
+            return !__0.EndsWith(PrefixLogSuffix, StringComparison.Ordinal);
+        }
 
-            // 判据 A：WeaponStats 的固定串
-            if (__0 == WeaponStatsFixedLine)
+        // 扫一遍已加载程序集，看有没有名字里带某个片段的类型。
+        // 只在 Install 时跑一次，代价可忽略。
+        private static bool AnyTypeNameContains(string fragment)
+        {
+            try
             {
-                hit = true;
-                why = "WeaponStats 的固定调试串";
-            }
-            // 判据 B：RimImmortal 那类「方法名::Start」
-            else if (__0.Length >= PrefixLogSuffix.Length
-                     && __0.EndsWith(PrefixLogSuffix, StringComparison.Ordinal))
-            {
-                hit = true;
-                why = "前缀方法的 ::Start 调试日志";
-            }
-            // 判据 C：炮塔 defName（长度先筛，再查 def 并确认它真是炮塔）
-            else if (__0.Length <= MaxDefNameLength)
-            {
-                ThingDef def = DefDatabase<ThingDef>.GetNamedSilentFail(__0);
-                if (def != null && def.building != null && def.building.turretGunDef != null)
+                foreach (ModContentPack mod in LoadedModManager.RunningMods)
                 {
-                    hit = true;
-                    why = "WeaponStats 打印的炮塔 defName";
+                    foreach (Assembly asm in mod.assemblies.loadedAssemblies)
+                    {
+                        Type[] types;
+                        try
+                        {
+                            types = asm.GetTypes();
+                        }
+                        catch
+                        {
+                            continue;
+                        }
+
+                        for (int i = 0; i < types.Length; i++)
+                        {
+                            if (types[i].FullName != null
+                                && types[i].FullName.IndexOf(fragment, StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                return true;
+                            }
+                        }
+                    }
                 }
             }
-
-            if (!hit)
+            catch
             {
-                return true;
-            }
-
-            suppressed++;
-
-            // 只在第一次拦下时说明一次，之后完全静默。
-            if (!announced)
-            {
-                announced = true;
-                Log.Message("[GNH LocalFixes] 已开始过滤日志刷屏（首次命中：" + why + "）。"
-                    + "这些都是模组作者留在正式版里的调试输出，不是报错；"
-                    + "过滤只针对上面三类，其它日志不受影响。之后不再重复打印。");
+                // 扫不动就当没装 —— 这一处只是可选降级。
             }
 
             return false;
