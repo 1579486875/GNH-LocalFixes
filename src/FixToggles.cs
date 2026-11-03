@@ -281,6 +281,17 @@ namespace GNH.LocalFixes
                 + "本项只在「label 是 fixPawn 且引用本身是 null」时跳过登记；"
                 + "有效引用一个字节都不动，存档序列化格式完全不变。"),
 
+            new Entry("assignableCompDupeGuard", GroupSpam,
+                "同一台建筑挂了两个「可分配」组件（【42】）",
+                "有些存档里的床 / 座椅身上被塞进了两个 CompAssignableToPawn 系组件，"
+                + "两者用同一个父对象登记 /assignedPawns，键完全相同 —— 读档时固定刷"
+                + "「Tried to register the same list of load IDs twice」与"
+                + "「Could not get load IDs list … never added during LoadingVars」"
+                + "（实测 8 + 8 + 8 + 8 = 32 条/局，涉及 2 台）。"
+                + "查存档可见该 Thing 块里 assignedPawns 与 uninstalledAssignedPawns 各写了两遍，中间夹着 quality。"
+                + "游戏自己遇到这种情况也是「用第一份、丢第二份」，本项只是把这件既定的事提前做完、不再报红字；"
+                + "不动任何对象，不改存档格式，单组件的正常建筑完全不受影响。"),
+
             // ---------------- 兼容与判定 ----------------
             new Entry("patchVerbPropertiesAdjustedRange", GroupCompat,
                 "射程计算空引用",

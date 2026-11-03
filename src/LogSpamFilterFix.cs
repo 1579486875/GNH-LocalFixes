@@ -15,7 +15,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【40】两个模组把调试输出留在了正式版，日志被刷爆
+    // 【39】两个模组把调试输出留在了正式版，日志被刷爆
     //
     // ⚠ 2026-11-01 改法调整：原来是在 `Verse.Log.Message` 上加全局前缀过滤，
     //   现在改成**直接在目标方法里把那几条日志调用换掉**。
@@ -103,7 +103,7 @@ namespace GNH.LocalFixes
                 if (patchedTargets == 0)
                 {
                     installed = true;
-                    Log.Message("[GNH LocalFixes] 【40】让路：没找到 WeaponStats 的 "
+                    Log.Message("[GNH LocalFixes] 【39】让路：没找到 WeaponStats 的 "
                         + "Turret.fillFromThing / MainTabWindow_WeaponStats.UpdateList，"
                         + "也没找到 RimImmortal —— 相关模组都没装，这一项本次无事可做。"
                         + "（这不影响其它任何修复。）");
@@ -119,7 +119,7 @@ namespace GNH.LocalFixes
                 if (replacedCalls == 0)
                 {
                     installed = true;
-                    Log.Message("[GNH LocalFixes] 【40】部分让路：找到了目标方法（" + patchedTargets
+                    Log.Message("[GNH LocalFixes] 【39】部分让路：找到了目标方法（" + patchedTargets
                         + " 个），但 WeaponStats 那两处里已经没有 Log.Message 调用 —— "
                         + "多半是作者自己删掉了调试输出。"
                         + (contentFilterInstalled
@@ -129,7 +129,7 @@ namespace GNH.LocalFixes
                 }
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 已安装【40】日志刷屏修复："
+                Log.Message("[GNH LocalFixes] 已安装【39】日志刷屏修复："
                     + "改了 " + patchedTargets + " 个目标方法、替换 " + replacedCalls + " 处日志调用"
                     + "（把 call Log.Message 换成 pop，逻辑与栈平衡都不变）。"
                     + "WeaponStats 的 Turret.fillFromThing 与 UpdateList 已从源头去掉调试输出；"
@@ -138,7 +138,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 安装【40】日志刷屏修复失败（下次会重试）：" + ex);
+                Log.Error("[GNH LocalFixes] 安装【39】日志刷屏修复失败（下次会重试）：" + ex);
             }
         }
 
@@ -171,7 +171,7 @@ namespace GNH.LocalFixes
             patchedTargets++;
             if (replacedCalls > before)
             {
-                Log.Message("[GNH LocalFixes] 【40】" + typeName + "." + methodName
+                Log.Message("[GNH LocalFixes] 【39】" + typeName + "." + methodName
                     + " 里的 " + (replacedCalls - before) + " 处日志调用已去掉。");
             }
         }

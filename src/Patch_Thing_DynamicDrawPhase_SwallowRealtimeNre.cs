@@ -12,7 +12,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【39】实时绘制阶段每帧抛空引用，日志被刷到几个 GB。
+    // 【38】实时绘制阶段每帧抛空引用，日志被刷到几个 GB。
     // ==========================================================================
     //
     // 【① 真实存在，有日志为证】
@@ -104,7 +104,7 @@ namespace GNH.LocalFixes
             {
                 // 目标功能不在了 → 让路。这条日志必须留：否则下次排查时
                 // 没人知道这一项到底跑没跑过（模板 §3.1 的反向要求）。
-                LocalFixesMod.SafeLogMessage("[GNH LocalFixes] 【39】让路：没找到 RavenRace 的 "
+                LocalFixesMod.SafeLogMessage("[GNH LocalFixes] 【38】让路：没找到 RavenRace 的 "
                     + "SlimeThingOverlayCapture（该功能可能已被移除或改名），本项不安装。");
                 return false;
             }
@@ -112,7 +112,7 @@ namespace GNH.LocalFixes
             if (!preparedOnce)
             {
                 preparedOnce = true;
-                LocalFixesMod.SafeLogMessage("[GNH LocalFixes] 【39】已启用：实时绘制抛空引用时拦截，"
+                LocalFixesMod.SafeLogMessage("[GNH LocalFixes] 【38】已启用：实时绘制抛空引用时拦截，"
                     + "每 " + ReportEvery + " 次记一条。**第一次吞的时候会把完整堆栈打进日志**"
                     + "（只打一次）—— 那一份堆栈是用来定位根因的，定位到之后就能改成真修。");
             }
@@ -151,7 +151,7 @@ namespace GNH.LocalFixes
             if (!stackDumped)
             {
                 stackDumped = true;
-                LocalFixesMod.SafeLogWarning("[GNH LocalFixes] 【39】首次吞掉实时绘制空引用。"
+                LocalFixesMod.SafeLogWarning("[GNH LocalFixes] 【38】首次吞掉实时绘制空引用。"
                     + "下面这份完整堆栈是定位根因用的（只打一次，含所有内层帧）。"
                     + "确定是哪一层的空值之后，就可以把它改成真修而不是吞掉："
                     + Environment.NewLine + __exception);
@@ -161,7 +161,7 @@ namespace GNH.LocalFixes
             {
                 nextReportAt = swallowed + ReportEvery;
                 LocalFixesMod.SafeLogWarning("[GNH LocalFixes] 实时绘制空引用已吞掉 " + swallowed
-                    + " 次（最近一次：" + lastType + "）。这是【39】的防护，可在设置里关掉。");
+                    + " 次（最近一次：" + lastType + "）。这是【38】的防护，可在设置里关掉。");
             }
 
             // 返回 null = 告诉 Harmony「这个异常已经处理」，不再向上抛。

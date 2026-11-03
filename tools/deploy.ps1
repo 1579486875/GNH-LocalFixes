@@ -109,6 +109,37 @@ if (Test-Path -LiteralPath $dst) {
     Write-Host '  目标目录不存在，将新建。'
 }
 
+# ---- 备份轮转：只保留最近 N 份 ---------------------------------------------
+#
+# 2026-11-01 整理：此前这里的备份是「只增不减」，一个月堆了 106 份、31 MB，
+# 其中九成是同一天里连续部署产生的近重复快照（同一秒跑两次还会多出一份
+# 带 -2 后缀的）。真正有价值的只是「最近几次」和「每个工作日的最终态」。
+#
+# 规则：按 LastWriteTime 倒序保留最近 $BackupKeep 份，更早的移入**回收站**
+#      （不是永久删除，误删可以从回收站还原）。
+#      只处理本脚本自己生成的 <部署名>.backup-* 目录；_backup\ 下人工放的
+#      其它备份（pre-xxx、deployed-xxx、preview-xxx 等）一律不碰。
+$BackupKeep = 10
+$autoBaks = @(Get-ChildItem -LiteralPath $backupRoot -Directory -Force -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -like ($DeployName + '.backup-*') } |
+              Sort-Object LastWriteTime -Descending)
+if ($autoBaks.Count -gt $BackupKeep) {
+    Add-Type -AssemblyName Microsoft.VisualBasic
+    $rotated = 0
+    foreach ($old in ($autoBaks | Select-Object -Skip $BackupKeep)) {
+        try {
+            [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory(
+                $old.FullName, 'OnlyErrorDialogs', 'SendToRecycleBin')
+            $rotated++
+        } catch {
+            Write-Host ("  备份轮转失败: " + $old.Name + " -- " + $_.Exception.Message) -ForegroundColor Yellow
+        }
+    }
+    if ($rotated -gt 0) {
+        Write-Host ("  备份轮转：移入回收站 " + $rotated + " 份，保留最近 " + $BackupKeep + " 份")
+    }
+}
+
 # ---- 清理目标侧的「幽灵文件」------------------------------------------------
 #
 # 下面那个 Copy-Item -Force 只覆盖同名文件，**不会删除**目标侧多出来的东西。
@@ -181,6 +212,20 @@ foreach ($entry in $dirMap) {
     New-Item -ItemType Directory -Path $d -Force | Out-Null
     Copy-Item -Path (Join-Path $s '*') -Destination $d -Recurse -Force
     Write-Host ("  copied " + $entry.Name + "\")
+
+    # 排除编辑期备份：*.bak / *.bak-<时间戳> 是改 XML 时手工留下的，一旦落在
+    # About\ 或 Languages\ 里，就会被 build 带进 bin\Release，再被上面那行
+    # 整目录复制到 Mods\ —— RimCrow 扫描时会多出一批同内容文件。
+    # 2026-11-03 实测发生过一次（About.xml + 三份语言文件，共 4 个）。
+    $bakLeft = @(Get-ChildItem -LiteralPath $d -Recurse -File -ErrorAction SilentlyContinue |
+                 Where-Object { $_.Name -like '*.bak*' })
+    foreach ($b in $bakLeft) {
+        Remove-Item -LiteralPath $b.FullName -Force
+        Write-Host ("  skipped backup: " + $entry.Name + '\' + $b.Name)
+    }
+    if ($bakLeft.Count -gt 0) {
+        Write-Host ("  已排除 " + $bakLeft.Count + " 个 *.bak 备份文件（不该进 Mods\）")
+    }
 }
 
 # ---- 根目录下的说明文件 ------------------------------------------------------

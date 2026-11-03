@@ -285,6 +285,12 @@ namespace GNH.LocalFixes
             TryInstall("deepProfilerQuiet", "DeepProfilerQuietFix", DeepProfilerQuietFix.Install);
             TryInstall("fixPawnScribeNull", "FixPawnScribeNullFix", FixPawnScribeNullFix.Install);
 
+            // 43：同一台建筑挂了两个「可分配」组件时，读档会成对刷
+            //     「register the same list of load IDs twice」/「never added during LoadingVars」。
+            // 游戏自己也是「用第一份、丢第二份」，本项只是把那件事做完并静音。
+            // 完整推导（含存档里数出来的两次 assignedPawns）见 DuplicateAssignableCompFix.cs。
+            TryInstall("assignableCompDupeGuard", "DuplicateAssignableCompFix", DuplicateAssignableCompFix.Install);
+
             // ⚠ CcoeReflectionFix 曾经也在这里装，2026-10-06 移走了。
             //
             // 原因：Harmony 打补丁这个动作会触发**目标程序集里其它类型**的静态构造，
@@ -659,9 +665,9 @@ namespace GNH.LocalFixes
             "GNH.LocalFixes.Patch_GenTypes_PreferTelanda",
             "GNH.LocalFixes.Patch_LoadModXML_FilterTelandaGenes",
             "GNH.LocalFixes.Patch_LoadModXML_FilterRjwpeStaleDefs",
-            // 【39】实时绘制空引用：这条也是 [HarmonyPatch] 类（带 [HarmonyPrepare] 让路）。
+            // 【38】实时绘制空引用：这条也是 [HarmonyPatch] 类（带 [HarmonyPrepare] 让路）。
             // 漏登记它不会在正常路径上出问题（GetTypes 成功时按特性扫得到），
-            // 但在「GetTypes() 整体失败」的退化路径上，【39】会被静默漏装 —— 所以必须登记。
+            // 但在「GetTypes() 整体失败」的退化路径上，【38】会被静默漏装 —— 所以必须登记。
             "GNH.LocalFixes.Patch_Thing_DynamicDrawPhase_SwallowRealtimeNre",
             // 下面两个是 XML 补丁开关的机制类。漏了它们在退化路径上不会报错，
             // 只会让「XML 补丁也能单独关」这个功能静默消失 —— 所以必须登记。

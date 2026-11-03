@@ -15,7 +15,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【42】读档刷 138 条 `/fixPawn` 的 loadID 报错
+    // 【41】读档刷 138 条 `/fixPawn` 的 loadID 报错
     //
     // ── 症状（用户 2026-11-01 实机复现，v1.4.19 没拦住）──
     //
@@ -104,7 +104,7 @@ namespace GNH.LocalFixes
                 {
                     installed = true;
                     Log.Message("[GNH LocalFixes] 未找到 " + FixationTypeName
-                        + "（裸体评价未安装或已改版）；【42】/fixPawn 过滤已跳过。");
+                        + "（裸体评价未安装或已改版）；【41】/fixPawn 过滤已跳过。");
                     return;
                 }
 
@@ -112,7 +112,7 @@ namespace GNH.LocalFixes
                 if (target == null)
                 {
                     Log.Error("[GNH LocalFixes] 在 " + FixationTypeName + " 上找不到 "
-                        + ExposeMethodName + "()；【42】本次未安装，下次会重试。");
+                        + ExposeMethodName + "()；【41】本次未安装，下次会重试。");
                     return;
                 }
 
@@ -127,13 +127,13 @@ namespace GNH.LocalFixes
 
                 if (replacedCalls == 0)
                 {
-                    Log.Warning("[GNH LocalFixes] 【42】没能在 " + FixationTypeName + "." + ExposeMethodName
+                    Log.Warning("[GNH LocalFixes] 【41】没能在 " + FixationTypeName + "." + ExposeMethodName
                         + " 里找到 Scribe_References.Look 调用（作者可能改了写法）；本项本局不生效，下次会重试。");
                     return;
                 }
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 已安装【42】/fixPawn 脏数据过滤"
+                Log.Message("[GNH LocalFixes] 已安装【41】/fixPawn 脏数据过滤"
                     + "（Transpiler 改 " + FixationTypeName + "." + ExposeMethodName
                     + " 里的 Scribe_References.Look 调用，替换 " + replacedCalls + " 处）。"
                     + "只在「label = " + TargetLabel + " 且引用本身是 null」时跳过，"
@@ -144,7 +144,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 安装【42】/fixPawn 脏数据过滤失败（下次会重试）：" + ex);
+                Log.Error("[GNH LocalFixes] 安装【41】/fixPawn 脏数据过滤失败（下次会重试）：" + ex);
             }
         }
 
@@ -161,7 +161,7 @@ namespace GNH.LocalFixes
 
             if (replacement == null)
             {
-                Log.Error("[GNH LocalFixes] 【42】连自己的 SafeLook 都找不到，无法替换。");
+                Log.Error("[GNH LocalFixes] 【41】连自己的 SafeLook 都找不到，无法替换。");
                 foreach (CodeInstruction ci in instructions)
                 {
                     yield return ci;
@@ -207,7 +207,7 @@ namespace GNH.LocalFixes
                 if (!announced)
                 {
                     announced = true;
-                    Log.Message("[GNH LocalFixes] 【42】已开始跳过 /fixPawn 的空引用登记"
+                    Log.Message("[GNH LocalFixes] 【41】已开始跳过 /fixPawn 的空引用登记"
                         + "（成因：1.6→1.7 迁移后这些引用解析不出来，模组又无条件交给了 Scribe）。"
                         + "跳过的是「登记一个 null」，有效引用不受影响。之后不再重复打印。");
                 }
