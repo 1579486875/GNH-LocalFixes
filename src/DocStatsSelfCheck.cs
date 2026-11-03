@@ -83,7 +83,7 @@ namespace GNH.LocalFixes
                 return;
             }
 
-            // 简介里那句是「……现在 38 条，条条独立。」
+            // 简介里那句是「……现在 42 条，条条独立。」
             // 只认这一种写法，宁可漏检也不误报。
             Match m = Regex.Match(text, @"现在\s*(\d+)\s*条");
             if (!m.Success)

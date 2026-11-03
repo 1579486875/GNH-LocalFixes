@@ -354,8 +354,11 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 35 | 三条指向不存在 def 的交叉引用 | `RI_ToggleProducerLoading_Living` 只在 1.7 目录、`SR_CarrotArmorH` 提供方已不在、`WolfeinExecutiveSteakLunch` 的模组未启用，每局各刷 3 条 | 各自删掉引用项（本来就解析失败，行为等价） |
 | 36 | 雪兔服装扩展的 SRAELib 字段对不上 | 它的 `1.6\Assemblies` 里躺着两个**程序集名都是 `SRAELib 1.0.0.0`** 的 dll（一个 19,456 字节有 `targetNullifyingHediffs`、一个 18,944 字节没有），游戏加载到旧的那个 → `ThoughtDef_HediffAttraction` 报「doesn't correspond to any field」 | 只在 **1.7+** 删掉那条字段；1.6 下**不执行**（那里该字段有效，删了会把「认知护盾免疫」一起删掉）。版本判据用只存在于 1.7 的 `MaterialDef` |
 | 37 | 有人给 `HediffStage` 写了 `visible` 字段 | 1.6 与 1.7 的 `Verse.HediffStage` 都只有 `becomeVisible`，没有 `visible` → 每次加载刷「doesn't correspond to any field in type HediffStage」 | 删掉那个字段。两版都不认它，删了不改变任何行为，只消日志 |
-| 38 | 渡鸦「迪克雨」的粒子动画抛 `MissingMethodException`（发情玩法保留） | 1.7 换了 Waylith 引擎，`Unity.Mathematics.math.normalize(float2)` 这个符号在新引擎的 `UnityStubs` 里不存在；那个天气组件每帧都调它 | **不碰它自己**（它坏在 IL 层，任何针对它的补丁都会装不上），改为在 `MapComponentUtility.MapComponentUpdate` 里把这个组件从地图上摘掉，并补一个 1.7 版本守卫 |
-| 39 | RavenRace 的史莱姆覆盖层在实时绘制时抛空引用 | 每帧刷一次 `Exception drawing ...`，把真正的报错埋掉 | 在 `Thing.DynamicDrawPhase` 上挂收尾器，只吞 `NullReferenceException`，其余原样抛；每 500 次记一条。**目标类型探测不到就自动让路**（`HarmonyPrepare` 里查 `SlimeThingOverlayCapture`） |
+| 38 | RavenRace 的史莱姆覆盖层在实时绘制时抛空引用 | 每帧刷一次 `Exception drawing ...`，把真正的报错埋掉 | 在 `Thing.DynamicDrawPhase` 上挂收尾器，只吞 `NullReferenceException`，其余原样抛；每 500 次记一条。**目标类型探测不到就自动让路**（`HarmonyPrepare` 里查 `SlimeThingOverlayCapture`） |
+| 39 | 两处调试输出刷屏 | WeaponStats 每次算炮塔名就写一行、RimImmortal 的 `::Start` 每次进图刷一批 | 只拦这两句，其余日志原样保留 |
+| 40 | DeepProfiler 跟着「详细日志」一起跑 | 开了详细日志就顺带把 DeepProfiler 打开，内存与帧数双降 | 该项**默认关闭**；打开时会写一行说明，不会静默改行为 |
+| 41 | 读档刷上百条 `/fixPawn` 报错 | 存档里那几条记录字段不全，空值被直接解引用 | 用 transpiler 把那次读取改成 null 安全，不动存档结构 |
+| 42 | 同一台建筑挂了两个「可分配」组件 | `CompAssignableToPawn` 重复，分配界面出现两份、选中互相打架 | 前缀拦下重复登记，保留先注册的那一个 |
 
 ---
 
@@ -376,7 +379,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | **① 条件不满足就不动手** | 补丁的判断里写着「只有在它还是坏的时候才匹配」。作者一改好，条件自然不成立，补丁静默跳过 | 多数 XML 补丁 |
 | **② 先问原版，真需要才接管** | 代码里一大串 `return true`（= 让原版自己跑），只在确认「原版这条路会崩」时才插手 | 多数 C# 补丁 |
 | **③ 主动探测原版是否已安全** | 自己检查那个缺陷还在不在，不在了就完全不动 | 第 5 项（乐器空间） |
-| **④ 你手动关掉它** | 设置界面里每一项都有开关。关掉之后，那一项在下次启动时**根本不会被安装**（不是在运行时动态摘除） | **全部代码侧开关**（v1.4.0 起，现共 28 个） |
+| **④ 你手动关掉它** | 设置界面里每一项都有开关。关掉之后，那一项在下次启动时**根本不会被安装**（不是在运行时动态摘除） | **全部代码侧开关**（v1.4.0 起，现共 29 个） |
 
 > **③ 是 v1.3.32 新加的，④ 是 v1.4.0 新加的。**
 > 起因是复核时发现：第 5 项是唯一一个「替原版做判断」而不是「先问原版」的补丁 ——
