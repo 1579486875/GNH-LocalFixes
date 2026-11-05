@@ -60,6 +60,12 @@ block = tg[start:end] if start >= 0 else tg
 total = len(re.findall(r"new Entry\(", block))
 ids = re.findall(r'new Entry\("([^"]+)"', block)
 
+# ⚠ 「诊断工具」不是修复项：它不占修复编号、也不列进修复清单。
+#   DocStatsSelfCheck（C# 侧运行时自检）从 v1.4.24 起就是按这个口径数的，
+#   这里必须跟它一致，否则每跑一次都会报「About 写 43、实际 44」的假警报。
+diag = len(re.findall(r'new Entry\("[^"]+",\s*GroupDiagnostics', block))
+fix_count = total - diag
+
 xml_refs = re.findall(r'xmlPatchFile:\s*"([^"]+)"', tg)
 xml_files = sorted(os.path.basename(p) for p in glob.glob(os.path.join(PATCHES, "*.xml")))
 
@@ -67,6 +73,8 @@ md, _ = read(MOD)
 code_installs = len(re.findall(r"TryInstall\(", md))
 
 print(f"总项数（FixToggles.All）      : {total}")
+print(f"其中诊断工具（不占修复编号）  : {diag}")
+print(f"修复项数（= 总项数 − 诊断）   : {fix_count}")
 print(f"独立开关数                    : {total}（每条一项）")
 print(f"代码侧 TryInstall 安装点      : {code_installs}")
 print(f"XML 补丁文件（Patches/*.xml） : {len(xml_files)}")
@@ -104,10 +112,10 @@ print(f"README「共 N 项修复」          : {rm_total.group(1) if rm_total el
 print(f"README「N 个独立开关」         : {rm_switch.group(1) if rm_switch else '未找到'}")
 print(f"README「N 个 XML 补丁」        : {rm_xml.group(1) if rm_xml else '未找到'}")
 
-if about_declared is not None and about_declared != total:
-    problems.append(f"About.xml 写「现在 {about_declared} 条」，实际 {total} 项")
-if rm_total and int(rm_total.group(1)) != total:
-    problems.append(f"README 写「共 {rm_total.group(1)} 项修复」，实际 {total} 项")
+if about_declared is not None and about_declared != fix_count:
+    problems.append(f"About.xml 写「现在 {about_declared} 条」，实际修复项 {fix_count}（总开关 {total}，其中 1 个是诊断工具）")
+if rm_total and int(rm_total.group(1)) != fix_count:
+    problems.append(f"README 写「共 {rm_total.group(1)} 项修复」，实际修复项 {fix_count}（总开关 {total}）")
 if rm_switch and int(rm_switch.group(1)) != total:
     problems.append(f"README 写「{rm_switch.group(1)} 个独立开关」，实际 {total} 个")
 if rm_xml and int(rm_xml.group(1)) != len(xml_files):

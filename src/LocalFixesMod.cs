@@ -321,6 +321,23 @@ namespace GNH.LocalFixes
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
             TryInstall("xmlExtensionsFindMod", "XmlExtensionsFindModFix", XmlExtensionsFindModFix.Install);
 
+            // ── 2026-11-05 新增：ExtraWeapon2（来自玩家的求助）──
+            //
+            // 「详细错误勘探」是**诊断工具，不是修复**（用户 2026-11-05 明确要求）：
+            //    默认关闭、放在设置界面最上面的独立分组、不占修复编号、不进 About 的修复清单。
+            //    它只读地列出 EW2 动过的 8 个方法上「谁在改」，用于定位 transpiler 撞车
+            //    （EW2 靠「CasterIsPawn 第几次出现」定位，前面有人改过就会打错位置，
+            //     症状是「点开火瞬间退出且无日志」）。
+            //    挂点延迟到 UIRootUpdate（界面第一帧），因为此刻才拿得到最终补丁面。
+            //
+            // 【43】是护栏：EW2 在 Notify_KilledPawn 的 postfix 里遍历额外武器时既不判空、
+            //    也可能撞上集合被改动；它一抛异常，排在其后的死亡处理会全部跳过。
+            //    这里给它那层 postfix 加 Finalizer，捕获、留证、吞掉。
+            //
+            // 两项都不改 EW2 的行为；两步都幂等（Install 内部有静态守卫）。
+            TryInstall("ew2TranspilerProbe", "Ew2TranspilerConflictProbe", Ew2TranspilerConflictProbe.Install);
+            TryInstall("ew2DeathPathRepair", "Ew2DeathPathRepair", Ew2DeathPathRepair.Install);
+
 
             // 2026-10-06 新增：NudityMattersMore 的 CoverBody.UpdateIdeo 会因为
             // 「调用方传 null + 它自己的静态字典里已有一条同号残留」而解引用空引用，

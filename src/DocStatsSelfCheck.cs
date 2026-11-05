@@ -52,7 +52,20 @@ namespace GNH.LocalFixes
 
         private static void Run()
         {
-            int actual = (FixToggles.All == null) ? 0 : FixToggles.All.Length;
+            // 只数「修复项」：About 里那句「现在 N 条」说的是**修复**条数。
+            // 诊断工具（GroupDiagnostics）不计入 —— 它本来就不在修复清单里列出
+            // （用户 2026-11-05 明确要求），算进去会永远对不上。
+            int actual = 0;
+            if (FixToggles.All != null)
+            {
+                for (int i = 0; i < FixToggles.All.Length; i++)
+                {
+                    if (FixToggles.All[i].Group != FixToggles.GroupDiagnostics)
+                    {
+                        actual++;
+                    }
+                }
+            }
             if (actual <= 0)
             {
                 return;

@@ -56,6 +56,12 @@ namespace GNH.LocalFixes
         //   现在四个标题各有一个语言键，取不到时才回退到 GroupFallback() 里的中文。
         //
         // 顺序有意义：越靠前越是「不修就会崩」的项，界面按这个顺序分节。
+        // 诊断工具单独成组，并且排在**最前面**（2026-11-05 用户要求）。
+        //
+        // 为什么单独一组：它不是修复项，默认关闭，玩家没有排查需求时本不该被它打扰；
+        // 但真要排查时，位置必须一眼能找到 —— 埋在一长串「我修了什么」的末尾，
+        // 等于让人翻三次才找到那个「帮我看看哪里坏了」的开关。
+        internal const string GroupDiagnostics = "GNH_LocalFixes_Group_Diagnostics";
         internal const string GroupCrash = "GNH_LocalFixes_Group_Crash";
         internal const string GroupSpam = "GNH_LocalFixes_Group_Spam";
         internal const string GroupCompat = "GNH_LocalFixes_Group_Compat";
@@ -70,6 +76,7 @@ namespace GNH.LocalFixes
         /// </summary>
         internal static string GroupFallback(string groupKey)
         {
+            if (groupKey == GroupDiagnostics) return "诊断工具（默认关闭）";
             if (groupKey == GroupCrash) return "崩溃与卡死";
             if (groupKey == GroupSpam) return "日志刷屏";
             if (groupKey == GroupCompat) return "兼容与判定";
@@ -83,9 +90,11 @@ namespace GNH.LocalFixes
         /// 这一项的**出厂默认值是不是「关」**。
         ///
         /// <para>
-        /// 全表 42 项里只有「性能剖析」（deepProfilerQuiet）默认关 ——
-        /// 它关掉的是游戏自带的功能，值不值得关应该由玩家自己决定，不该替玩家做。
-        /// 其余 40 项修的都是「模组写错导致的毛病」，默认开着才是对的。
+        /// 默认关的只有两类：一类关掉的是**游戏自带的功能**
+        /// （deepProfilerQuiet 的性能剖析），值不值得关该由玩家自己决定；
+        /// 另一类是**诊断工具**（ew2TranspilerProbe），它不修任何东西、只多打几段日志，
+        /// 没有排查需求的人没必要替这事儿付日志噪声。
+        /// 其余各项修的都是「模组写错导致的毛病」，默认开着才是对的。
         /// </para>
         ///
         /// <para>
@@ -97,7 +106,8 @@ namespace GNH.LocalFixes
         /// </summary>
         internal static bool IsDefaultOff(string id)
         {
-            return string.Equals(id, "deepProfilerQuiet", StringComparison.Ordinal);
+            return string.Equals(id, "deepProfilerQuiet", StringComparison.Ordinal)
+                || string.Equals(id, "ew2TranspilerProbe", StringComparison.Ordinal);
         }
 
         internal sealed class Entry
@@ -144,6 +154,27 @@ namespace GNH.LocalFixes
         // ======================================================================
         internal static readonly Entry[] All = new Entry[]
         {
+            // ---------------- 诊断工具（默认关闭） ----------------
+            //
+            // 这一组**排在最前面**（用户 2026-11-05 明确要求）：它不是修复项，平时默认关着、
+            // 不该打扰任何人；但真要排查疑难时，位置必须一眼能找到 —— 埋在一长串
+            // 「我修了什么」的末尾，等于让人翻三次才找到「帮我看看哪里坏了」那个开关。
+            //
+            // 同样因为它不是修复，**不占修复清单的编号**（编号只给真正修东西的项）。
+            new Entry("ew2TranspilerProbe", GroupDiagnostics,
+                "详细错误勘探（默认关闭）",
+                "专门给「游戏一闪就没了、日志里一个字都没有」这类疑难用的只读勘探工具。"
+                + "ExtraWeapon2 是用 transpiler 直接改游戏方法内部指令的，而且它决定"
+                + "「改哪一处」的办法是数某个调用第几次出现。只要前面还有别的模组也改过同一个方法，"
+                + "这个「第几次」就会数偏 —— 补丁报告安装成功，实际却改错位置，"
+                + "表现就是武器行为不正常，或者一点开火进程瞬间消失、连一行报错都留不下。"
+                + "开启本项后重开游戏，它会在进到界面时扫一遍 ExtraWeapon2 动过的那几个方法，"
+                + "把每个方法上挂着几个补丁、分别来自哪个 Harmony ID 全部写进日志；"
+                + "同一方法上有两个以上 transpiler 就标星点名。"
+                + "它只读：不改任何指令、不卸载别人的补丁，最坏只是多几行日志。"
+                + "用法：开本项 → 重启游戏 → 日志里搜 [GNH LocalFixes] 看那几行。"
+                + "没有排查需求时建议一直关着。"),
+
             // ---------------- 崩溃与卡死 ----------------
             new Entry("assemblyGetTypesFallback", GroupCrash,
                 "坏程序集不再拖垮整批补丁",
@@ -244,13 +275,19 @@ namespace GNH.LocalFixes
                 "打开开发者生成菜单后，该模组找不到对应的 PawnKind 会报错。"
                 + "本项把「找不到就报错」改成「查不到就静默跳过」。"),
 
+            // ⚠ 2026-11-05 复审：本项**目前已是空转**（目标文件已不存在），保留是因为它自带
+            //   让路判据、留着绝对无害；真要清理请先经作者点头（模板：判为冗余 ≠ 立刻删）。
+            //   实测：三根模组目录（游戏 Mods / 1.6 副本 Mods / 工坊 294100）里
+            //   SoundDef_Replacement.xml **0 个**，全库 grep `SoundReplacementDef` **0 命中** ——
+            //   作者后来的版本已经把那个文件删了，症状不可能再现。
             new Entry("filterRjwpeStaleDefs", GroupSpam,
                 "PE 模组的残留 def 报错",
                 "RJW PE 的 SoundDef_Replacement.xml 用的是已被作者改名的旧类型 rjwpe.SoundReplacementDef"
                 + "（2025-09-04 起改叫 rjwpe.VoiceReplacementDef，新文件 ReplacementDef_Voice.xml 已完整实现该功能），"
-                + "启动时必报「Type ... is not a Def type」。那批定义从来没生效过，"
+                + "旧版启动时必报「Type ... is not a Def type」。那批定义从来没生效过，"
                 + "本项把它摘掉 —— 行为与实际完全等价，只是不再刷红字。"
-                + "★ 作者若把类型加回来，本项自动失效、什么都不做。",
+                + "★ 作者若把类型加回来，本项自动失效、什么都不做。"
+                + "（2026-11-05 复审：作者后续版本已把那个 XML 删掉，所以本项现在通常什么都不做。）",
                 "GNH.LocalFixes.Patch_LoadModXML_FilterRjwpeStaleDefs"),
 
             new Entry("riFurnitureRoyalCompatQuiet", GroupSpam,
@@ -322,6 +359,33 @@ namespace GNH.LocalFixes
                 "非乐器不许进「乐器」分组（源头拦截）",
                 "在物品登记进分组的那一刻检查「def 说是乐器、真实类型却不是」的对象并挡回去，"
                 + "于是根本不会有东西混进去。与「音乐淡出每帧报错」那一项配套，建议一起开。", "GNH.LocalFixes.Patch_ListerThings_Add_RejectMislabeledInstrument"),
+
+            // ── 2026-11-05 新增（ExtraWeapon2，来自玩家求助的复现线索）──
+            //    【43】死亡路径护栏 —— 给 EW2 的 Notify_KilledPawn postfix 加 Finalizer，
+            //         让它自己的异常不再中断排在后面的死亡处理。
+            //
+            //  ⚠ 编号说明：同批的「详细错误勘探」是**诊断工具、不是修复**（用户 2026-11-05 明确要求），
+            //    已挪到列表最前面的「诊断工具」分组、且不占修复编号。
+            //    因此这一项由 44 顶成 43，修复清单保持连续、不留空号。
+            //
+            //  ⚠ 2026-11-05 复审订正：本条最初的说明写成「EW2 的遍历既没判空、也会撞上集合
+            //    被改动」，**与反编译事实不符**。实际 EW2 那层遍历是
+            //      for (i…) if (weapons[i]?.Weapon is ThingWithComps x) yield return x;
+            //    —— 索引遍历、逐项判空，比原版自己的 foreach 还稳。
+            //    真正的风险在被调的 ThingWithComps.Notify_KilledPawn：它读 pawn.Ideo、
+            //    再遍历这武器身上所有 comp，第三方 comp 一抛就中断整条 postfix 链。
+            //    文案已按事实改写；护栏本身仍然成立，只是理由换了。
+            new Entry("ew2DeathPathRepair", GroupCompat,
+                "ExtraWeapon2 额外武器击杀回调兜底（【43】）",
+                "ExtraWeapon2 在「角色死亡」的统一通知点（Pawn_EquipmentTracker.Notify_KilledPawn）挂了"
+                + "一个 postfix，遍历额外武器、逐个调原版的 Notify_KilledPawn。"
+                + "它自己那层遍历已经做了防护（按索引走、每项判空），真正的风险落在被调的那个原版方法上："
+                + "它会读 pawn.Ideo，再遍历这件武器的所有 comp —— 任何一个第三方 comp 抛异常，"
+                + "都会中断整条 postfix 链，排在它后面的死亡处理"
+                + "（掉装备、尸体生成、记录与关系更新）就全部跳过，一次死亡会停在半截。"
+                + "本项给那层 postfix 加一层 Finalizer：捕获、留日志、吞掉。"
+                + "★ 不改 ExtraWeapon2 的任何逻辑，只保证它的异常不外溢；"
+                + "前 3 次打完整堆栈，之后只计数，不会刷屏。"),
 
             // ---------------- 行为与设置 ----------------
             new Entry("keepLeaderTitle", GroupBehaviour,
@@ -575,7 +639,14 @@ namespace GNH.LocalFixes
             { "ccoeReflection", "keahuy.rjw.ccoe" },
             { "fixVfeeInstrumentSpace", "OskarPotocki.VFE.Empire" },
             { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },
-            { "filterRjwpeStaleDefs", "readyforjeff.rjwpeculiarinstitution" },
+            // ⚠ 2026-11-05 复审订正：这一项原来填的是 readyforjeff.rjwpeculiarinstitution
+            //   （Peculiar Institution / 小妾项圈）—— **填错了模组**。
+            //   本项修的 `rjwpe.SoundReplacementDef` 来自「RimJobWorld Pedophilia Extension」
+            //   （packageId rim.job.world.pe，本机目录 Mods\RJW_功能_重金属冶炼核心），
+            //   与 Peculiar Institution 毫无关系。填错的后果是：PE 装着、Peculiar 没装时，
+            //   界面会一直标暗黄「目标模组未启用」，而补丁其实正常在干活 —— 纯误报。
+            //   判据与 Patch_LoadModXML_FilterRjwpeStaleDefs.cs 里的 PePackageId 保持一致。
+            { "filterRjwpeStaleDefs", "rim.job.world.pe" },
             { "patchVerbPropertiesAdjustedRange", "TOT.CeleTech.MKIII" },
             { "patchGenTypesPreferTelanda", "telanda.rjw.animalgeneinheritance" },
             { "patchLoadModXMLFilterTelandaGenes", "telanda.rjw.animalgeneinheritance" },

@@ -34,7 +34,7 @@ mod = read(os.path.join(SRC, 'LocalFixesMod.cs'))
 ids = re.findall(r'new Entry\("([A-Za-z0-9_]+)"', toggles)
 entry_blocks = toggles.split('new Entry("')[1:]
 class_ids = [b.split('"', 1)[0] for b in entry_blocks if 'GNH.LocalFixes.Patch_' in b]
-try_ids = re.findall(r'TryInstall\("([a-zA-Z]+)",', mod)
+try_ids = re.findall(r'TryInstall\("([A-Za-z0-9_]+)",', mod)
 
 # 分组标题键（FixToggles.cs 里 internal const string GroupXxx = "键"）
 group_keys = re.findall(r'internal const string Group\w+ = "(GNH_LocalFixes_Group_\w+)";',
@@ -43,7 +43,7 @@ group_keys = re.findall(r'internal const string Group\w+ = "(GNH_LocalFixes_Grou
 scc_ids = []
 for fn in ('CcoeReflectionFix.cs', 'VehicleFrameworkDebugFix.cs',
            'CumpilationSettingsRestoreFix.cs'):
-    scc_ids += re.findall(r'IsFixEnabled\("([a-zA-Z]+)"\)', read(os.path.join(SRC, fn)))
+    scc_ids += re.findall(r'IsFixEnabled\("([A-Za-z0-9_]+)"\)', read(os.path.join(SRC, fn)))
 
 # XML 侧开关不走 TryInstall —— 它们由 XmlPatchGate 在运行时按
 # PatchOperation.sourceFile 的文件名拦截（见 XmlPatchGate.cs 的 BuildMap）。

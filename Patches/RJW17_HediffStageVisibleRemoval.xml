@@ -13,7 +13,18 @@
 	  原先与【36】挤在 RJW17_XmlFieldCleanup.xml 一个文件里，一个文件只能挂一个开关，
 	  两项都进不了设置界面。拆开之后各占一个开关。
 	-->
+	<!--
+	  ⚠ 2026-11-05 复审补：本条必须带 success=Always。
+	     这条 xpath 是全库扫（//HediffDef/...），它的命中**依赖某个第三方模组写错了字段**——
+	     当前实测命中来源是「RJW_玩法_缇瓦莱特贞操科技」的
+	     Defs\OrgasmPermissionChallenge.xml（1.7 与 1.6 各一份，各 1 处）。
+	     一旦那个模组被卸载、或作者自己把 visible 删掉，xpath 就 0 命中，
+	     PatchOperation.Complete() 会打一条「Patch operation ... failed」红字 ——
+	     而这恰恰是「目标消失时该安静跳过」的典型场景（模板 §1.2 / 附录 A 第 26 条）。
+	     加上之后：命中就删、不命中就什么都不做，两种情况下日志都干净。
+	-->
 	<Operation Class="PatchOperationRemove">
+		<success>Always</success>
 		<xpath>//HediffDef/stages/li/visible</xpath>
 	</Operation>
 </Patch>

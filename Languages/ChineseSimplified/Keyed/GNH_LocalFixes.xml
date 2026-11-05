@@ -16,6 +16,7 @@
        英文客户端里会出现「35 个开关都是英文、分组标题却是中文」的混搭。
        2026-10-12 复审改正 —— 现在标题也走语言键，取不到才回退到 FixToggles.GroupFallback()。
   -->
+  <GNH_LocalFixes_Group_Diagnostics>诊断工具（默认关闭）</GNH_LocalFixes_Group_Diagnostics>
   <GNH_LocalFixes_Group_Crash>崩溃与卡死</GNH_LocalFixes_Group_Crash>
   <GNH_LocalFixes_Group_Spam>日志刷屏</GNH_LocalFixes_Group_Spam>
   <GNH_LocalFixes_Group_Compat>兼容与判定</GNH_LocalFixes_Group_Compat>
@@ -123,4 +124,8 @@
   <GNH_LocalFixes_Toggle_fixPawnScribeNull_Desc>「裸体评价」的 Fixation 组件无条件执行 Scribe_References.Look(ref fixPawn, "fixPawn")，而这些存档里的 fixPawn 在 1.6→1.7 迁移后解析不出来，于是登记了一个 null loadID —— 每次读档固定刷「register the same load ID twice」与「never added during LoadingVars」各 66 条（涉及 100 个 Pawn）。本项只在「label 是 fixPawn 且引用本身是 null」时跳过登记；有效引用与存档格式都不动。</GNH_LocalFixes_Toggle_fixPawnScribeNull_Desc>
     <GNH_LocalFixes_Toggle_assignableCompDupeGuard>同一台建筑挂了两个「可分配」组件（【42】）</GNH_LocalFixes_Toggle_assignableCompDupeGuard>
     <GNH_LocalFixes_Toggle_assignableCompDupeGuard_Desc>有些存档里的床 / 座椅身上被塞进了两个 CompAssignableToPawn 系组件，两者用同一个父对象登记 /assignedPawns，键完全相同 —— 读档时固定刷「Tried to register the same list of load IDs twice」与「Could not get load IDs list … never added during LoadingVars」各一半（实测 32 条/局，涉及 2 台）。查存档可见该 Thing 块里 assignedPawns 与 uninstalledAssignedPawns 各写了两遍，中间夹着 quality。游戏自己遇到这种情况也是「用第一份、丢第二份」，本项只是把那件既定的事提前做完、不再报红字；不动任何对象，不改存档格式，单组件的正常建筑完全不受影响。</GNH_LocalFixes_Toggle_assignableCompDupeGuard_Desc>
+  <GNH_LocalFixes_Toggle_ew2TranspilerProbe>详细错误勘探（默认关闭）</GNH_LocalFixes_Toggle_ew2TranspilerProbe>
+  <GNH_LocalFixes_Toggle_ew2TranspilerProbe_Desc>专门给「游戏一闪就没了、日志里一个字都没有」这类疑难用的只读勘探工具。RimWorld 里很多模组是用 transpiler 直接改游戏方法内部指令的，ExtraWeapon2 就是其中之一，而它决定「改哪一处」的办法是数某个调用第几次出现。只要前面还有别的模组也改过同一个方法，这个「第几次」就会数偏 —— 补丁报告安装成功，实际却改错位置，表现就是武器行为不正常，或者一点开火进程瞬间消失、连一行报错都留不下。开启本项后重开游戏，它会在进到界面时扫一遍 ExtraWeapon2 动过的那几个方法，把每个方法上挂着几个补丁、分别来自哪个 Harmony ID 全写进日志；同一方法上有两个以上 transpiler 就标星点名。它只读：不改任何指令、不卸载别人的补丁，最坏只是多几行日志。用法：开本项 → 重启游戏 → 日志里搜 [GNH LocalFixes] 看那几行。没有排查需求时建议一直关着。</GNH_LocalFixes_Toggle_ew2TranspilerProbe_Desc>
+  <GNH_LocalFixes_Toggle_ew2DeathPathRepair>ExtraWeapon2 额外武器击杀回调兜底（【43】）</GNH_LocalFixes_Toggle_ew2DeathPathRepair>
+  <GNH_LocalFixes_Toggle_ew2DeathPathRepair_Desc>ExtraWeapon2 在 Pawn_EquipmentTracker.Notify_KilledPawn 上挂了一个 postfix，遍历额外武器、逐个调原版的 Notify_KilledPawn。它自己那层遍历已经做了防护（按索引走、每项判空），真正的风险落在被调的那个原版方法上：它会读 pawn.Ideo、再遍历这件武器的所有 comp —— 任何一个第三方 comp 抛异常，都会中断整条 postfix 链，排在它后面的死亡处理（掉装备、尸体生成、记录与关系更新）就全部跳过，一次死亡会停在半截。本项给那层 postfix 加一层 Finalizer：捕获、留日志、吞掉。★ 不改 ExtraWeapon2 的任何逻辑；前 3 次打完整堆栈，之后只计数，不会刷屏。</GNH_LocalFixes_Toggle_ew2DeathPathRepair_Desc>
 </LanguageData>
