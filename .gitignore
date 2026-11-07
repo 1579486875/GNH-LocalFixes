@@ -32,3 +32,7 @@ bin/
 obj/
 refs/
 reports/
+
+# Python 字节码缓存（tools/*.py 被 py_compile / import 时生成，2026-11-07 补）
+__pycache__/
+*.pyc

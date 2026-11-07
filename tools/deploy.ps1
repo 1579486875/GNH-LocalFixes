@@ -23,6 +23,21 @@
 #    2 = 前置条件缺失（bin 里没有 dll、或 Mods 目录不存在）
 #    3 = 已复制但 dll 哈希与源不一致（部署动作做了，结果不对）
 #
+#  【为什么要有「根目录白名单校验」这一步】
+#
+#    2026-11-07 实测：部署根目录里躺着一个 293 KB 的 GNH-LocalFixes\ 嵌套子目录
+#    （含 README.md 103,599 B + 技术说明.md 190,112 B，都是 2026-11-03 一次误复制
+#    留下的），另外还有 .gitignore / .gitattributes / GNH.LocalFixes.csproj 三个
+#    工程文件。而上面那个 $dirMap 只清理 About / Assemblies / Patches / Languages
+#    **四个目录的内部** —— 根层的散文件与子目录它一个都看不见。
+#
+#    后果不是报错，而是「部署 == 仓库」这个断言在工具层面变成了假的：
+#    脚本照样打印 OK - identical，人照样以为干净，污染就一直留着。
+#
+#    所以部署收尾时扫一遍部署目标目录的**根层**，与白名单比对，
+#    白名单以外的条目逐个打出名字与字节数（只报警、不自动删）。
+#    需要连删一起做时加 -PruneUnexpected（移入回收站，不是永久删除）。
+#
 #  【改这个文件时注意：必须保存为「UTF-8 带 BOM」】
 #
 #    Windows PowerShell 5.1 读没有 BOM 的 .ps1 时会按系统 ANSI 代码页解码，
@@ -34,7 +49,10 @@ param(
     [string]$ModsDir = 'D:\steam\steamapps\common\RimWorld\Mods',
     [string]$DeployName = '模组兼容修复补丁',
     [string]$Configuration = 'Release',
-    [switch]$Force
+    [switch]$Force,
+    # 二级保护：白名单以外的条目不是只报警，而是移入回收站（默认关闭）。
+    # 为什么默认关：自动删有风险，先让人看一眼报出来的名字再决定。
+    [switch]$PruneUnexpected
 )
 
 $ErrorActionPreference = 'Stop'
@@ -265,6 +283,51 @@ if ($h1 -ne $h2) {
     exit 3
 }
 Write-Host '  OK - identical'
+
+# ---- 根目录白名单校验 -------------------------------------------------------
+#
+# 上面那个 $dirMap 只处理四个目录**内部**；根层的散文件与子目录不在它的视野里。
+# 这里补一道闸：白名单以外的一律列出来（名字 + 字节数），默认只报警不删。
+$rootWhitelist = @('About', 'Assemblies', 'Patches', 'Languages',
+                   'README.md', 'LICENSE', '技术说明.md')
+$unexpected = @(Get-ChildItem -LiteralPath $dst -Force |
+                Where-Object { $rootWhitelist -notcontains $_.Name })
+Write-Host ''
+if ($unexpected.Count -eq 0) {
+    Write-Host '--- 根目录白名单校验：通过（无白名单以外的条目）---'
+} else {
+    Write-Host '--- 根目录白名单校验：发现白名单以外的条目 ---' -ForegroundColor Yellow
+    foreach ($u in $unexpected) {
+        if ($u.PSIsContainer) {
+            $sum = (Get-ChildItem -LiteralPath $u.FullName -Recurse -File -ErrorAction SilentlyContinue |
+                    Measure-Object -Property Length -Sum).Sum
+            if ($null -eq $sum) { $sum = 0 }
+            Write-Host ("  DIR   " + $u.Name + "\  [" + $sum + " B]") -ForegroundColor Yellow
+        } else {
+            Write-Host ("  FILE  " + $u.Name + "  [" + $u.Length + " B]") -ForegroundColor Yellow
+        }
+    }
+    Write-Host '  ⚠ 这些不在发布包白名单里：可能是误复制、工程文件、或历史残留。' -ForegroundColor Yellow
+    Write-Host '    本步只报警、不删除（自动删有风险）。确认无用后手工清理，' -ForegroundColor Yellow
+    Write-Host '    或加 -PruneUnexpected 让脚本把它们移入回收站。' -ForegroundColor Yellow
+    if ($PruneUnexpected) {
+        Add-Type -AssemblyName Microsoft.VisualBasic
+        foreach ($u in $unexpected) {
+            try {
+                if ($u.PSIsContainer) {
+                    [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteDirectory(
+                        $u.FullName, 'OnlyErrorDialogs', 'SendToRecycleBin')
+                } else {
+                    [Microsoft.VisualBasic.FileIO.FileSystem]::DeleteFile(
+                        $u.FullName, 'OnlyErrorDialogs', 'SendToRecycleBin')
+                }
+                Write-Host ("  pruned -> 回收站: " + $u.Name)
+            } catch {
+                Write-Host ("  prune 失败: " + $u.Name + " -- " + $_.Exception.Message) -ForegroundColor Yellow
+            }
+        }
+    }
+}
 
 Write-Host ''
 Write-Host '部署完成。'

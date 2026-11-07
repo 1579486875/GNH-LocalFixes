@@ -112,6 +112,17 @@ print(f"README「共 N 项修复」          : {rm_total.group(1) if rm_total el
 print(f"README「N 个独立开关」         : {rm_switch.group(1) if rm_switch else '未找到'}")
 print(f"README「N 个 XML 补丁」        : {rm_xml.group(1) if rm_xml else '未找到'}")
 
+# About：正文里还有两处数字（2026-11-07 补：此前没有任何环节核对它们，
+# 实测漏成「Patches 目录下是 12 个 XML 补丁」（实际 13）、「那 43 条修复」（实际 44））。
+ab_xml = re.search(r"Patches 目录下是 (\d+) 个 XML 补丁", about)
+ab_fix = re.search(r"也不算在上面那 (\d+) 条修复", about)
+print(f"About「Patches 下 N 个 XML」  : {ab_xml.group(1) if ab_xml else '未找到'}")
+print(f"About「那 N 条修复」          : {ab_fix.group(1) if ab_fix else '未找到'}")
+if ab_xml and int(ab_xml.group(1)) != len(xml_files):
+    problems.append(f"About 写「{ab_xml.group(1)} 个 XML 补丁」，实际 {len(xml_files)} 个")
+if ab_fix and int(ab_fix.group(1)) != fix_count:
+    problems.append(f"About 写「那 {ab_fix.group(1)} 条修复」，实际修复项 {fix_count}（总开关 {total}）")
+
 if about_declared is not None and about_declared != fix_count:
     problems.append(f"About.xml 写「现在 {about_declared} 条」，实际修复项 {fix_count}（总开关 {total}，其中 1 个是诊断工具）")
 if rm_total and int(rm_total.group(1)) != fix_count:
@@ -140,13 +151,15 @@ if not WRITE:
 # ---------- 改写 ----------
 changed = []
 
-if m and int(m.group(1)) != total:
-    about = about[:m.start(1)] + str(total) + about[m.end(1):]
+# ⚠ 2026-11-07 修：原先拿 total（45，含诊断工具）去比，而检查阶段用的是 fix_count（44）——
+#   只要跑过一次 --write，就会把「现在 44 条」错写成 45，下一次检查再报不一致。
+if m and int(m.group(1)) != fix_count:
+    about = about[:m.start(1)] + str(fix_count) + about[m.end(1):]
     write(ABOUT, about, about_bom)
     changed.append("About/About.xml")
 
-if rm_total and int(rm_total.group(1)) != total:
-    readme = readme[:rm_total.start(1)] + str(total) + readme[rm_total.end(1):]
+if rm_total and int(rm_total.group(1)) != fix_count:
+    readme = readme[:rm_total.start(1)] + str(fix_count) + readme[rm_total.end(1):]
     write(README, readme, readme_bom)
     changed.append("README.md（共 N 项修复）")
     readme, readme_bom = read(README)
@@ -161,6 +174,22 @@ if rm_xml and int(rm_xml.group(1)) != len(xml_files):
     readme = readme[:rm_xml.start(1)] + str(len(xml_files)) + readme[rm_xml.end(1):]
     write(README, readme, readme_bom)
     changed.append("README.md（N 个 XML 补丁）")
+
+# About 的两处：每次都重新读一遍文件再匹配，避免前面的改写让 offset 失效。
+if ab_xml and int(ab_xml.group(1)) != len(xml_files):
+    about, about_bom = read(ABOUT)
+    mm = re.search(r"Patches 目录下是 (\d+) 个 XML 补丁", about)
+    if mm:
+        about = about[:mm.start(1)] + str(len(xml_files)) + about[mm.end(1):]
+        write(ABOUT, about, about_bom)
+        changed.append("About/About.xml（N 个 XML 补丁）")
+if ab_fix and int(ab_fix.group(1)) != fix_count:
+    about, about_bom = read(ABOUT)
+    mm = re.search(r"也不算在上面那 (\d+) 条修复", about)
+    if mm:
+        about = about[:mm.start(1)] + str(fix_count) + about[mm.end(1):]
+        write(ABOUT, about, about_bom)
+        changed.append("About/About.xml（N 条修复）")
 
 print("\n已改写：", ", ".join(changed) if changed else "（无需改写）")
 print("改完记得重编译部署，再跑一次本脚本确认 0 不一致。")
