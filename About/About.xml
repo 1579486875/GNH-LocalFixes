@@ -4,14 +4,14 @@
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.4.24</modVersion>
+  <modVersion>1.4.25</modVersion>
   <supportedVersions>
     <li>1.6</li>
     <li>1.7</li>
   </supportedVersions>
   <description>RimWorld 装了几百上千个模组之后，总会遇到这类毛病：某个模组自己写错一行，或者和另一个模组撞上。游戏不崩，只是日志被刷满屏、某个功能悄悄失效、玩着玩着莫名卡顿。
 
-报给作者要等，自己又改不动。这个补丁把它们一条条揪出来修掉 —— 现在 43 条，条条独立。
+报给作者要等，自己又改不动。这个补丁把它们一条条揪出来修掉 —— 现在 44 条，条条独立。
 
 修复速览
 
@@ -58,6 +58,7 @@
 【41】读档刷上百条 /fixPawn 报错
 【42】同一台建筑挂了两个「可分配」组件
 【43】ExtraWeapon2 额外武器击杀回调兜底
+【44】裸体评价 1.7 重构后的过期 comp
 
 怎么用
 
@@ -65,7 +66,7 @@
 
 两部分组成：Patches 目录下是 12 个 XML 补丁，Assemblies 目录里是一个 dll，互不依赖 —— 删掉哪一半，就只有那一半不生效。
 
-设置界面共有 44 个开关，分七组：诊断工具（最上面一组，默认关闭）、崩溃与卡死、日志刷屏、兼容与判定、行为与设置、性能剖析（默认关闭）、XML 补丁（可单独关闭）。最上面那组就是「详细错误勘探」—— 它只读地勘探模组补丁冲突，不修任何东西，也不算在上面那 43 条修复里；没有排查需求就让它一直关着。每条右侧会标出异常状态（灰色「已关闭」／暗黄「目标模组未启用」），顶部有一行汇总，告诉你这次实际装上了多少条、被关了几条、目标模组没装几条。
+设置界面共有 45 个开关，分七组：诊断工具（最上面一组，默认关闭）、崩溃与卡死、日志刷屏、兼容与判定、行为与设置、性能剖析（默认关闭）、XML 补丁（可单独关闭）。最上面那组就是「详细错误勘探」—— 它只读地勘探模组补丁冲突，不修任何东西，也不算在上面那 43 条修复里；没有排查需求就让它一直关着。每条右侧会标出异常状态（灰色「已关闭」／暗黄「目标模组未启用」），顶部有一行汇总，告诉你这次实际装上了多少条、被关了几条、目标模组没装几条。
 
 改开关要重启游戏才生效 —— 补丁一旦挂上没法中途中止，这个界面决定的是下次启动装哪几项。
 
@@ -211,6 +212,18 @@ AI 协作　代码由 DeepSeek娘·汐蓝 辅助编写，作者负责设计、�
          属于「补丁打补丁」，**必须**排在它之后应用，否则补完又被删掉。
          （2026-10-18 定位；与 disroom.mashiro 那条同属硬约束型 loadAfter。） -->
     <li>worldie.allowconsensualincest</li>
+    <!-- [OWL] NMM Combined Edition（dord.nuditymattersmore，「裸体评价」，本地 Mods 目录）：
+         它的 1.7\Patches\Races_Humanlike_Patch_Comps.xml 会给 BasePawn/comps 追加
+         10 个旧架构的 CompProperties_*（BugsTracker / CoverBody / … / Fixation），
+         而 1.7 的 dll 里那 10 个类型**全都不存在**（作者已重构成单一 CompProperties_NMM）
+         → comps 是整表解析 → 344 个 ThingDef 被丢弃（含 Human 本人）。
+
+         我们的 Patches/NMM_StaleCompCleanup.xml 负责删掉那 10 个死引用、
+         补上正确的 CompProperties_NMM。这是**补丁打补丁**，属硬约束：
+         排到它前面就会变成「我们先删、它再加回来」，死类型照样进文档。
+
+         （2026-11-07 加入；完整排错与证据见 docs\RimWorld-日志排错报告-20261107.md） -->
+    <li>dord.nuditymattersmore</li>
   </loadAfter>
   <!--
     排序说明（2026-10-04 更正）：

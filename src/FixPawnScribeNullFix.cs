@@ -82,7 +82,11 @@ namespace GNH.LocalFixes
     internal static class FixPawnScribeNullFix
     {
         private const string FixationTypeName = "NudityMattersMore.Fixation";
+        // 1.6 版叫 PostExposeData；1.7 重构后 Fixation 变成 NMMPawnModule 的子类，
+        // 方法名改成 ExposeData()（public override void ExposeData()），
+        // 由 CompNMM.PostExposeData() 统一调用。两个名字都要试。
         private const string ExposeMethodName = "PostExposeData";
+        private const string ExposeMethodName17 = "ExposeData";
         private const string TargetLabel = "fixPawn";
         private const string ScribeRefsTypeName = "Verse.Scribe_References";
 
@@ -108,11 +112,28 @@ namespace GNH.LocalFixes
                     return;
                 }
 
+                // 先试旧名（1.6 / 早期 1.7），再试新名（1.7 重构后）。
+                // 只换 call 目标的 Transpiler 对两个版本都适用 —— 两个方法体里
+                // 都是 `Scribe_References.Look(ref fixPawn, "fixPawn")`。
                 MethodInfo target = AccessTools.Method(fixationType, ExposeMethodName, Type.EmptyTypes, null);
+                string usedName = ExposeMethodName;
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] 在 " + FixationTypeName + " 上找不到 "
-                        + ExposeMethodName + "()；【41】本次未安装，下次会重试。");
+                    target = AccessTools.Method(fixationType, ExposeMethodName17, Type.EmptyTypes, null);
+                    usedName = ExposeMethodName17;
+                }
+
+                if (target == null)
+                {
+                    // ⚠ 这里**故意用 Log.Message 而不是 Log.Error**，也**故意不设 installed**：
+                    //   ① 用 Message：目标换名是「这一项本版本不适用」，不是故障 ——
+                    //      每次启动打一条 ERROR 会把真正的红字埋掉（2026-11-07 实测：
+                    //      那一整局里这条 ERROR 混在 10,879 条里，反而增加了排错噪音）。
+                    //   ② 不设 installed：留着下次重试。成本只是一次反射，换来的是
+                    //      「玩家换回旧版 / 作者改回旧名」时能自动自愈。
+                    Log.Message("[GNH LocalFixes] 【41】目标不适用：" + FixationTypeName
+                        + " 上既没有 " + ExposeMethodName + "() 也没有 " + ExposeMethodName17
+                        + "()（该模组改了实现）；本项本局不生效，不影响其它修复。");
                     return;
                 }
 
@@ -127,20 +148,22 @@ namespace GNH.LocalFixes
 
                 if (replacedCalls == 0)
                 {
-                    Log.Warning("[GNH LocalFixes] 【41】没能在 " + FixationTypeName + "." + ExposeMethodName
+                    Log.Warning("[GNH LocalFixes] 【41】没能在 " + FixationTypeName + "." + usedName
                         + " 里找到 Scribe_References.Look 调用（作者可能改了写法）；本项本局不生效，下次会重试。");
                     return;
                 }
 
                 installed = true;
                 Log.Message("[GNH LocalFixes] 已安装【41】/fixPawn 脏数据过滤"
-                    + "（Transpiler 改 " + FixationTypeName + "." + ExposeMethodName
+                    + "（Transpiler 改 " + FixationTypeName + "." + usedName
                     + " 里的 Scribe_References.Look 调用，替换 " + replacedCalls + " 处）。"
                     + "只在「label = " + TargetLabel + " 且引用本身是 null」时跳过，"
                     + "有效引用一个字节都不动，存档格式不变。"
                     + "★ 这版换了拦法：v1.4.19 patch 的是 Look<Pawn>（封闭泛型实例），"
                     + "Harmony 对它不可靠 —— 补丁报「已安装」但一次都没拦到，138 条照刷。"
-                    + "现在改成改调用方，绕开泛型。");
+                    + "现在改成改调用方，绕开泛型。"
+                    + "★ 1.7 兼容：目标方法名由 " + ExposeMethodName + " 变成 " + ExposeMethodName17
+                    + "，两个都试过，这次用的是 " + usedName + "。");
             }
             catch (Exception ex)
             {

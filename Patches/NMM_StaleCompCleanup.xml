@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+
+  <!--
+    =====================================================================
+    【44】裸体评价（NMM）1.7 重构后的过期 comp 清理
+    =====================================================================
+
+    ── 症状（2026-11-07 实测，完整排错见 docs\RimWorld-日志排错报告-20261107.md）──
+
+      Exception loading def from file Races_Humanlike.xml: System.ArgumentException:
+      Could not find type named NudityMattersMore.CompProperties_BugsTracker
+      from node <li Class="NudityMattersMore.CompProperties_BugsTracker" />
+
+      → 344 个 ThingDef 解析失败（含 Human 本人）、波及 160 个 XML 文件；
+        635 个 cross-reference 目标失效、共 8,304 条报错；
+        连带 [DefOf] 绑定中断 → 主菜单每秒 1 次 NRE，持续 35 分钟共 2,027 次。
+
+    ── 根因 ──
+
+      `[OWL] NMM Combined Edition`（packageId dord.nuditymattersmore）在
+      `1.7\Patches\Races_Humanlike_Patch_Comps.xml` 里给
+      `Defs/ThingDef[@Name="BasePawn"]/comps` 追加了 **10 个**
+      `NudityMattersMore.CompProperties_*`（BugsTracker / CoverBody / BraStatus /
+      ExhibScore / NipSlip / PrudeScore / VoyScore / WetShirt / NakedTime / Fixation）。
+
+      而 1.7 版 dll 已重构成「单一 CompProperties_NMM + NMMPawnModule 子模块」架构：
+      反编译 NudityMattersMore.dll（222 类型，MVID c7de7e13…，2026-11-06 版）后，
+      带 `CompProperties_` 前缀的类型**只剩 2 个** ——
+      `CompProperties_NMM` 与 `HediffCompProperties_MildBugInClothes`。
+      那 10 个**一个都不存在**。
+
+      `BasePawn` 是所有 pawn 的公共基类（Human / 全部动物 / 全部机械族都 ParentName 它），
+      而 `DirectXmlToObject` 解析 comps 是**整表解析**：列表里任意一项 Class 解析不出来
+      就抛 ArgumentException，**整只 def 被丢弃** —— 不是跳过那一项。
+
+    ── 本补丁做什么 ──
+
+      ① 把那 10 个解析不出来的 `<li>` 从 `BasePawn/comps` 里删掉；
+      ② 补上唯一正确的 `CompProperties_NMM`。
+
+      两处都带 success=Always：模组没装、作者日后自己修好了，都会安静跳过。
+
+    ── 为什么不改模组的原始文件 ──
+
+      模板【铁律】第 2 条：绝不去改别人模组目录里的东西，一切改动写进我们自己的补丁。
+      本模组在 About.xml 的 loadAfter 里排在 dord.nuditymattersmore 之后
+      （属「补丁打补丁」，是硬约束），所以一定在它的 XML 之后执行。
+
+    ── 为什么挂在 BasePawn 上（动物 / 机械族也会带这个 comp）──
+
+      反编译实测确认对非人形安全：
+        · `NMMPawnModule.Attach(Pawn owner)` —— `{ pawn = owner; }` 只赋值，零副作用；
+        · `NipSlip.Tick()` 第一行：`if (!xxx.is_human(pawn) || …) return;`
+        · `Fixation.Tick()`：`if (!(… || !xxx.is_human(pawn) || …)) FixationCheck();`
+        · `CompNMM.CompTick()` 有 `if (pawn != null)`。
+      而原模组的 patch 本来就挂给所有 pawn（而且是 10 个），本补丁只挂 1 个，开销更小。
+
+    ── 为什么还要「补」而不是只「删」──
+
+      dll 里确实有一个 `HumanlikeComps` 静态类会在启动时自动注入
+      （`[StaticConstructorOnStartup]`，带 `HasCompProperties` 去重）。
+      但 2026-11-07 那整局日志里 `[NMM] Added CompNMM` **一次都没出现**
+      （`HumanlikeComps` 关键字命中 0、`Error in static constructor` 也 0）
+      —— 自动注入没跑，不能依赖它。补一条显式的 XML 才是双保险；
+      万一它日后跑起来了，去重也会挡住重复添加。
+
+    ── 作者日后自己修好了怎么办 ──
+
+      · 若作者把 XML 改成只挂 CompProperties_NMM：本补丁的 ①删不到东西、②被去重挡住 —— 等价空转。
+      · 若作者彻底删掉那个 XML：本补丁的 ② 仍然补上 CompProperties_NMM，正好顶替自动注入。
+      · 若作者把 10 个旧类型加回 dll 并恢复旧 XML：①会把它们删掉 —— 但 1.7 的架构
+        本来就只该有一个 CompProperties_NMM，删掉仍是对的。
+    =====================================================================
+  -->
+
+  <!-- ① 删掉 10 个解析不出来的旧类型（保留 CompProperties_NMM，如果它已经在的话） -->
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[@Name="BasePawn"]/comps/li[starts-with(@Class, "NudityMattersMore.CompProperties_") and not(@Class="NudityMattersMore.CompProperties_NMM")]</xpath>
+  </Operation>
+
+  <!-- ② 补上唯一正确的入口类型 -->
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/ThingDef[@Name="BasePawn"]/comps[not(li[@Class="NudityMattersMore.CompProperties_NMM"])]</xpath>
+    <value>
+      <li Class="NudityMattersMore.CompProperties_NMM" />
+    </value>
+  </Operation>
+
+  <!--
+    ⚠⚠ 2026-11-07 第一次实机验证发现：只处理 BasePawn **不够**。
+
+    外星人种族（HAK / Humanoid Alien Races）的 def 节点名**就是**
+    `<AlienRace.ThingDef_AlienRace>` —— 实测 `Race_Milira.xml` 第 4 行：
+        <AlienRace.ThingDef_AlienRace Name="Milira_Race" ParentName="BasePawn">
+    `DirectXmlToObject` 是用 XmlNode.Name 去 GenTypes 找类型的，所以这是合法写法，
+    下面这两条 xpath **能命中**（原模组 patch 里那份也是这么写的，不是笔误）。
+
+    而且这些 def **自带 <comps>**（Milira_Race 在 Race_Milira.xml 第 1552 行有一个完整的
+    <comps> 列表）—— XML 继承规则里子 def 一旦自带 <comps> 就**覆盖**父类列表。
+    所以：
+      · 它们在 ① 的删除范围之外（① 只管 BasePawn）；
+      · 它们也拿不到 ② 补的 CompProperties_NMM（被自己的 comps 覆盖掉了）；
+      · 而原模组 patch 的 AlienRace 那一组会把 10 个死类型直接塞进它们自己的 comps
+        → 这就是第一次实机验证时那 17 条 `Exception loading def from file`
+          （Milira / Kiiro / Miho / Axolotl / Wolfein / Rakin / DriveS / Nivarian / Paniel …）。
+
+    所以必须对 AlienRace 这一支单独做同样两件事。
+  -->
+  <Operation Class="PatchOperationRemove">
+    <success>Always</success>
+    <xpath>Defs/AlienRace.ThingDef_AlienRace/comps/li[starts-with(@Class, "NudityMattersMore.CompProperties_") and not(@Class="NudityMattersMore.CompProperties_NMM")]</xpath>
+  </Operation>
+
+  <Operation Class="PatchOperationAdd">
+    <success>Always</success>
+    <xpath>Defs/AlienRace.ThingDef_AlienRace/comps[not(li[@Class="NudityMattersMore.CompProperties_NMM"])]</xpath>
+    <value>
+      <li Class="NudityMattersMore.CompProperties_NMM" />
+    </value>
+  </Operation>
+
+</Patch>

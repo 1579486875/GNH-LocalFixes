@@ -524,6 +524,27 @@ namespace GNH.LocalFixes
                 + "（只有 becomeVisible）→ 每次加载刷「doesn't correspond to any field in type HediffStage」。"
                 + "删掉不改变任何行为，只消日志。两个版本都成立，无需版本守卫。",
                 xmlPatchFile: "RJW17_HediffStageVisibleRemoval.xml"),
+
+            // 2026-11-07 新增（来自全局日志排错，完整报告见
+            //   docs\RimWorld-日志排错报告-20261107.md）
+            //
+            // ⚠ 这一项**必须**排在 dord.nuditymattersmore 之后执行 ——
+            //   它删的是那个模组自己 XML patch 加进去的东西（补丁打补丁，硬约束）。
+            //   目前已写进 About.xml 的 loadAfter；改顺序会让它变成空转。
+            new Entry("xmlNmmStaleCompCleanup", GroupXmlPatches,
+                "裸体评价 1.7 重构后的过期 comp（【44】）",
+                "「[OWL] NMM Combined Edition」的 1.7 patch 仍在给 BasePawn/comps 追加 10 个旧架构的"
+                + " CompProperties_*（BugsTracker / CoverBody / BraStatus / ExhibScore / NipSlip /"
+                + " PrudeScore / VoyScore / WetShirt / NakedTime / Fixation），"
+                + "而 1.7 的 dll 里那 10 个类型一个都不存在 —— 作者已重构成单一 CompProperties_NMM。"
+                + "BasePawn 是 Human、全部动物、全部机械族的公共基类，而 comps 是整表解析："
+                + "任意一项解析失败就整只 def 被丢弃，不是跳过那一项。"
+                + "实测代价：344 个 ThingDef 消失（含 Human 本人）、8,304 条 cross-reference 报错、"
+                + "连带 [DefOf] 绑定中断、主菜单每秒 1 次 NRE 持续 35 分钟。"
+                + "本项删掉那 10 个死引用、补上正确的 CompProperties_NMM。"
+                + "两处都带 success=Always：作者日后自己修好了会安静空转。"
+                + "★ 不改那个模组的任何原始文件 —— 一切都在本补丁里做。",
+                xmlPatchFile: "NMM_StaleCompCleanup.xml"),
         };
 
         // ======================================================================
