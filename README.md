@@ -16,6 +16,32 @@
 
 ---
 
+
+## ⚠ 收工必跑：高危类型引用审计
+
+```bash
+python tools/audit-type-refs.py      # 必须 0 HIGH 才能发版
+```
+
+**为什么有这一条**：2026-11-09 的 v1.4.26 因为【44】里两条无守卫的
+`PatchOperationAdd`（往 `BasePawn/comps` 补 `NudityMattersMore.CompProperties_NMM`），
+把用旧版 NMM 的玩家整片炸掉 —— **工坊 20+ 玩家取消订阅**。
+
+判据：XML 补丁里出现 `Class="X"` 时，`X` 必须满足**至少一条**，否则报 HIGH：
+
+1. 是**原版类型**（在 `Assembly-CSharp.dll` 的类型表里）；
+2. 属于**本模组自己的 dll**；
+3. 属于本模组 `modDependencies` 里某个**硬依赖**包的 dll；
+4. 该 Operation 带 `MayRequire="<目标 packageId>"`，或被 `PatchOperationFindMod` /
+   `PatchOperationTest` / `PatchOperationConditional` 包着。
+
+前三条工具自动判；第四条工具也会识别。判不出来的极少数（命名空间与 packageId
+无字面关系）登记在脚本的 `CONFIRMED` 表里，**只能人工加**。
+
+> 同一个错误在 v1.3.28 已经犯过一次（补 `RJW_BGS.RaceGeneDef`，v1.3.29 撤回），
+> 当时只写进了 README 的历史变更段、没变成可执行的检查，所以 v1.4.25 又踩了一遍。
+> 这一条就是把它变成机械检查。
+
 ## 📖 这是什么？（不懂技术也能读）
 
 装了成百上千个模组之后，RimWorld 多少会出点小毛病。常见的就这几种：
