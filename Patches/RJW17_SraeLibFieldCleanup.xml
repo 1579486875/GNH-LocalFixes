@@ -32,13 +32,44 @@
 	  原先本项与【37】挤在 RJW17_XmlFieldCleanup.xml 一个文件里，而「一个 XML 文件
 	  只能挂一个开关」（FixToggles.Entry.XmlPatchFile 是单个文件名），
 	  结果两项都进不了设置界面、也进不了统计。拆开之后各占一个开关。
+
+	  ── 2026-11-10 修：缺 success=Always，目标模组不在场时刷红字 ──
+	  玩家实测（21 条框架模组的测试环境）日志里出现：
+
+	    Verse.PatchOperationRemove(xpath="//ThoughtDef[@Class="SRAELib.ThoughtDef_HediffAttraction"]/targetNullifyingHediffs"):
+	      Failed to find a node with the given xpath
+	    Verse.PatchOperationSequence: Error in the operation at position=2
+	    Source file: ...\Patches\RJW17_SraeLibFieldCleanup.xml
+
+	  两个原因叠在一起：
+
+	  ① **守卫在这台机器上失效了。** 守卫是 `//MaterialDef`，本意是「1.7 才有这个 Def」；
+	     但那台 1.6 测试副本的 `Data\` 与 1.7 同源（Data\Core\Defs 逐字节相同），
+	     所以 `//MaterialDef` 照样命中 —— 守卫通过，Remove 继续执行。
+	  ② **Remove 没写 success=Always。** 目标模组（雪兔服装扩展）没装，
+	     `SRAELib.ThoughtDef_HediffAttraction` 不存在 → 找不到节点 → 返回 false
+	     → XmlExtensions 的 ErrorManager 把它记成一条红色 ERROR。
+
+	  模板 §1.2 的硬要求是「被补的模组缺失时，必须不崩、不刷红字、安静跳过」，
+	  所以这里补两层：
+
+	  · 给 Remove 加 `success=Always` —— 删不到就说明不需要删，本就该安静；
+	  · 在 Remove 前面再加一道 `PatchOperationTest`，要求**目标节点真的存在**，
+	    把「版本守卫」与「目标守卫」分开，谁失效都不会误伤。
+
+	  全部 13 个 XML 补丁里，只有这一个此前缺 `success=Always`（2026-11-10 逐个核过）。
 	-->
 	<Operation Class="PatchOperationSequence">
 		<operations>
 			<li Class="PatchOperationTest">
 				<xpath>//MaterialDef</xpath>
 			</li>
+			<!-- 目标守卫：雪兔服装扩展没装 / 加载到的 dll 没这个 Class 时，直接短路 -->
+			<li Class="PatchOperationTest">
+				<xpath>//ThoughtDef[@Class="SRAELib.ThoughtDef_HediffAttraction"]</xpath>
+			</li>
 			<li Class="PatchOperationRemove">
+				<success>Always</success>
 				<xpath>//ThoughtDef[@Class="SRAELib.ThoughtDef_HediffAttraction"]/targetNullifyingHediffs</xpath>
 			</li>
 		</operations>
