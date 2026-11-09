@@ -176,6 +176,21 @@ namespace GNH.LocalFixes
                 + "没有排查需求时建议一直关着。"),
 
             // ---------------- 崩溃与卡死 ----------------
+            //
+            // 【45】放在本组第一条：它修的不是某一个模组，而是「一个补丁类坏掉、
+            //   整批补丁陪葬」这个结构性问题。影响面比下面任何一条都大。
+            new Entry("harmonyPatchClassIsolate", GroupCrash,
+                "单个补丁失败不再连累整批（【45】）",
+                "Harmony 批量安装补丁时没有逐个兜底：只要有一个补丁类找不到目标方法，"
+                + "整批安装立刻中断，排在后面的全部不生效。而模组通常把安装写在静态构造里，"
+                + "于是「一个方法改了签名」会变成「整个模组几十个功能集体消失」，"
+                + "日志里却只有一条红字。本项在 Harmony 的错误边界上加一层拦截："
+                + "坏掉的补丁类仍然不会生效（它本来就不可能生效），但会被单独点名报出来，"
+                + "同批其余补丁照常安装。本机实测的受害者是 RimTalk Context Upgrade"
+                + "（RimTalk 1.3 改了 DecorateText 签名，导致它 30 多个补丁全灭）"
+                + "与 CQF-RT（目标类型不存在，同样整批失效）。",
+                "GNH.LocalFixes.Patch_PatchClassProcessor_Isolate"),
+
             new Entry("assemblyGetTypesFallback", GroupCrash,
                 "坏程序集不再拖垮整批补丁",
                 "某个模组的 dll 引用了根本不存在的程序集时，游戏枚举「所有类」会整体失败，"
@@ -541,8 +556,10 @@ namespace GNH.LocalFixes
                 + "任意一项解析失败就整只 def 被丢弃，不是跳过那一项。"
                 + "实测代价：344 个 ThingDef 消失（含 Human 本人）、8,304 条 cross-reference 报错、"
                 + "连带 [DefOf] 绑定中断、主菜单每秒 1 次 NRE 持续 35 分钟。"
-                + "本项删掉那 10 个死引用、补上正确的 CompProperties_NMM。"
-                + "两处都带 success=Always：作者日后自己修好了会安静空转。"
+                + "本项只删掉那 10 个死引用，绝不补任何类型 —— "
+                + "2026-11-09 就是因为补了一个「只有部分版本才有的」CompProperties_NMM，"
+                + "把用旧版 NMM 的玩家整片炸掉（工坊评论区成片报找不到该类型）。"
+                + "只有 success=Always：作者日后自己修好了会安静空转。"
                 + "★ 不改那个模组的任何原始文件 —— 一切都在本补丁里做。",
                 xmlPatchFile: "NMM_StaleCompCleanup.xml"),
         };

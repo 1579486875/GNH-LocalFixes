@@ -2,7 +2,7 @@
 
 > **多项针对性修复 —— 每一项都对应一次真实故障，每一项都独立生效。**
 
-> **当前版本：1.4.26** · 共 44 项修复，**45 个独立开关**（每一条都能在游戏设置里单独关；准确条数以设置界面顶部汇总为准）。`Patches\` 下 13 个 XML 补丁自 v1.4.10 起也各有开关。完整版本变迁见《技术说明.md》。
+> **当前版本：1.4.26** · 共 45 项修复，**46 个独立开关**（每一条都能在游戏设置里单独关；准确条数以设置界面顶部汇总为准）。`Patches\` 下 13 个 XML 补丁自 v1.4.10 起也各有开关。完整版本变迁见《技术说明.md》。
 
 | 项目 | 说明 |
 |---|---|
@@ -361,7 +361,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 41 | 读档刷上百条 `/fixPawn` 报错 | 存档里那几条记录字段不全，空值被直接解引用 | 用 transpiler 把那次读取改成 null 安全，不动存档结构 |
 | 42 | 同一台建筑挂了两个「可分配」组件 | `CompAssignableToPawn` 重复，分配界面出现两份、选中互相打架 | 前缀拦下重复登记，保留先注册的那一个 |
 | 43 | ExtraWeapon2 额外武器击杀回调 | 它挂在 `Pawn_EquipmentTracker.Notify_KilledPawn` 的 postfix 里遍历额外武器、逐个调原版 `Notify_KilledPawn`；那个原版方法会遍历武器身上所有 comp，任一第三方 comp 抛异常就中断整条 postfix 链，后排的死亡处理（掉装备、尸体生成、记录与关系）全跳过，一次死亡停在半截 | 给那层 postfix 加一层 Finalizer：捕获、留日志、吞掉。不改 ExtraWeapon2 的任何逻辑 |
-| 44 | 裸体评价（NMM）1.7 重构后的过期 comp | 它的 1.7 patch 仍在给 `BasePawn/comps` 追加 10 个旧架构的 `CompProperties_*`，而 1.7 的 dll 里那 10 个类型一个都不存在（作者已重构成单一 `CompProperties_NMM`）。`BasePawn` 是所有 pawn 的公共基类，而 comps 是整表解析 —— 一项解析失败就整只 def 被丢弃：实测 344 个 ThingDef 消失（含 Human 本人）、8,304 条 cross-reference 报错、连带 `[DefOf]` 绑定中断、主菜单每秒 1 次空引用持续 35 分钟 | 删掉那 10 个死引用、补上正确的 `CompProperties_NMM`。两处都带 `success=Always`，作者日后自己修好了会安静空转；**不改那个模组的任何原始文件** |
+| 44 | 裸体评价（NMM）1.7 重构后的过期 comp | 它的 1.7 patch 仍在给 `BasePawn/comps` 追加 10 个旧架构的 `CompProperties_*`，而 1.7 的 dll 里那 10 个类型一个都不存在（作者已重构成单一 `CompProperties_NMM`）。`BasePawn` 是所有 pawn 的公共基类，而 comps 是整表解析 —— 一项解析失败就整只 def 被丢弃：实测 344 个 ThingDef 消失（含 Human 本人）、8,304 条 cross-reference 报错、连带 `[DefOf]` 绑定中断、主菜单每秒 1 次空引用持续 35 分钟 | **只删不补**：删掉那 10 个死引用，绝不往 `comps` 里加任何类型。⚠ v1.4.25 曾在这里顺手补过一个 `CompProperties_NMM`，它把用旧版 NMM 的玩家整片炸掉（`Could not find type named NudityMattersMore.CompProperties_NMM` → `BasePawn` 整表解析失败 → **所有 pawn 的 def 全丢**），v1.4.27 已把那个 Add 删掉。两处都带 `success=Always`，作者日后自己修好了会安静空转；**不改那个模组的任何原始文件** |
 
 ---
 

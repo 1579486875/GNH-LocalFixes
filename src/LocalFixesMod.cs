@@ -686,6 +686,10 @@ namespace GNH.LocalFixes
             // 漏登记它不会在正常路径上出问题（GetTypes 成功时按特性扫得到），
             // 但在「GetTypes() 整体失败」的退化路径上，【38】会被静默漏装 —— 所以必须登记。
             "GNH.LocalFixes.Patch_Thing_DynamicDrawPhase_SwallowRealtimeNre",
+            // 【45】Harmony 补丁类安装隔离：给 PatchClassProcessor.Patch() 挂 Finalizer。
+            // 它自己也必须登记 —— 否则在「GetTypes() 整体失败」的退化路径上会漏装，
+            // 而那恰恰是最需要它的时候（枚举类型都失败了，说明环境已经很脏）。
+            "GNH.LocalFixes.Patch_PatchClassProcessor_Isolate",
             // 下面两个是 XML 补丁开关的机制类。漏了它们在退化路径上不会报错，
             // 只会让「XML 补丁也能单独关」这个功能静默消失 —— 所以必须登记。
             "GNH.LocalFixes.Patch_PatchOperation_Apply",

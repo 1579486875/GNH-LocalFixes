@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
   <!--
     ═══════════════════════════════════════════════════════════════
@@ -32,6 +32,8 @@
   <GNH_LocalFixes_OnlyCrashes_Tip>Turns off the "Log spam", "Compatibility" and "XML patches" groups, keeping only the ones that crash or freeze when unfixed.
 The two "Behaviour &amp; settings" entries are left alone - those are your preferences, not bug fixes.</GNH_LocalFixes_OnlyCrashes_Tip>
   <GNH_LocalFixes_RestartHint>★ Changes take effect after restarting the game - patches cannot be removed mid-session; this screen decides what gets installed on the next launch.</GNH_LocalFixes_RestartHint>
+  <GNH_LocalFixes_Toggle_harmonyPatchClassIsolate>One broken patch no longer kills the batch (【45】)</GNH_LocalFixes_Toggle_harmonyPatchClassIsolate>
+  <GNH_LocalFixes_Toggle_harmonyPatchClassIsolate_Desc>Harmony patches an assembly without a per-class guard: as soon as one patch class cannot resolve its target, the whole batch stops and every patch after it is skipped. Since mods usually install patches from a static constructor, "one method changed its signature" turns into "dozens of features silently gone", with a single red line in the log. This fix sits on Harmony's error boundary: the broken class still does not apply (it never could), but it gets named in the log while the rest of the batch installs normally.</GNH_LocalFixes_Toggle_harmonyPatchClassIsolate_Desc>
   <GNH_LocalFixes_Toggle_assemblyGetTypesFallback>One broken assembly no longer kills every patch</GNH_LocalFixes_Toggle_assemblyGetTypesFallback>
   <GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>When a mod's dll references an assembly that is not installed, enumerating all types fails for everyone, and mods later in the list get skipped entirely. This turns 'the whole list is void' into 'a few types missing, the list is still usable'.</GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>
   <GNH_LocalFixes_Toggle_techHediffsZeroBudget>Implant generator crash at zero budget</GNH_LocalFixes_Toggle_techHediffsZeroBudget>

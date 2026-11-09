@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
   <!--
     ═══════════════════════════════════════════════════════════════
@@ -31,6 +31,8 @@
   <GNH_LocalFixes_OnlyCrashes_Tip>把「日志刷屏」「兼容与判定」「XML 补丁」三类关掉，只留下不修就会崩的那些。
 「行为与设置」两项不动 —— 那是你自己的偏好，不是故障修复。</GNH_LocalFixes_OnlyCrashes_Tip>
   <GNH_LocalFixes_RestartHint>★ 改动要重启游戏才生效 —— 补丁一旦挂上就没法中途摘掉，这里决定的是「下次启动装哪几项」。</GNH_LocalFixes_RestartHint>
+  <GNH_LocalFixes_Toggle_harmonyPatchClassIsolate>单个补丁失败不再连累整批（【45】）</GNH_LocalFixes_Toggle_harmonyPatchClassIsolate>
+  <GNH_LocalFixes_Toggle_harmonyPatchClassIsolate_Desc>Harmony 批量安装补丁时没有逐个兜底：只要有一个补丁类找不到目标方法，整批安装立刻中断，排在后面的全部不生效。而模组通常把安装写在静态构造里，于是「一个方法改了签名」会变成「整个模组几十个功能集体消失」，日志里却只有一条红字。本项在 Harmony 的错误边界上加一层拦截：坏掉的补丁类仍然不会生效，但会被单独点名报出来，同批其余补丁照常安装。</GNH_LocalFixes_Toggle_harmonyPatchClassIsolate_Desc>
   <GNH_LocalFixes_Toggle_assemblyGetTypesFallback>坏程序集不再拖垮整批补丁</GNH_LocalFixes_Toggle_assemblyGetTypesFallback>
   <GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>某个模组的 dll 引用了根本不存在的程序集时，游戏枚举「所有类」会整体失败，排在后面的模组就全部扫不到。本项把「整份清单作废」降级成「少几个类，但清单还能用」。</GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>
   <GNH_LocalFixes_Toggle_techHediffsZeroBudget>植入体预算为 0 时的空引用崩溃</GNH_LocalFixes_Toggle_techHediffsZeroBudget>
@@ -117,7 +119,7 @@
   <GNH_LocalFixes_Toggle_xmlRjw17HediffVisible>HediffStage.visible 字段不存在（【37】）</GNH_LocalFixes_Toggle_xmlRjw17HediffVisible>
   <GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>某些模组给 HediffStage 写了 visible 字段，而 1.6 与 1.7 的 Verse.HediffStage 都没有这个字段（只有 becomeVisible）→ 每次加载刷「doesn't correspond to any field in type HediffStage」。删掉不改变任何行为，只消日志。两个版本都成立，无需版本守卫。</GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>
   <GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup>裸体评价 1.7 重构后的过期 comp（【44】）</GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup>
-  <GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup_Desc>「[OWL] NMM Combined Edition」的 1.7 patch 仍在给 BasePawn 追加 10 个旧架构的 CompProperties_*（BugsTracker / CoverBody / … / Fixation），而 1.7 的 dll 里那 10 个类型一个都不存在 —— 作者已重构成单一 CompProperties_NMM。BasePawn 是 Human、全部动物、全部机械族的公共基类，而 comps 是整表解析：任意一项解析失败就整只 def 被丢弃，实测让 344 个 ThingDef 消失（含 Human 本人），并连带 8,304 条 cross-reference 报错、主菜单每秒 1 次空引用。本项删掉那 10 个死引用、补上正确的类型。两处都带 success=Always：作者日后自己修好了会安静空转。★ 不改那个模组的任何原始文件。</GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup_Desc>
+  <GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup_Desc>「[OWL] NMM Combined Edition」的 1.7 patch 仍在给 BasePawn 追加 10 个旧架构的 CompProperties_*（BugsTracker / CoverBody / … / Fixation），而 1.7 的 dll 里那 10 个类型一个都不存在 —— 作者已重构成单一 CompProperties_NMM。BasePawn 是 Human、全部动物、全部机械族的公共基类，而 comps 是整表解析：任意一项解析失败就整只 def 被丢弃，实测让 344 个 ThingDef 消失（含 Human 本人），并连带 8,304 条 cross-reference 报错、主菜单每秒 1 次空引用。本项只删掉那 10 个死引用，绝不补任何类型 —— 2026-11-09 就是因为补了一个「只有部分版本才有的」CompProperties_NMM，把用旧版 NMM 的玩家整片炸掉（工坊评论区成片报找不到该类型）。只有 success=Always：作者日后自己修好了会安静空转。★ 不改那个模组的任何原始文件。</GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup_Desc>
   <GNH_LocalFixes_Toggle_logSpamFilter>两处调试输出刷屏（【39】）</GNH_LocalFixes_Toggle_logSpamFilter>
   <GNH_LocalFixes_Toggle_logSpamFilter_Desc>WeaponStats（工坊 974066449）在 Turret.cs:74 每开一次武器统计面板就 Log.Message 一遍炮塔 defName（实测 1 小时 2,737 条），另有固定串「Update weapons list」；RimImmortal.Core（工坊 3296476341）有个前缀方法每次都写一行「…::Start」（实测 190 条）。两处都是作者留在正式版里的调试输出，不是报错。本项在 Verse.Log.Message 上按三个收紧的判据拦下它们，其余日志一律照常输出。</GNH_LocalFixes_Toggle_logSpamFilter_Desc>
   <GNH_LocalFixes_Toggle_deepProfilerQuiet>DeepProfiler 拖日志与内存（【40】，默认关闭）</GNH_LocalFixes_Toggle_deepProfilerQuiet>
