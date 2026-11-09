@@ -706,6 +706,19 @@ namespace GNH.LocalFixes
             //    【37】不登记：它删的是「任何模组写错的 HediffStage.visible」，
             //    没有单一目标模组，硬填一个会误报。
             { "xmlRjw17SraeLibField", "HahaSnowRabbitPB.ApparelPatch" },
+
+            // ── 2026-11-09 补登记：用户报「【44】明明没装 NMM，界面却不标『目标模组未启用』」。
+            //    原因是这张表是手工登记的，新加修复项如果忘了登记，
+            //    界面根本不知道该去查哪个 packageId，那个状态就**永远不会出现**。
+            //    （2026-10-29 已经因为同一原因补过三项，这是第二次。）
+            //    以下 packageId 全部从 RimCrow 的 modasset 表查得，不凭印象 ——
+            //    填错会造成反向误报（目标装着却一直标暗黄），比不登记更糟。
+            { "xmlNmmStaleCompCleanup", "dord.nuditymattersmore" },   // 【44】NMM Combined Edition
+            { "ew2TranspilerProbe", "mrk.extraweapon2" },             // 工坊 3692964069
+            { "ew2DeathPathRepair", "mrk.extraweapon2" },             // 【43】同上
+            { "xmlExtensionsFindMod", "imranfish.xmlextensions" },    // 工坊 2574315206
+            { "realtimeDrawNreSwallow", "zuoyao.ravenrace" },              // 【38】Raven Race - Embers in Shadow
+            { "riFurnitureRoyalCompatQuiet", "RI.RimImmortal.Furniture" }, // 工坊 3478098371（源码注释里写着）
         };
 
         /// <summary>

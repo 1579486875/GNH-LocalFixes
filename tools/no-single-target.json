@@ -1,0 +1,70 @@
+{
+  "_说明": [
+    "这张表是 check-newfix.py 的白名单：登记『确认没有单一目标模组』的修复项。",
+    "",
+    "规则：",
+    "  · 在 FixToggles.cs 的 requiresModById 里  → 通过",
+    "  · 不在表里、但在本白名单里                → 通过（看 reason 就知道为什么）",
+    "  · 两边都没有                              → check-newfix.py 报错",
+    "",
+    "为什么要这张表：『有没有单一目标模组』是人工判断，脚本判不出来。",
+    "2026-11-09 的【44】事故就是因为没登记、也没有任何检查在看它，",
+    "界面永远不显示『目标模组未启用』，用户以为状态显示坏了。",
+    "",
+    "新增修复项时：如果它有明确的目标模组 → 请登记进 requiresModById；",
+    "确实没有 → 在下面加一条并写 reason，不要图省事全塞这里。"
+  ],
+  "items": {
+    "harmonyPatchClassIsolate": {
+      "reason": "【45】护栏类：拦的是 PatchClassProcessor.Patch() 的异常边界，对所有模组生效，没有单一目标"
+    },
+    "assemblyGetTypesFallback": {
+      "reason": "护栏类：给 Assembly.GetTypes() 加兜底，对所有程序集生效"
+    },
+    "techHediffsZeroBudget": {
+      "reason": "修原版缺陷：PawnTechHediffsGenerator 在零预算 pawnKind 上的 totalWeight=0 空引用"
+    },
+    "musicManagerFadeout": {
+      "reason": "修原版缺陷：MusicManagerPlay.UpdateMusicFadeout 的 InvalidCastException"
+    },
+    "steamWorkshopHook": {
+      "reason": "修原版缺陷：ModMetaData.GetWorkshopItemHook / WorkshopItemHook.Details 在无 Steam 环境崩溃"
+    },
+    "baseGenMimicSpawnerQuiet": {
+      "reason": "修原版缺陷：BaseGen 对矩形宽/高 < 1 的 mimic spawner 刷警告，逻辑本身在原版"
+    },
+    "logSpamFilter": {
+      "reason": "多来源：同时处理 WeaponStats（工坊 974066449）与 RimImmortal.Core（3296476341）两处调试输出"
+    },
+    "fixPawnScribeNull": {
+      "reason": "修原版缺陷：存档读写 /fixPawn 的 Scribe 空引用，与具体模组无关"
+    },
+    "assignableCompDupeGuard": {
+      "reason": "修原版缺陷：CompAssignableToPawn.PostExposeData 在重复组件时的行为"
+    },
+    "patchModListerHasActiveModWithName": {
+      "reason": "修原版缺陷：ModLister.HasActiveModWithName / XmlExtensions 按 displayName 判定的语义"
+    },
+    "patchListerThingsRejectMislabeledInstrument": {
+      "reason": "修原版缺陷：ListerThings.Add 对『被标成乐器的非乐器』不校验"
+    },
+    "keepLeaderTitle": {
+      "reason": "修原版缺陷：IdeoFoundation 重建时把玩家自定义的领袖头衔重新随机"
+    },
+    "deepProfilerQuiet": {
+      "reason": "【40】默认关闭：关的是游戏自带 DeepProfiler 的日志与内存开销，属原版行为开关"
+    },
+    "xmlPatchGate": {
+      "reason": "本模组自身的机制（让 XML 补丁也能单独关），不修任何外部模组"
+    },
+    "xmlConfigErrorCleanup": {
+      "reason": "多来源：清理的是『任何模组』写错的 ConfigError/字段级残留，没有单一目标"
+    },
+    "xmlRjw17HediffVisible": {
+      "reason": "【37】删的是『任何模组写错的 HediffStage.visible』（原版两个版本都没这个字段），硬填一个目标必误报；FixToggles.cs 原注释已说明"
+    },
+    "crossPromotionUnpatch": {
+      "reason": "目标 CrossPromotion 的 packageId 未查证（本机没装、库里也没有、源码里只有类型名 Brrainz.CrossPromotion）。不硬填以免反向误报；拿到确切 packageId 后应移出本表并登记进 requiresModById"
+    }
+  }
+}
