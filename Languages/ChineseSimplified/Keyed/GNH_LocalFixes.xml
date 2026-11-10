@@ -138,7 +138,4 @@
   <GNH_LocalFixes_Toggle_ew2TranspilerProbe_Desc>专门给「游戏一闪就没了、日志里一个字都没有」这类疑难用的只读勘探工具。RimWorld 里很多模组是用 transpiler 直接改游戏方法内部指令的，ExtraWeapon2 就是其中之一，而它决定「改哪一处」的办法是数某个调用第几次出现。只要前面还有别的模组也改过同一个方法，这个「第几次」就会数偏 —— 补丁报告安装成功，实际却改错位置，表现就是武器行为不正常，或者一点开火进程瞬间消失、连一行报错都留不下。开启本项后重开游戏，它会在进到界面时扫一遍 ExtraWeapon2 动过的那几个方法，把每个方法上挂着几个补丁、分别来自哪个 Harmony ID 全写进日志；同一方法上有两个以上 transpiler 就标星点名。它只读：不改任何指令、不卸载别人的补丁，最坏只是多几行日志。用法：开本项 → 重启游戏 → 日志里搜 [GNH LocalFixes] 看那几行。没有排查需求时建议一直关着。</GNH_LocalFixes_Toggle_ew2TranspilerProbe_Desc>
   <GNH_LocalFixes_Toggle_ew2DeathPathRepair>ExtraWeapon2 额外武器击杀回调兜底（【43】）</GNH_LocalFixes_Toggle_ew2DeathPathRepair>
   <GNH_LocalFixes_Toggle_ew2DeathPathRepair_Desc>ExtraWeapon2 在 Pawn_EquipmentTracker.Notify_KilledPawn 上挂了一个 postfix，遍历额外武器、逐个调原版的 Notify_KilledPawn。它自己那层遍历已经做了防护（按索引走、每项判空），真正的风险落在被调的那个原版方法上：它会读 pawn.Ideo、再遍历这件武器的所有 comp —— 任何一个第三方 comp 抛异常，都会中断整条 postfix 链，排在它后面的死亡处理（掉装备、尸体生成、记录与关系更新）就全部跳过，一次死亡会停在半截。本项给那层 postfix 加一层 Finalizer：捕获、留日志、吞掉。★ 不改 ExtraWeapon2 的任何逻辑；前 3 次打完整堆栈，之后只计数，不会刷屏。</GNH_LocalFixes_Toggle_ew2DeathPathRepair_Desc>
-  <GNH_LocalFixes_Toggle_nmmTabLabelDedupe>NMM 的两个标签页撞名（【49】）</GNH_LocalFixes_Toggle_nmmTabLabelDedupe>
-  <GNH_LocalFixes_Toggle_nmmTabLabelDedupe_Desc>NMM 整合包自己注册了两个标签页，但两个构造函数里把 labelKey 写成了同一个字符串，于是页签栏出现两个一模一样的名字、点进去却是两套界面。本项在它们构造完之后把后两个换成各自的名字（「看法查看器」与「裸体（强化）」）。不改上游任何文件。</GNH_LocalFixes_Toggle_nmmTabLabelDedupe_Desc>
-  <NMM_Tab_Router>裸体（强化）</NMM_Tab_Router>
 </LanguageData>
