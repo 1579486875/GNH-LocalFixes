@@ -50,7 +50,7 @@
 【33】贞操装备缺耐久与可燃字段
 【34】基因分类排序撞号
 【35】三条指向不存在 def 的交叉引用
-【36】1.7 下 SRAELib 字段缺失刷红字
+【36】SRAELib 字段缺失（2026-11-05 上游已修好，本项自动让路）
 【37】1.7 已移除的 HediffStage.visible
 【38】实时绘制空引用刷屏（RavenRace × 实时绘制建筑）
 【39】两处调试输出刷屏（WeaponStats 炮塔名 / RimImmortal 的 ::Start）
