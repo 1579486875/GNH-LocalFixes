@@ -33,7 +33,32 @@
 	  （**数值越大越靠前**）。原版技能从 120（Shooting）到 10（Intellectual），每档 10。
 	  取 5 → 排在所有原版技能之后，符合「性经验是附加技能」的定位。
 
-	  ── 守卫（三层，缺一不可） ──
+	  ── ⚠⚠ 为什么这里必须写「显示名」而不是 packageId（2026-11-10 实机踩到的坑） ──
+
+	  第一版这里写的是 `<li>dragonissa.CharacterEditorSkillFix</li>`（packageId），
+	  结果**整段补丁静默不执行**，17:14:19 日志里那条 `Skill Sex missing SkillOrderExtension`
+	  照旧出现。反编译找到原因：
+
+	    public static bool HasActiveModWithName(string name)
+	    {
+	        foreach (ModMetaData mod in mods)
+	            if (mod.Active && mod.Name == name) return true;   // ← 只比 Name
+	        return false;
+	    }
+
+	  `PatchOperationFindMod.ApplyWorker` 就是用 `HasActiveModWithName` 逐项判的，
+	  而它**只比较 `mod.Name`（About.xml 的 `<name>`），从不比较 packageId**。
+	  写 packageId ⇒ 永远 false ⇒ `match` 整段不跑，而且 `success=Always` 让它安静失败。
+
+	  ⇒ **`<li>` 里必须写 About.xml 的 `<name>`**：
+	       Character Editor - Skill Order Fix
+	     （`ModMetaData.Name` 对普通模组返回 `meta.name`，**不会被语言包翻译** ——
+	      只有官方 DLC 才走 `expansion.label`。所以这个写法是稳定的。）
+
+	  同一个坑还有第二个教训：`PatchOperationFindMod` 命中但 `<match>` 为空时，
+	  `ApplyWorker` 直接返回 **true**（什么都不做）—— 所以「补丁成功」这件事
+	  在日志里**一点痕迹都没有**，必须靠实机效果判断，不能靠「没报错」。
+
 	  ① 外层 FindMod：`dragonissa.CharacterEditorSkillFix` 不在场时整段不执行 ——
 	     因为 `SkillOrderExtension` 这个类型是那个模组提供的，它不在场时往里写 Class
 	     会让 XML 反序列化失败；
@@ -42,13 +67,25 @@
 	-->
 	<Operation Class="PatchOperationFindMod">
 		<mods>
-			<li>dragonissa.CharacterEditorSkillFix</li>
+			<!-- 必须与 About.xml 的 <name> 逐字一致；写 packageId 不会命中（见上面那段说明） -->
+			<li>Character Editor - Skill Order Fix</li>
 		</mods>
 		<match Class="PatchOperationSequence">
 			<success>Always</success>
 			<operations>
+				<!--
+				  ⚠ 这个 Test 是**「扩展还不存在」**的守卫，不是「技能存在」的守卫。
+
+				  只判 `Defs/SkillDef[defName="Sex"]` 是不够的：`PatchOperationAddModExtension`
+				  是**追加**语义，如果哪天 SkillOrderFix 自己给 Sex 补上了这个扩展，
+				  我们会再加第二条 —— 而 `GetModExtension<T>()` 只取第一个，
+				  于是「谁生效」变成一个说不清的顺序问题。
+
+				  `[not(modExtensions/li[@Class="..."])]` 把它变成「已有就不动手」，
+				  这才是真正的幂等写法（与模板 §3.1 的让路判据同一个思路）。
+				-->
 				<li Class="PatchOperationTest">
-					<xpath>Defs/SkillDef[defName="Sex"]</xpath>
+					<xpath>Defs/SkillDef[defName="Sex"][not(modExtensions/li[@Class="CharacterEditorSkillFix.SkillOrderExtension"])]</xpath>
 				</li>
 				<li Class="PatchOperationAddModExtension">
 					<success>Always</success>
