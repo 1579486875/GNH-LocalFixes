@@ -65,6 +65,7 @@
     },
     "crossPromotionUnpatch": {
       "reason": "目标 CrossPromotion 的 packageId 未查证（本机没装、库里也没有、源码里只有类型名 Brrainz.CrossPromotion）。不硬填以免反向误报；拿到确切 packageId 后应移出本表并登记进 requiresModById"
-    }
+    },
+    "xmlRjwSkillSexOrder": "【48】同时依赖 charactereditorskillfix（提供 SkillOrderExtension 类型）与 RJW（提供 Sex 这个 SkillDef），单填任一个都会误报；补丁本身已有 FindMod + Test 两层守卫"
   }
 }
