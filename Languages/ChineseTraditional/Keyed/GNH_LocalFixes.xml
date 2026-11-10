@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
   <!--
     ═══════════════════════════════════════════════════════════════
@@ -112,7 +112,7 @@
 原因：你裝了 Def 載入快取類模組（如 DefLoadCache），它命中了快取，整個 XML 補丁階段被跳過，Def 直接從上次「打完補丁」的快照載入。
 修復效果仍然在 —— 快取裡存的就是補丁執行後的結果。只要改動任何 Patches 檔案或本模組的 dll，快取會自動重建、補丁重新執行。</GNH_LocalFixes_StatusCacheTip>
   <GNH_LocalFixes_Toggle_xmlRjw17SraeLibField>1.7 下 SRAELib 欄位缺失刷紅字（【36】）</GNH_LocalFixes_Toggle_xmlRjw17SraeLibField>
-  <GNH_LocalFixes_Toggle_xmlRjw17SraeLibField_Desc>雪兔服裝擴展（工坊 3668025052）的 1.6\Assemblies 裡躺著兩個程式集名都是 SRAELib 1.0.0.0 的 dll —— SRAELib.dll（19,456 位元組，有 targetNullifyingHediffs）與 SRAELib_old.dll（18,944 位元組，沒有），遊戲載入到舊的那個，於是 ThoughtDef_HediffAttraction 報「doesn't correspond to any field」。本項在 1.7+ 刪掉那個欄位；1.6 下不執行（守衛用 Verse.MaterialDef 判版本）—— 因為 1.6 的 SRAELib 裡該欄位有效，無條件刪會把「認知護盾免疫」一起刪掉。</GNH_LocalFixes_Toggle_xmlRjw17SraeLibField_Desc>
+  <GNH_LocalFixes_Toggle_xmlRjw17SraeLibField_Desc>雪兔服裝擴展（工坊 3668025052）的早期版本在 1.6\Assemblies 裡放了兩個程式集名都是 SRAELib 1.0.0.0 的 dll —— SRAELib.dll（19,456 位元組，有 targetNullifyingHediffs）與 SRAELib_old.dll（18,944 位元組，沒有），遊戲載入到舊的那個，於是 ThoughtDef_HediffAttraction 報「doesn't correspond to any field」。作者 2026-11-05 的更新已經刪掉那個舊 dll、並補上了 1.7 目錄，欄位現在是存在的 —— 所以本項會自動讓路、什麼都不做，絕不會去刪作者的功能。只有當玩家仍在使用舊版 dll（欄位確實缺失）時，本項才會執行刪除；1.6 下永不執行，因為那裡該欄位本來就有效。</GNH_LocalFixes_Toggle_xmlRjw17SraeLibField_Desc>
   <GNH_LocalFixes_Toggle_xmlRjw17HediffVisible>HediffStage.visible 欄位不存在（【37】）</GNH_LocalFixes_Toggle_xmlRjw17HediffVisible>
   <GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>某些模組給 HediffStage 寫了 visible 欄位，而 1.6 與 1.7 的 Verse.HediffStage 都沒有這個欄位（只有 becomeVisible）→ 每次載入刷「doesn't correspond to any field in type HediffStage」。刪掉不改變任何行為，只消日誌。兩個版本都成立，無需版本守衛。</GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>
   <GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup>裸體評價 1.7 重構後的過期 comp（【44】）</GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup>

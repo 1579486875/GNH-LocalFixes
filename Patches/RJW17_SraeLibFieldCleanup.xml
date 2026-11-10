@@ -60,6 +60,24 @@
 	  全部 13 个 XML 补丁里，只有这一个此前缺 `success=Always`（2026-11-10 逐个核过）。
 	-->
 	<Operation Class="PatchOperationSequence">
+		<!--
+		  Sequence 自己也要 success=Always。
+
+		  理由：Sequence 是短路的 —— 两个 Test 里任何一个不命中，它自己就返回 false。
+		  而 false 会走 Verse.PatchOperation.Complete()，把整条报成
+		  「Patch operation ... failed」的 ERROR。
+		  也就是说：目标模组没装时，即使里面的 Remove 已经加了 success=Always，
+		  报错仍会从**外层 Sequence** 漏出来。
+
+		  实测佐证：2026-11-10 玩家在 21 条框架模组的测试环境里看到
+		    Verse.PatchOperationSequence: Error in the operation at position=2
+		    Source file: ...\Patches\RJW17_SraeLibFieldCleanup.xml
+		  —— position=2 正是第一个 Test（//MaterialDef）之外的那个目标守卫。
+		  本补丁包的 XmlPatchGate 虽然能在收尾阶段兜住这条，但那要玩家开着
+		  「让 XML 补丁也能单独关闭」总控；关掉总控就兜不住了。
+		  在这一层自己写死，才是无论开关怎么拨都不会漏的做法。
+		-->
+		<success>Always</success>
 		<operations>
 			<li Class="PatchOperationTest">
 				<xpath>//MaterialDef</xpath>

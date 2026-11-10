@@ -714,6 +714,11 @@ namespace GNH.LocalFixes
             //    以下 packageId 全部从 RimCrow 的 modasset 表查得，不凭印象 ——
             //    填错会造成反向误报（目标装着却一直标暗黄），比不登记更糟。
             { "xmlNmmStaleCompCleanup", "dord.nuditymattersmore" },   // 【44】NMM Combined Edition
+            // ── 2026-11-10 补登记：【41】fixPawnScribeNull 修的正是 NMM 的 Fixation 组件
+            //    （PostExposeData 里无条件 Scribe_References.Look(ref fixPawn, "fixPawn")），
+            //    目标模组只有 dord.nuditymattersmore 一个。此前漏登记，界面就永远显示不出
+            //    「目标模组未启用」这一档 —— 玩家装了别的模组时看不出本项在空转。
+            { "fixPawnScribeNull", "dord.nuditymattersmore" },
             { "ew2TranspilerProbe", "mrk.extraweapon2" },             // 工坊 3692964069
             { "ew2DeathPathRepair", "mrk.extraweapon2" },             // 【43】同上
             { "xmlExtensionsFindMod", "imranfish.xmlextensions" },    // 工坊 2574315206

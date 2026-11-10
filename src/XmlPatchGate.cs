@@ -111,6 +111,10 @@ namespace GNH.LocalFixes
         private static readonly HashSet<string> reportedMissingTarget =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        /// <summary>已经为「上游已自行修好」打过说明日志的文件名（一个文件只打一次）。</summary>
+        private static readonly HashSet<string> reportedYield =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// 本进程里 <see cref="Verse.PatchOperation.Apply"/> 被调用的总次数 ——
         /// **不限于本模组的补丁文件**，任何模组的任何一条 Operation 都会让这个数加一。
@@ -248,6 +252,40 @@ namespace GNH.LocalFixes
                     return true;   // 不是本模组的补丁文件 —— 无条件放行
                 }
 
+                // ---- 「上游已经自己修好了」让路（模板 §3.1 的第四种形态）----
+                //
+                // 前三节讲的三类判据（类型存在性 / 方法存在性 / 前置模组在场性）都是
+                // 检测「目标消失」。但最危险的恰恰是第四种：**目标还在，缺陷却已被作者修好** ——
+                // 这时继续删/改，就是拿我们的补丁去破坏作者刚写好的新逻辑，
+                // 而且日志里一条异常都不会有。
+                //
+                // 本机实例（2026-11-10 反编译坐实）：
+                //   雪兔服装扩展在 11-05 的更新里新建了 `1.7\Assemblies\SRAELib.dll`
+                //   并删掉了旧的 `SRAELib_old.dll`。新的 SRAELib 里
+                //   `ThoughtDef_HediffAttraction.targetNullifyingHediffs` **是存在的**
+                //   （1.6 与 1.7 目录里那两个 dll 的 MVID 完全相同：5b5cead8…），
+                //   而 `1.7\Defs` 里有 4 处 `<targetNullifyingHediffs>` 正被这个补丁引用。
+                //   于是在当前环境里继续执行 = **把「认知护盾免疫」这个功能删掉**。
+                //
+                // 判据用「目标类型有没有那个字段」——它精确回答「还需要删吗」，
+                // 而且字段一旦回来就永久让路，不需要我们再回来改代码。
+                if (ShouldYieldByTargetState(fileName))
+                {
+                    // __result = true：对 ApplyPatches 而言这一条没出错。
+                    // 真正会制造红字的是收尾阶段的 Complete()，那一侧有同样的判据拦着。
+                    __result = true;
+                    FixReport.MarkLoaded(toggleId);   // 已处理过（主动让路），统计里算「已装载」
+                    if (reportedYield.Add(fileName))
+                    {
+                        LocalFixesMod.SafeLogMessage(
+                            "[GNH LocalFixes] XML 补丁按「上游已自行修好」让路：" + fileName
+                            + " [" + toggleId + "]。目标 dll 里那个字段现在是存在的，"
+                            + "继续删除只会破坏原作者的功能，所以本项这次什么都不做。"
+                            + "这是设计内的自动退场，不是故障；作者的 dll 若退回旧版，本项会自动恢复。");
+                    }
+                    return false;
+                }
+
                 if (LocalFixesMod.IsFixEnabled(toggleId))
                 {
                     // 记账：这一条真的被执行了。同一个文件的多条 Operation 会重复记，
@@ -325,6 +363,102 @@ namespace GNH.LocalFixes
             catch (Exception)
             {
                 // 记账本身失败不影响补丁执行；宁可少一条日志，也不要从补丁里漏异常出去。
+            }
+        }
+
+        /// <summary>
+        /// 「上游已经自己修好了」让路判据。
+        ///
+        /// <para>
+        /// 名字里之所以不叫「冗余」而叫「让路」：判断的是**这一条补丁现在还有没有活干**，
+        /// 而不是「这一条该不该从清单里删掉」。删条目是人的决定（还要同步文档、语言文件、
+        /// 工坊简介与清单图），而让路是代码在每次启动时自己重新判断 —— 上游修好就静默退场，
+        /// 上游退回去又自动恢复。两者混为一谈会让「清单」变成一份会撒谎的文档。
+        /// </para>
+        ///
+        /// <para>
+        /// 目前只有一项需要它。<b>加新项时必须同时满足两个条件</b>：
+        /// ① 该项的「需要修」前提是**目标 dll 缺某个成员**（不是目标模组不在场 —— 那是
+        /// <see cref="Resolve"/> + 开关管辖的另一回事）；
+        /// ② 这个成员能用 <c>AccessTools</c> 精确问到。做不到就别加 ——
+        /// 猜错的代价是「明明还需要修却不修」，那比多修一次糟得多。
+        /// </para>
+        /// </summary>
+        /// <param name="fileName">补丁文件名（含 .xml），来自 <see cref="Resolve"/>。</param>
+        /// <returns>true 表示「本项现在无事可做，应当整段跳过」。</returns>
+        private static bool ShouldYieldByTargetState(string fileName)
+        {
+            if (string.Equals(fileName, "RJW17_SraeLibFieldCleanup.xml",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return SraeLibHasTargetField();
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 目标字段结果缓存：0 = 还没判过，1 = 字段在（要让路），-1 = 字段不在（照常执行）。
+        /// </summary>
+        private static int sraeLibFieldState;
+
+        /// <summary>
+        /// 雪兔公共库（SRAELib）的 <c>ThoughtDef_HediffAttraction</c> 里到底有没有
+        /// <c>targetNullifyingHediffs</c> 这个字段。
+        ///
+        /// <para>
+        /// 三种情况都按「让路判据不成立」以外的语义处理，逐一交代：
+        /// · <b>类型找不到</b>（SRAELib 没装 / 没启用）→ 返回 false，让原补丁照常走。
+        ///   那时 xpath 命中 0 个节点，Remove 自带 <c>success=Always</c>，静默无事 ——
+        ///   与不加守卫完全一致。**不缓存**这个结果，免得某次判定过早把结论钉死。
+        /// · <b>字段在</b> → 返回 true，整段跳过，保护作者的功能。
+        /// · <b>字段不在</b>（玩家装的是旧 dll）→ 返回 false，执行删除，恢复原本要修的问题。
+        /// </para>
+        /// </summary>
+        private static bool SraeLibHasTargetField()
+        {
+            if (sraeLibFieldState != 0)
+            {
+                return sraeLibFieldState > 0;
+            }
+            bool has = false;
+            try
+            {
+                Type t = AccessTools.TypeByName("SRAELib.ThoughtDef_HediffAttraction");
+                if (t != null)
+                {
+                    has = AccessTools.Field(t, "targetNullifyingHediffs") != null;
+                    sraeLibFieldState = has ? 1 : -1;   // 类型在才固化结论
+                }
+            }
+            catch (Exception)
+            {
+                // 反射失败一律按「字段不在」处理：那会让原补丁照常执行，
+                // 也就是退回到「没有这条守卫」的老行为 —— 绝不能因为守卫自己出错就
+                // 把需要修的东西也一起跳掉。
+                has = false;
+            }
+            return has;
+        }
+
+        /// <summary>
+        /// 这条 Operation 是不是「上游已修好、按设计让路」。
+        /// 收尾阶段据此放过那条 <c>failed</c>（否则玩家会看到一条莫名其妙的红字）。
+        /// </summary>
+        internal static bool IsYieldedByTargetState(PatchOperation op)
+        {
+            try
+            {
+                string fileName;
+                string toggleId;
+                if (!Resolve(op, out fileName, out toggleId))
+                {
+                    return false;
+                }
+                return ShouldYieldByTargetState(fileName);
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 
@@ -411,7 +545,15 @@ namespace GNH.LocalFixes
             //    让路，Apply 的后置已经打过一条说明，这里不再补一条 ERROR。
             //    （判据见 Patch_PatchOperation_Apply.failedFiles 的注释：
             //     真正的故障在 Apply 那一层就已经 Log.Error 过了。）
-            return !Patch_PatchOperation_Apply.IsKnownMissingTarget(__instance);
+            if (Patch_PatchOperation_Apply.IsKnownMissingTarget(__instance))
+            {
+                return false;
+            }
+
+            // ③ 上游已自行修好、我们在 Apply 阶段整段跳过了 —— 同样一次都没跑，
+            //    同样不该报 failed。少了这一步，玩家每次启动都会看到一条
+            //    「Patch operation ... failed」，而实际上什么都没坏。
+            return !Patch_PatchOperation_Apply.IsYieldedByTargetState(__instance);
         }
     }
 }
