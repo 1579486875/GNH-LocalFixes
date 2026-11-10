@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+
+	<!--
+	  ── 「淫妻与公牛」（HotwifeRJW）有一个 JobDef 指向根本不存在的类 ──
+
+	  报错原文：
+	    Could not find a type named FamilyWitnessQuirks.JobDriver_FamilyCheckIn
+
+	  出处：`1.6\Defs\JobDefs\RelationshipConversation.xml` 的
+	        <driverClass>FamilyWitnessQuirks.JobDriver_FamilyCheckIn</driverClass>
+
+	  依据（2026-11-10 反编译 HotwifeRJW.dll，71,680 字节 / 90 个类型 / 270 个方法）：
+	    · 该 dll 里 `JobDriver` 只有**一个**：
+	        HotwifeRJW.Relationships.JobDriver_RelationshipConversation
+	    · 命名空间总共 5 个：HotWifeAddon / HotwifeRJW / HotwifeRJW.Relationships /
+	      Microsoft.CodeAnalysis / System.Runtime.CompilerServices
+	      —— **没有 FamilyWitnessQuirks**。
+
+	  ── 为什么改成「指向真实类」而不是删掉这个 JobDef ──
+	  `FWQ_FamilyCheckIn` 除了自己的翻译文件，没有任何东西引用它；
+	  但**存档里如果恰好有小人在跑这个 job**，删 def 会让 Scribe 找不到定义。
+	  改成指向一个真实存在的类：def 保留、存档安全、日志干净，
+	  代价只是这个 job 变成「关系交谈」的副本 —— 反正没有代码会派它。
+
+	  ── 守卫 ──
+	  两个 Test 式保护都写在外层 Sequence 里：
+	  · 第一个 Test：这个 JobDef 存在（目标模组没装就整段短路）；
+	  · 再 Replace，并带 success=Always（作者将来自己改对了，本项也不会报错）。
+	-->
+	<Operation Class="PatchOperationSequence">
+		<success>Always</success>
+		<operations>
+			<li Class="PatchOperationTest">
+				<xpath>Defs/JobDef[defName="FWQ_FamilyCheckIn"]/driverClass</xpath>
+			</li>
+			<li Class="PatchOperationReplace">
+				<success>Always</success>
+				<xpath>Defs/JobDef[defName="FWQ_FamilyCheckIn"]/driverClass</xpath>
+				<value>
+					<driverClass>HotwifeRJW.Relationships.JobDriver_RelationshipConversation</driverClass>
+				</value>
+			</li>
+		</operations>
+	</Operation>
+</Patch>

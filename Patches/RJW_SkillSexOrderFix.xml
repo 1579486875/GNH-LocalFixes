@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+
+	<!--
+	  ── RJW 的 `Sex` 技能缺 SkillOrderExtension，会把角色编辑器的技能列表弄乱 ──
+
+	  报错原文（1 条）：
+	    [CharacterEditorSkillFix] Skill Sex missing SkillOrderExtension and
+	    will break Character Editor Skilllist.
+
+	  报错方：Character Editor - Skill Order Fix（packageId `dragonissa.CharacterEditorSkillFix`，
+	          工坊 3693970607）。它给 `SkillDef` 补排序扩展，免得角色编辑器的技能列表错位。
+
+	  反编译确认它的判据（CharacterEditorSkillFix.SkillOrderManager 静态构造）：
+	    foreach (SkillDef item in DefDatabase<SkillDef>.AllDefsListForReading)
+	    {
+	        int num = item.GetModExtension<SkillOrderExtension>()?.order ?? int.MaxValue;
+	        if (num == int.MaxValue)
+	            Log.Error("[CharacterEditorSkillFix] Skill " + item.defName
+	                      + " missing SkillOrderExtension ...");
+	        else list.Add((item, num));
+	    }
+	  ⇒ **缺扩展的技能根本不进 NormalizedOrder 字典**，后面的排序自然拿不到它。
+
+	  为什么 `Sex` 中招：这个 SkillDef 由 RJW 添加，定义在
+	    Mods\RJW_功能_性经验核心\1.7\Defs\SkillDefs\SexSkills.xml
+	  内容只有 `<listOrder>5</listOrder>`，没有 `<modExtensions>`。
+	  而 SkillOrderFix 只在它的 `1.6\Mods\...` 下为几个第三方技能写过补丁
+	  （ToughnessSkill / BizzareBloodlines / AgilityMovementAbilities），**1.7 没给 RJW 写**。
+
+	  ── 取值为什么是 5 ──
+	  `SkillOrderExtension` 只有一个字段 `order`(Int32)，排序是 `b.order.CompareTo(a.order)` 降序
+	  （**数值越大越靠前**）。原版技能从 120（Shooting）到 10（Intellectual），每档 10。
+	  取 5 → 排在所有原版技能之后，符合「性经验是附加技能」的定位。
+
+	  ── 守卫（三层，缺一不可） ──
+	  ① 外层 FindMod：`dragonissa.CharacterEditorSkillFix` 不在场时整段不执行 ——
+	     因为 `SkillOrderExtension` 这个类型是那个模组提供的，它不在场时往里写 Class
+	     会让 XML 反序列化失败；
+	  ② Test：`Sex` 这个 SkillDef 存在（RJW 没装就短路）；
+	  ③ 全部带 success=Always：将来 SkillOrderFix 自己补上了，本项安静让路，不刷红字。
+	-->
+	<Operation Class="PatchOperationFindMod">
+		<mods>
+			<li>dragonissa.CharacterEditorSkillFix</li>
+		</mods>
+		<match Class="PatchOperationSequence">
+			<success>Always</success>
+			<operations>
+				<li Class="PatchOperationTest">
+					<xpath>Defs/SkillDef[defName="Sex"]</xpath>
+				</li>
+				<li Class="PatchOperationAddModExtension">
+					<success>Always</success>
+					<xpath>Defs/SkillDef[defName="Sex"]</xpath>
+					<value>
+						<li Class="CharacterEditorSkillFix.SkillOrderExtension">
+							<order>5</order>
+						</li>
+					</value>
+				</li>
+			</operations>
+		</match>
+	</Operation>
+</Patch>

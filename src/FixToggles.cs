@@ -562,6 +562,42 @@ namespace GNH.LocalFixes
                 + "只有 success=Always：作者日后自己修好了会安静空转。"
                 + "★ 不改那个模组的任何原始文件 —— 一切都在本补丁里做。",
                 xmlPatchFile: "NMM_StaleCompCleanup.xml"),
+
+            // ── 2026-11-10 第二轮新增（【46】【47】【48】）──
+            //
+            // 这三条原本是「直接改第三方模组文件」做的（见交接报告 2.1/2.2/3.4.2），
+            // 本轮把它们**全部还原**并改成补丁。理由只有一条，而且是铁律：
+            //   绝不去改别人模组目录里的东西，一切改动都写进本补丁包。
+            // 直改 `Mods\` 下第三方 XML 的三个后果：玩家重装/模组管理器更新会静默覆盖、
+            // GitHub 上没有记录、出问题时没有可追溯的 diff。
+            new Entry("xmlHotwifeInverse", GroupXmlPatches,
+                "淫妻与公牛：10 个关系 def 写了不存在的字段（【46】）",
+                "「淫妻与公牛」（HotwifeRJW）的 10 个 PawnRelationDef 都写了一行 "
+                + "<inverse>…</inverse>，而 RimWorld 的 PawnRelationDef **从来没有这个字段** —— "
+                + "1.6 与 1.7 两份程序集都是 21 个字段、都没有它，原版数据 0 处引用。"
+                + "所以这是作者写错，1.6 上一样报 10 条「doesn't correspond to any field」。"
+                + "关系反向逻辑走 PawnRelationWorker、不读 def 上的字段，删掉这 10 个节点"
+                + "不改变任何游戏行为，只是不再刷红字。",
+                xmlPatchFile: "Hotwife_InverseFieldCleanup.xml"),
+
+            new Entry("xmlHotwifeJobDriver", GroupXmlPatches,
+                "淫妻与公牛：一个 JobDef 指向不存在的类（【47】）",
+                "该模组的 FWQ_FamilyCheckIn 把 driverClass 写成了 "
+                + "FamilyWitnessQuirks.JobDriver_FamilyCheckIn，而它的 dll 里根本没有这个命名空间 —— "
+                + "真实存在的 JobDriver 只有 HotwifeRJW.Relationships.JobDriver_RelationshipConversation。"
+                + "本项把它改指向那个真实类：def 保留、存档安全、日志干净。"
+                + "（不删 def 是因为存档里若有小人在跑这个 job，删了会让 Scribe 找不到定义。）",
+                xmlPatchFile: "Hotwife_JobDriverFix.xml"),
+
+            new Entry("xmlRjwSkillSexOrder", GroupXmlPatches,
+                "RJW 的 Sex 技能缺排序扩展（【48】）",
+                "「角色编辑器 - 技能排序修复」（Character Editor - Skill Order Fix）要求每个 SkillDef "
+                + "都带 SkillOrderExtension，否则那条技能**根本不进它的排序表**、编辑器的技能列表会错位。"
+                + "RJW 的 Sex 技能没有这个扩展，于是每次启动刷一条 "
+                + "「Skill Sex missing SkillOrderExtension」。本项按它自己的格式补一条 order=5 —— "
+                + "原版技能是 120 到 10 每档 10，取 5 表示排在所有原版技能之后。"
+                + "★ 三层守卫：目标修复模组不在场 / RJW 没装 / 扩展已存在，都不动作。",
+                xmlPatchFile: "RJW_SkillSexOrderFix.xml"),
         };
 
         // ======================================================================
@@ -724,6 +760,12 @@ namespace GNH.LocalFixes
             { "xmlExtensionsFindMod", "imranfish.xmlextensions" },    // 工坊 2574315206
             { "realtimeDrawNreSwallow", "zuoyao.ravenrace" },              // 【38】Raven Race - Embers in Shadow
             { "riFurnitureRoyalCompatQuiet", "RI.RimImmortal.Furniture" }, // 工坊 3478098371（源码注释里写着）
+
+            // ── 2026-11-10 第二轮补登记（【46】【47】）──
+            //    【48】不登记：它的真正目标是「CharacterEditorSkillFix + RJW 两个模组」，
+            //    单填一个会误报（填 SkillOrderFix 则 RJW 没装时也显示正常）。
+            { "xmlHotwifeInverse", "betaforher.hotwiferjw" },
+            { "xmlHotwifeJobDriver", "betaforher.hotwiferjw" },
         };
 
         /// <summary>

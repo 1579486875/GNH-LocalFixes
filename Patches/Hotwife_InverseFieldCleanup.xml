@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+
+	<!--
+	  ── 「淫妻与公牛」（HotwifeRJW）的 10 个 PawnRelationDef 写了不存在的 <inverse> 字段 ──
+
+	  报错原文（10 条，一条一个 def）：
+	    XML error: <inverse>RCQ_CuckoldPartner</inverse> doesn't correspond to
+	    any field in type PawnRelationDef
+
+	  根因**不是** 1.7 的破坏性变更 —— 这一点特别重要，别按「1.7 改了什么」去查：
+	    · 1.6 与 1.7 两份 Assembly-CSharp.dll 里 PawnRelationDef 都是 21 个字段，
+	      **两版都没有 `inverse`**（2026-11-10 逐个反编译确认）。
+	    · 原版数据也从不使用它：
+	        Data\Core\Defs\PawnRelationDefs\PawnRelations_FamilyByBlood.xml   inverse 0 处
+	        Data\Core\Defs\PawnRelationDefs\PawnRelations_FamilyByChoice.xml  inverse 0 处
+	        Data\Core\Defs\PawnRelationDefs\PawnRelations_Misc.xml             inverse 0 处
+	    · 也就是说这是作者写错了字段名，**1.6 上一样报错**。
+
+	  RimWorld 的「关系反向」走 PawnRelationWorker，不读 def 上的字段，
+	  所以删掉这 10 个节点**不改变任何游戏行为**，只是不再刷红字。
+
+	  ── 为什么用 starts-with 而不是列 10 个 defName ──
+	  这 10 个 def 全部是 RCQ_ 前缀（2026-11-10 在备份文件里逐个数过：
+	  RCQ_HotWifePartner / RCQ_CuckoldPartner / RCQ_Mistress / RCQ_Bull /
+	  RCQ_HotMomPartner / RCQ_CuckSonPartner / RCQ_HotAuntiePartner /
+	  RCQ_CuckNephewPartner / RCQ_HotSisPartner / RCQ_CuckBakaPartner）。
+	  用前缀限定既能一次删干净，又**不会碰到别的模组**可能写的同名节点
+	  （本补丁只在这 10 个 RCQ_ 节点下删，别的 def 一个字节都不动）。
+
+	  ── 为什么外层还要 Sequence + success=Always ──
+	  · 第一个 Test 要求「至少存在一个 RCQ_ 的 inverse」：目标模组没装 / 作者已自己删掉
+	    时整段短路，什么都不做；
+	  · 外层 Sequence 自己也带 success=Always —— 否则 Test 不命中时它返回 false，
+	    收尾阶段 Complete() 会把它报成一条「Patch operation ... failed」的 ERROR。
+
+	  ── 为什么不直接改模组文件 ──
+	  铁律：**绝不去改第三方模组目录里的东西**，一切改动都写进本补丁包。
+	  直改 `Mods\RJW-功能-淫妻与公牛\` 下的 XML 有三个后果：
+	  ① 玩家重装 / 模组管理器更新会静默覆盖；② GitHub 上没有记录，换台机器就丢；
+	  ③ 出问题时没有任何可追溯的 diff。
+	  （2026-11-10 有一份交接报告直接在 Mods\ 下改了 3 处，本轮已全部还原并改成补丁。）
+	-->
+	<Operation Class="PatchOperationSequence">
+		<success>Always</success>
+		<operations>
+			<li Class="PatchOperationTest">
+				<xpath>Defs/PawnRelationDef[starts-with(defName,"RCQ_")]/inverse</xpath>
+			</li>
+			<li Class="PatchOperationRemove">
+				<success>Always</success>
+				<xpath>Defs/PawnRelationDef[starts-with(defName,"RCQ_")]/inverse</xpath>
+			</li>
+		</operations>
+	</Operation>
+</Patch>
