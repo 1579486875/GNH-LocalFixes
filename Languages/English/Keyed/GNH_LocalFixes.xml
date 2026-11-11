@@ -24,7 +24,7 @@
   <GNH_LocalFixes_Group_Behaviour>Behaviour &amp; settings</GNH_LocalFixes_Group_Behaviour>
   <GNH_LocalFixes_Group_Advanced>Profiler (off by default)</GNH_LocalFixes_Group_Advanced>
 
-  <GNH_LocalFixes_SettingsCategory>GNH Local Fixes</GNH_LocalFixes_SettingsCategory>
+  <GNH_LocalFixes_SettingsCategory>GNH Multi-Mod Red Text Fixes</GNH_LocalFixes_SettingsCategory>
   <GNH_LocalFixes_SettingsUnavailable>Could not read settings. The pack keeps working with its factory defaults (everything on except the profiler entry).</GNH_LocalFixes_SettingsUnavailable>
   <GNH_LocalFixes_EnableAll>Enable all</GNH_LocalFixes_EnableAll>
   <GNH_LocalFixes_DisableAll>Disable all</GNH_LocalFixes_DisableAll>

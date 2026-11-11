@@ -23,7 +23,7 @@
   <GNH_LocalFixes_Group_Behaviour>行为与设置</GNH_LocalFixes_Group_Behaviour>
   <GNH_LocalFixes_Group_Advanced>性能剖析（默认关闭）</GNH_LocalFixes_Group_Advanced>
 
-  <GNH_LocalFixes_SettingsCategory>多模组兼容修复补丁</GNH_LocalFixes_SettingsCategory>
+  <GNH_LocalFixes_SettingsCategory>多模组红字修复补丁</GNH_LocalFixes_SettingsCategory>
   <GNH_LocalFixes_SettingsUnavailable>设置读取失败。本补丁按出厂默认值继续工作（只有「性能剖析」那一项默认是关的）。</GNH_LocalFixes_SettingsUnavailable>
   <GNH_LocalFixes_EnableAll>全部开启</GNH_LocalFixes_EnableAll>
   <GNH_LocalFixes_DisableAll>全部关闭</GNH_LocalFixes_DisableAll>

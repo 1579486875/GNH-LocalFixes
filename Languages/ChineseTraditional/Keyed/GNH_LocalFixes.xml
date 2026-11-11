@@ -22,7 +22,7 @@
   <GNH_LocalFixes_Group_Behaviour>行為與設定</GNH_LocalFixes_Group_Behaviour>
   <GNH_LocalFixes_Group_Advanced>效能剖析（預設關閉）</GNH_LocalFixes_Group_Advanced>
 
-  <GNH_LocalFixes_SettingsCategory>多模組相容修復補丁</GNH_LocalFixes_SettingsCategory>
+  <GNH_LocalFixes_SettingsCategory>多模組紅字修復補丁</GNH_LocalFixes_SettingsCategory>
   <GNH_LocalFixes_SettingsUnavailable>設定讀取失敗。本補丁按出廠預設值繼續工作（只有「效能剖析」那一項預設是關的）。</GNH_LocalFixes_SettingsUnavailable>
   <GNH_LocalFixes_EnableAll>全部開啟</GNH_LocalFixes_EnableAll>
   <GNH_LocalFixes_DisableAll>全部關閉</GNH_LocalFixes_DisableAll>
