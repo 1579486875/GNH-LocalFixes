@@ -246,6 +246,13 @@ namespace GNH.LocalFixes
             TryInstall("assemblyGetTypesFallback", "AssemblyGetTypesFallbackFix", AssemblyGetTypesFallbackFix.Install);
 
             TryInstall("fixVfeeInstrumentSpace", "VFEEInstrumentSpaceFix", VFEEInstrumentSpaceFix.Install);
+            // 2026-11-12 新增【50】：RJW 生成失败时没判空，把「某个派系领袖生不出来」
+            // 放大成「世界生成步骤失败」。这是**开新档**级别的故障，所以排在崩溃组最前面。
+            // 装的是 transpiler（在该后处理最前面插「结果为空就返回」）+ finalizer（兜底吞那一条空引用）。
+            // 目标类 rjw.Patch_PawnGenerator_GenerateNewPawnInternal 是 internal static，只能反射找；
+            // RJW 没装时只打一条 Message 就跳过。
+            TryInstall("rjwPawnGenPostfixNull", "RjwPawnGenPostfixNullFix", RjwPawnGenPostfixNullFix.Install);
+
             TryInstall("steamWorkshopHook", "SteamWorkshopHookFix", SteamWorkshopHookFix.Install);
             TryInstall("crossPromotionUnpatch", "CrossPromotionUnpatch", CrossPromotionUnpatch.Install);
 
@@ -421,6 +428,13 @@ namespace GNH.LocalFixes
             // 对第三方 dll 零编译期依赖（类型名与字符串全部走反射 / 常量），
             // 模组没装时只打一条 Message 就直接跳过。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
+            // 2026-11-12 新增【51】：机械师带宽面板的排版循环会除零，选中机械师时每帧报一条错。
+            // 危害不是红字本身，而是 Verse.Log 累计 10,000 条之后会把自己整个关掉 ——
+            // 之后所有模组的报错都写不进日志。实测一次会话被这一条刷了 57,137 条。
+            // 装的是 transpiler：给「要摆几个格子」夹一个上限（循环必然收敛），
+            // 并把那条每帧重复的 Log.Error 换成只报一次的 Log.ErrorOnce 兜底。
+            TryInstall("mechanitorBandwidthGizmo", "MechanitorBandwidthGizmoFix", MechanitorBandwidthGizmoFix.Install);
+
             TryInstall("rjwGenesSpamQuiet", "RjwGenesSpamQuietFix", RjwGenesSpamQuietFix.Install);
 
             // 2026-10-11 新增：修掉「雪兔系列」公共库 SRCELib 的并发缺陷。

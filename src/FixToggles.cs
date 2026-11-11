@@ -237,6 +237,21 @@ namespace GNH.LocalFixes
                 + "★ 多数情况下不必手动关：本项自带探测，一旦发现原版那句判断已经安全（多半是作者自己修好了），"
                 + "会自动让路、什么都不做。"),
 
+            // 【50】放在本组最前面：它修的不是「某处报红字」，而是
+            //   「一个派系的 BOSS 生不出来」被放大成「整个世界生成步骤失败」。
+            //   影响面是**开新档**——轻则该派系没有领袖，重则档根本建不出来。
+            new Entry("rjwPawnGenPostfixNull", GroupCrash,
+                "RJW 生成失败被放大成世界生成崩溃（【50】）",
+                "RJW 给「生成小人」挂的那段后处理没有判空：一旦上游重试了上百次之后"
+                + "只能返回空（例：某个派系的 BOSS 基因组合必死），它还是会对空对象做后处理，"
+                + "当场抛空引用。这一抛不要紧，它位于世界生成的派系步骤里，"
+                + "于是「某个领袖生不出来」被放大成「WorldGenStep_Factions 失败」。"
+                + "本项在那个后处理的最前面加一句「结果为空就直接返回」，"
+                + "再用一层只认「结果为空 + 空引用」的兜底把漏网的情形吞掉并记一条日志。"
+                + "★ 结果非空时完全走原逻辑，一个字节都不改；"
+                + "★ 它只管「不要让一个生成失败拖垮整步」，**不负责**修那个本身生不出小人的派系。",
+                "GNH.LocalFixes.RjwPawnGenPostfixNullFix"),
+
             new Entry("crossPromotionUnpatch", GroupCrash,
                 "打开「模组」页面崩溃",
                 "CrossPromotion 在模组页面里去取 Steam 信息，会调用 Steam 官方早已废弃的接口，"
@@ -279,6 +294,24 @@ namespace GNH.LocalFixes
                 + "★ 找不到 RavenRace 的史莱姆覆盖层时会自动让路、什么都不做；"
                 + "上游补上判空后异常不再出现，本项也就自然不再动作。",
                 "GNH.LocalFixes.Patch_Thing_DynamicDrawPhase_SwallowRealtimeNre"),
+
+            // 【51】放在本组第一条之后：它的危害不是「报错」，而是**把日志打满**。
+            //   Verse.Log 累计 10,000 条之后会执行 Debug.unityLogger.logEnabled = false，
+            //   于是从那以后所有模组的报错都写不进日志 —— 比崩溃更难查。
+            //   实测一次 4 小时的会话被这一条刷了 57,137 条。
+            new Entry("mechanitorBandwidthGizmo", GroupSpam,
+                "机械师带宽面板每帧刷屏（【51】）",
+                "选中单个机械师小人时，右上角那个「带宽」小面板会摆一排小方块表示已用带宽。"
+                + "它的排版循环有个除零隐患：行数一旦加过头，格子边长被算成 0，"
+                + "随后「每行几个」变成无穷大，循环条件永远成立 —— 跑满 1000 次后报一条错、"
+                + "整个面板不画，而且**每帧都重来一次**。"
+                + "真正要紧的是后半句：Verse.Log 累计 10,000 条之后会把自己整个关掉，"
+                + "于是从那以后别的模组报什么错你都看不到。实测一次会话被它刷了 57,137 条。"
+                + "本项给「要摆几个格子」加一个上限，让循环一定能收敛；"
+                + "再把那条每帧重复的报错降级成「整局只报一次」兜底。"
+                + "★ 带宽真超过上限时，面板只画前一部分方块 —— 那么小的区域本来就分辨不出来；"
+                + "★ 官方哪天自己修好了，本项会自动让路、什么都不做。",
+                "GNH.LocalFixes.MechanitorBandwidthGizmoFix"),
 
             new Entry("rjwGenesSpamQuiet", GroupSpam,
                 "RJW-Genes 调试刷屏",
@@ -600,7 +633,7 @@ namespace GNH.LocalFixes
                 xmlPatchFile: "RJW_SkillSexOrderFix.xml"),
 
             new Entry("xmlCumworksBadCompRef", GroupCompat,
-                "无限精液工坊：两个储液桶写了不存在的组件（【50】）",
+                "无限精液工坊：两个储液桶写了不存在的组件（【49】）",
                 "它的两个储液桶（CumworksNet_CumBucket / _Advanced_）各写了一行 "
                 + "Class=\"RJW_Menstruation_Fluids.CompProperties_CumGatherer\"，"
                 + "而那个类型在 ELT 月经体液模组的三个 dll 里都不存在 —— "
@@ -609,6 +642,16 @@ namespace GNH.LocalFixes
                 + "本项把这两行删掉，宿主与其它组件都不动。"
                 + "★ 按类型存在性让路：作者哪天把该类型加回来，本项自动不动作。",
                 xmlPatchFile: "CumworksBadCompRefFix.xml"),
+
+            new Entry("xmlMiliraApparelPaths", GroupXmlPatches,
+                "米莉拉服装贴图表里有重复条目（【52】）",
+                "米莉拉的「穿这件衣服就换成自家贴图」表里，BodyStrap 与 TribalA 这两条各出现了两次。"
+                + "游戏往字典里塞第二条时会抛重复键异常，被 catch 吞掉 —— 表面上只是两条红字，"
+                + "实际后果是**这张表的内容与作者预期不一致，该种族整套服装贴图替换会退回人类默认贴图**。"
+                + "本项只在「真的重复了」的时候动手：先删掉该键的全部条目，再加回恰好一条。"
+                + "★ 正常只有一条时 xpath 不命中，整段不执行，一个字节都不改 —— 所以上游修好后本项自动让路。"
+                + "★ 本模组必须排在外星人SA纹理适配（adk.sar.alien）之后才有意义，About 里已写 loadAfter。",
+                xmlPatchFile: "MiliraApparelPathsDedupe.xml"),
 
         };
 

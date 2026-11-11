@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+
+	<!--
+	  ── 米莉拉的服装贴图替换表里出现了重复的 key，导致整套替换失效 ──
+
+	  报错原文（1.7 日志，2026-11-11 19:06:08.890 / .893 各一条）：
+	    Failed to load key/value pair: Apparel_BodyStrap, System.Xml.XmlElement
+	    Failed to load key/value pair: Apparel_TribalA,  System.Xml.XmlElement
+	      at Verse.DirectXmlCrossRefLoader+WantedRefForDictionary`2.Apply() [0x73]
+	      at Verse.DirectXmlCrossRefLoader.ResolveAllWantedCrossReferences_Patch1(FailMode)
+	      at Verse.PlayDataLoader.DoPlayLoad() [0xB4]
+
+	  ── 根因 ──
+
+	  反编译 Verse.DirectXmlCrossRefLoader+WantedRefForDictionary`2.Apply()（1.7.5005 原文）：
+
+	      Dictionary<K, V> dictionary = (Dictionary<K, V>)wanter;
+	      dictionary.Clear();                                   // 先清空
+	      foreach (Pair<object, object> makingDatum in makingData)
+	      {
+	          try
+	          {
+	              object obj  = makingDatum.First;
+	              object obj2 = makingDatum.Second;
+	              if (obj  is XmlNode) obj  = DirectXmlToObject.ObjectFromXml<K>(obj  as XmlNode, true);
+	              if (obj2 is XmlNode) obj2 = DirectXmlToObject.ObjectFromXml<V>(obj2 as XmlNode, true);
+	              dictionary.Add((K)obj, (V)obj2);              // ← 重复 key 在这里抛 ArgumentException
+	          }
+	          catch
+	          {
+	              Log.Error("Failed to load key/value pair: " + makingDatum.First?.ToString() + ", " + makingDatum.Second);
+	          }
+	      }
+
+	  三个可直接复验的推论：
+	    ① 日志里能打出 `Apparel_BodyStrap` 而不是 `System.Xml.XmlNode`，
+	       说明 **key 本身解析成功了**（`ThingDef.ToString()` 返回 defName）；
+	    ② 后半截 `System.Xml.XmlElement` 只是 value 的**原始节点类型**（没被解析成 string），
+	       **不代表解析失败**；
+	    ③ 真正抛的是 `dictionary.Add` 的 `ArgumentException: An item with the same key
+	       has already been added` —— 也就是 **同一个 key 出现了两次**。
+
+	  ── 为什么这件事比"两条红字"严重得多 ──
+
+	  `individualPaths` 是 HAR（Humanoid Alien Races）用来做
+	  「这个种族穿某件衣服时换成自家贴图」的字典。
+	  `dictionary.Clear()` 在循环**之前**执行，所以：
+
+	    · 第一条 `Apparel_BodyStrap` 加进去了；
+	    · 第二条抛异常被 catch 吞掉，**但循环继续**；
+	    · 最终字典里这个名字只剩一条 —— 看起来"没坏"。
+
+	  真正的伤害在于：该种族的 `individualPaths` 整体内容与作者预期不一致，
+	  **凡是靠这张表做的服装贴图替换会回退成人类默认贴图**。
+	  日志只有 2 条，是因为只有这一个种族的这两个 key 撞上了。
+
+	  ── 那两条重复是怎么来的（如实说明：没能百分百坐实） ──
+
+	  静态证据只到这一步：全库三根目录里，**只有**
+	    Mods\RJW-Sar0-外星人SA纹理适配生物大师1.6自改整合版\1.7\Milira\Patches\Milira_VanillaAP_Patch.xml
+	  会往 `Milira_Race` 的 `individualPaths` 里加 `Apparel_BodyStrap` / `Apparel_TribalA`。
+	  它自己每个 key 只写了**一条** `PatchOperationAdd`（L23 / L32），文件本身没有重复。
+
+	  而同目录的 `Anty_VanillaAP_Patch.xml` 与 `ViVI_VanillaAP_Patch.xml` 给每个 key 都套了
+	  `PatchOperationConditional`（「已有就不加」），**Milira 的这两条恰好没套** ——
+	  这正是「为什么只有它报错」的直接解释：跑几遍都不会重复的写法 vs 跑两遍就重复的写法。
+
+	  ⚠ **诚实标注**：反编译 `Verse.DirectXmlLoader.XmlAssetsInModFolder` 与
+	    `Verse.ModContentPack.GetAllFilesForModPreserveOrder` 都显示「按相对路径 `TryAdd` 去重」，
+	    按字面读，同一份 patch 文件**不该**被加载两次。所以「它到底为什么跑了两遍」
+	    本轮**没能完全坐实**（候选：加载列表里 `1.7/Milira` 被 `<v1.6>`/`<v1.7>` 两段各列 2 次
+	    时 `text` 长度差异导致 key 不同；或 `DoPlayLoad` 在某些恢复路径上重入）。
+	    **但这不影响修法** —— 见下。
+
+	  ── 修法：只在「真的出现重复」时才动手，把它压回恰好一条 ──
+
+	  每个 key 一段 `PatchOperationConditional`，xpath 是
+	    `…/individualPaths[count(li[key="Apparel_BodyStrap"]) > 1]`
+	  —— **只有重复时才命中**。命中后：先把该 key 的所有 `li` 全删掉，再加回一条。
+
+	  这样做的三个好处：
+	    ① 与「重复到底怎么来的」无关 —— 不管跑了两遍还是三遍，结果恒定一条；
+	    ② **零风险**：正常情况下（只有一条）xpath 不命中，整段不执行，
+	       一个字节都不改。所以即使将来上游自己修好了，本项也自动让路；
+	    ③ 不依赖 `individualPaths` 一定存在（外层用 `Conditional` 探 `individualPaths`）。
+
+	  ⚠ 顺序要求：本模组必须排在 `adk.sar.alien`（本机位次 1070）**之后**才有意义 ——
+	    否则我们压成一条之后，那个模组的 patch 又会再加一条。
+	    本机 `gnh.cn.cys.localfixes` 位次 1169，已满足；About 里也写了 `loadAfter` 兜底。
+
+	  ⚠ 为什么不用 `PatchOperationTest`：`Test` 失败会短路 `Sequence` 并打一条
+	    `Patch operation … failed` 红字，等于用红字治红字。
+	    `PatchOperationConditional` 不命中时**安静返回 true**，这才是对的形态。
+	-->
+	<Operation Class="PatchOperationConditional">
+		<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths[count(li[key="Apparel_BodyStrap"]) &gt; 1]</xpath>
+		<match Class="PatchOperationSequence">
+			<success>Always</success>
+			<operations>
+				<li Class="PatchOperationRemove">
+					<success>Always</success>
+					<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths/li[key="Apparel_BodyStrap"]</xpath>
+				</li>
+				<li Class="PatchOperationAdd">
+					<success>Always</success>
+					<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths</xpath>
+					<value>
+						<li>
+							<key>Apparel_BodyStrap</key>
+							<value>Things/Pawn/Milira/Apparel/BodyStrap/BodyStrap</value>
+						</li>
+					</value>
+				</li>
+			</operations>
+		</match>
+	</Operation>
+
+	<Operation Class="PatchOperationConditional">
+		<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths[count(li[key="Apparel_TribalA"]) &gt; 1]</xpath>
+		<match Class="PatchOperationSequence">
+			<success>Always</success>
+			<operations>
+				<li Class="PatchOperationRemove">
+					<success>Always</success>
+					<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths/li[key="Apparel_TribalA"]</xpath>
+				</li>
+				<li Class="PatchOperationAdd">
+					<success>Always</success>
+					<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths</xpath>
+					<value>
+						<li>
+							<key>Apparel_TribalA</key>
+							<value>Things/Pawn/Milira/Apparel/TribalA/TribalA</value>
+						</li>
+					</value>
+				</li>
+			</operations>
+		</match>
+	</Operation>
+
+</Patch>
