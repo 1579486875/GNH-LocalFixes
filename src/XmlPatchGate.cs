@@ -409,7 +409,54 @@ namespace GNH.LocalFixes
             {
                 return !NmmHasNewArchitecture();
             }
+            // ── TY2Valley 的远程炮击组件（同类缺陷，2026-11-11 排查时一并补）──
+            //
+            // 这条删的是 `li Class="VFESecurity.CompProperties_LongRangeArtillery"`。
+            // 实测当前所有 VFE Security 的 dll（113,664 B / 79,872 B）**都不含这个类型** ——
+            // 作者在某次更新里删掉了它，所以留着会产生
+            //   `Could not find type named VFESecurity.CompProperties_LongRangeArtillery`
+            // 并连带整个 Def 文件加载失败。
+            //
+            // 但**旧版 VFE Security 是有这个类型的**：那种玩家装上我们这条，
+            // 等于把炮塔的远程炮击能力删掉。所以和【44】一样按类型存在性分流。
+            if (string.Equals(fileName, "FixTY2ValleyLongRangeArtillery.xml",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return VfeSecurityStillHasLongRangeArtillery();
+            }
             return false;
+        }
+
+        private static int vfeArtState;   // 0=未判, 1=还有该类型, -1=已删除
+
+        private static bool VfeSecurityStillHasLongRangeArtillery()
+        {
+            if (vfeArtState != 0)
+            {
+                return vfeArtState > 0;
+            }
+            try
+            {
+                Type t = AccessTools.TypeByName("VFESecurity.CompProperties_LongRangeArtillery");
+                if (t == null)
+                {
+                    // 完全找不到 VFE Security 也可能是「没装」——那就无从判断。
+                    // 判不出来时**一律让路（不删）**：宁可留一条红字，也不误删别人的功能。
+                    if (AccessTools.TypeByName("VFESecurity.Building_TurretGunCE") == null
+                        && AccessTools.TypeByName("VFESecurity.CompProperties_Shield") == null)
+                    {
+                        return true;    // 判不出来 → 不缓存、按「保守不删」处理
+                    }
+                    vfeArtState = -1;   // 确实是 VFE Security，但没有该类型 ⇒ 已删除
+                    return false;
+                }
+                vfeArtState = 1;
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         /// <summary>
