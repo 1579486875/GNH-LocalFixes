@@ -453,6 +453,20 @@ namespace GNH.LocalFixes
             //   原因：那个 Class 名只出现在**注释**里（是「v1.4.12 已作废」的历史记录），
             //   该文件 12 条操作里没有一条真的碰它。按注释加守卫 = 让整份文件白白让路，
             //   属于会误伤其它 11 条修复的多余判据。
+            //
+            // ── 【50】无限精液工坊的两个储液桶（2026-11-11）──
+            // 删的是 `li Class="RJW_Menstruation_Fluids.CompProperties_CumGatherer"`。
+            // 实测 ELT 那个模组的三个 dll（57,856 / 25,088 / 24,576 B）**都没有这个类型**，
+            // 而 `MayRequire="eltoro.rjw.menstruation.fluids"` 只查模组启用、不查类型存在，
+            // 所以这两行会一路走到解析阶段才炸（comps 整表失败 ⇒ 两个储液桶 def 一起消失）。
+            //
+            // 守卫逻辑与【44】/TY2Valley 同款：**类型还在就让路**。
+            // 万一作者把 CumGatherer 加回来，那两行就是真功能，删了等于砍掉精液收集。
+            if (string.Equals(fileName, "CumworksBadCompRefFix.xml",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return TypeExists("RJW_Menstruation_Fluids.CompProperties_CumGatherer");
+            }
             return false;
         }
 

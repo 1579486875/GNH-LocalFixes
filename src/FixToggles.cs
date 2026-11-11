@@ -599,6 +599,17 @@ namespace GNH.LocalFixes
                 + "★ 三层守卫：目标修复模组不在场 / RJW 没装 / 扩展已存在，都不动作。",
                 xmlPatchFile: "RJW_SkillSexOrderFix.xml"),
 
+            new Entry("xmlCumworksBadCompRef", GroupCompat,
+                "无限精液工坊：两个储液桶写了不存在的组件（【50】）",
+                "它的两个储液桶（CumworksNet_CumBucket / _Advanced_）各写了一行 "
+                + "Class=\"RJW_Menstruation_Fluids.CompProperties_CumGatherer\"，"
+                + "而那个类型在 ELT 月经体液模组的三个 dll 里都不存在 —— "
+                + "MayRequire 只查模组是否启用、不查类型是否存在，所以这两行一路走到解析阶段才炸。"
+                + "comps 是整表解析，一失效连宿主 ThingDef 一起丢，也就是说这两个桶本体里根本不存在。"
+                + "本项把这两行删掉，宿主与其它组件都不动。"
+                + "★ 按类型存在性让路：作者哪天把该类型加回来，本项自动不动作。",
+                xmlPatchFile: "CumworksBadCompRefFix.xml"),
+
         };
 
         // ======================================================================

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Patch>
+
+  <!--
+    ══════════════════════════════════════════════════════════════════════════
+      【50】无限精液工坊：两个储液桶写了不存在的组件类型
+    ══════════════════════════════════════════════════════════════════════════
+
+    ── 现象（2026-11-11 实机日志）──
+        Exception loading def from file CumInputsAndOutputs.xml:
+        System.ArgumentException: Could not find type named
+        RJW_Menstruation_Fluids.CompProperties_CumGatherer     ×2
+
+    ⚠ 注意「文件」那行会误导：它写的是 `CumInputsAndOutputs.xml`，而 `无限精液工坊` 下
+      **有两个同名文件** —— `1.6/Defs/PipeSystem/` 与 **`Current/Defs/PipeSystem/`**。
+      真正加载的是 **`Current/`** 那一份（LoadFolders 的 `<v1.7>` 段列了 `Common` + `Current`），
+      而 `1.6/` 那份里根本没有这个 Class。我第一次就是在 `1.6/` 里搜，白搜一轮。
+
+    ── 出问题的两行 ──
+        <li MayRequire="eltoro.rjw.menstruation.fluids"
+            Class="RJW_Menstruation_Fluids.CompProperties_CumGatherer">
+
+    所在的 def：
+        CumworksNet_CumBucket
+        CumworksNet_Advanced_Cum_Bucket
+
+    ── 为什么 `MayRequire` 没兜住 ──
+    `MayRequire` 只检查「模组是否启用」，**不检查「类型是否存在」**。
+    实测 `eltoro.rjw.menstruation.fluids` 是**启用**的（ModsConfig 里有），
+    于是这行被保留下来，然后解析时找不到类型 → 抛异常。
+
+    而该类型确实不存在：逐个查过 ELT 那个模组的三个 dll ——
+        RJW_Menstruation_Fluids.dll       57,856 B  无 CumGatherer
+        Cumpilation_Integration.dll       25,088 B  无
+        Cumpilation_Lite_Integration.dll  24,576 B  无
+    （全库 XML 里也只有这两处引用，没有第三处）
+
+    ── 后果 ──
+    `comps` 是整表解析，任一 `<li>` 失效会让**整个 ThingDef 被丢弃** ——
+    也就是说这两个储液桶本体在游戏里是不存在的（玩家点了建造也出不来）。
+
+    ── 本补丁做什么 ──
+    删掉这两个无效的 `<li>`。宿主 ThingDef 保留，其余组件（PipeSystem / Cumpilation 那些）一个不动。
+
+    ── ⚠ 版本守卫（C# 里，见 XmlPatchGate.cs）──
+    如果哪天 ELT 把 `CompProperties_CumGatherer` 加回来了（或者玩家装的是有该类型的旧版），
+    这条 `<li>` 就是**真的功能**，删了等于把「精液收集」能力拿掉。
+    所以本文件整段由 `XmlPatchGate` 按**类型存在性**决定要不要执行：
+        类型存在 → 让路（一个都不删）
+        类型不存在 → 执行删除
+    这是 2026-11-11 那次事故之后立的规矩（见报告 §13 / §14）。
+  -->
+
+  <Operation Class="PatchOperationSequence">
+    <success>Always</success>
+    <operations>
+
+      <li Class="PatchOperationTest">
+        <xpath>Defs/ThingDef[defName="CumworksNet_CumBucket" or defName="CumworksNet_Advanced_Cum_Bucket"]/comps/li[@Class="RJW_Menstruation_Fluids.CompProperties_CumGatherer"]</xpath>
+      </li>
+
+      <li Class="PatchOperationRemove">
+        <success>Always</success>
+        <xpath>Defs/ThingDef[defName="CumworksNet_CumBucket" or defName="CumworksNet_Advanced_Cum_Bucket"]/comps/li[@Class="RJW_Menstruation_Fluids.CompProperties_CumGatherer"]</xpath>
+      </li>
+
+    </operations>
+  </Operation>
+
+</Patch>
