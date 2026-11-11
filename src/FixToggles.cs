@@ -299,6 +299,24 @@ namespace GNH.LocalFixes
             //   Verse.Log 累计 10,000 条之后会执行 Debug.unityLogger.logEnabled = false，
             //   于是从那以后所有模组的报错都写不进日志 —— 比崩溃更难查。
             //   实测一次 4 小时的会话被这一条刷了 57,137 条。
+            // 【53】紧跟【50】：两者都属于「加载期一个异常把整局拖垮」这一类。
+            //   区别是【50】修 RJW 的锅，本项修边缘仙路自己的锅 —— 而且它的 bug 更隐蔽：
+            //   `try/catch` 把 AddCopyBookRecipes 的异常吞了，但 `finally` 里又解引用同一个
+            //   还没初始化的 DefOf 字段，**finally 不归 catch 管**，异常直接逃出去。
+            new Entry("xiuxianCopyBookGuard", GroupCrash,
+                "边缘仙路配方补丁在 DefOf 就绪前必崩（【53】）",
+                "边缘仙路（RimImmortal-Core）在「配方生成结果」那一步挂了一个 postfix，"
+                + "里面用 try/catch 包住自己的逻辑，但**收尾的 finally 里又去解引用同一个 DefOf 字段** ——"
+                + "而 DefOf 要等所有 Def 加载完才注入，那时它还是 null。"
+                + "结果就是：catch 把第一处空引用吞了、只打一行日志，"
+                + "紧接着 finally 又炸一次，这次没人接，"
+                + "异常直接逃出整个流程，把 play data 加载打断 ——"
+                + "游戏随后会重置模组配置并放弃加载。"
+                + "本项在它前面加一道守卫：那个 DefOf 字段还是 null 时，整个 postfix 跳过。"
+                + "★ 字段就绪之后自动放行，不是永久停用；"
+                + "★ 1.7 侧通常根本不会触发（那边时序不同，DefOf 已就绪），这正是预期。",
+                "GNH.LocalFixes.XiuXianCopyBookPostfixGuardFix"),
+
             new Entry("mechanitorBandwidthGizmo", GroupSpam,
                 "机械师带宽面板每帧刷屏（【51】）",
                 "选中单个机械师小人时，右上角那个「带宽」小面板会摆一排小方块表示已用带宽。"

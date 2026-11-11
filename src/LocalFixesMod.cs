@@ -252,6 +252,10 @@ namespace GNH.LocalFixes
             // 目标类 rjw.Patch_PawnGenerator_GenerateNewPawnInternal 是 internal static，只能反射找；
             // RJW 没装时只打一条 Message 就跳过。
             TryInstall("rjwPawnGenPostfixNull", "RjwPawnGenPostfixNullFix", RjwPawnGenPostfixNullFix.Install);
+            // 2026-11-12 新增【53】：边缘仙路的配方 postfix 在 DefOf 就绪前必崩（finally 里没判空）。
+            // 它挂在 RecipeDefGenerator.ImpliedRecipeDefs 上，异常逃出去会让整局 play data 加载失败，
+            // 进而让游戏把 ModsConfig 重写成只剩官方 DLC。
+            TryInstall("xiuxianCopyBookGuard", "XiuXianCopyBookPostfixGuardFix", XiuXianCopyBookPostfixGuardFix.Install);
 
             TryInstall("steamWorkshopHook", "SteamWorkshopHookFix", SteamWorkshopHookFix.Install);
             TryInstall("crossPromotionUnpatch", "CrossPromotionUnpatch", CrossPromotionUnpatch.Install);
