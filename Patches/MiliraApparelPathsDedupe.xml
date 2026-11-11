@@ -94,7 +94,7 @@
 	    `PatchOperationConditional` 不命中时**安静返回 true**，这才是对的形态。
 	-->
 	<Operation Class="PatchOperationConditional">
-		<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths[count(li[key="Apparel_BodyStrap"]) &gt; 1]</xpath>
+		<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths/li[key="Apparel_BodyStrap"][2]</xpath>
 		<match Class="PatchOperationSequence">
 			<success>Always</success>
 			<operations>
@@ -117,7 +117,7 @@
 	</Operation>
 
 	<Operation Class="PatchOperationConditional">
-		<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths[count(li[key="Apparel_TribalA"]) &gt; 1]</xpath>
+		<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths/li[key="Apparel_TribalA"][2]</xpath>
 		<match Class="PatchOperationSequence">
 			<success>Always</success>
 			<operations>
