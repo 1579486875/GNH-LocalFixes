@@ -485,34 +485,53 @@ namespace GNH.LocalFixes
 
         private static int vfeArtState;   // 0=未判, 1=还有该类型, -1=已删除
 
+        /// <summary>
+        /// VFE Security 是否仍然带着 <c>CompProperties_LongRangeArtillery</c>。
+        ///
+        /// ⚠ 2026-11-11 第一版这里写错过：我用 `Building_TurretGunCE` /
+        /// `CompProperties_Shield` 两个**猜的**类型名去判断「VFE Security 在不在」，
+        /// 结果两个都是 null ⇒ 判成「判不出来」⇒ 永远让路 ⇒
+        /// **原修复失效，日志里照样报
+        /// `Could not find type named VFESecurity.CompProperties_LongRangeArtillery`**。
+        ///
+        /// 正确做法：判断「模组装没装」用 <see cref="Verse.ModsConfig.IsActive"/>，
+        /// 它是 id 判定，不依赖我猜的类型名。只有「版本」这一层才需要类型探测。
+        /// </summary>
         private static bool VfeSecurityStillHasLongRangeArtillery()
         {
             if (vfeArtState != 0)
             {
                 return vfeArtState > 0;
             }
-            try
+            const string typeName = "VFESecurity.CompProperties_LongRangeArtillery";
+            const string modId = "vanillaexpanded.vfesecurity";
+
+            // ① 该类型还在 ⇒ 旧版 VFE Security，删了会丢炮塔的远程炮击能力 ⇒ 让路
+            if (TypeExists(typeName))
             {
-                Type t = AccessTools.TypeByName("VFESecurity.CompProperties_LongRangeArtillery");
-                if (t == null)
-                {
-                    // 完全找不到 VFE Security 也可能是「没装」——那就无从判断。
-                    // 判不出来时**一律让路（不删）**：宁可留一条红字，也不误删别人的功能。
-                    if (AccessTools.TypeByName("VFESecurity.Building_TurretGunCE") == null
-                        && AccessTools.TypeByName("VFESecurity.CompProperties_Shield") == null)
-                    {
-                        return true;    // 判不出来 → 不缓存、按「保守不删」处理
-                    }
-                    vfeArtState = -1;   // 确实是 VFE Security，但没有该类型 ⇒ 已删除
-                    return false;
-                }
                 vfeArtState = 1;
                 return true;
             }
+
+            // ② 类型不在。但要确认「是版本删了它」还是「根本没装」——
+            //    没装时 xpath 本来就匹配不到，让不让路都一样，按让路处理最省事。
+            bool modPresent;
+            try
+            {
+                modPresent = ModsConfig.IsActive(modId);
+            }
             catch (Exception)
             {
-                return false;
+                modPresent = false;
             }
+            if (!modPresent)
+            {
+                return true;      // 没装 ⇒ 不缓存、让路
+            }
+
+            // ③ 装了、但类型没了 ⇒ 新架构 ⇒ 执行删除（这才是本补丁要修的）
+            vfeArtState = -1;
+            return false;
         }
 
         /// <summary>
