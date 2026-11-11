@@ -393,7 +393,64 @@ namespace GNH.LocalFixes
             {
                 return SraeLibHasTargetField();
             }
+            // ── 【44】NMM 旧架构守卫（2026-11-11 用户追问后补）──
+            //
+            // 这条删的是 10 个 `li Class="NudityMattersMore.CompProperties_XXX"`。
+            // 判定前提是「那 10 个类型已经不存在」。但玩家可能仍在用**旧版 NMM**：
+            //
+            //   旧版 11-06（316,416 B）：那 10 个类型**全在**，且**没有 CompNMM**
+            //   新版 11-10（363,520 B）：10 个合并进 CompNMM，旧类型消失
+            //
+            // 所以：**只有在新架构（CompNMM 存在）时才删**；
+            // 旧版 NMM 下必须整段让路 —— 否则删掉的是他们真正在用的 10 个组件，
+            // 功能会真的丢（不是「清理死引用」了）。
+            if (string.Equals(fileName, "NMM_StaleCompCleanup.xml",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return !NmmHasNewArchitecture();
+            }
             return false;
+        }
+
+        /// <summary>
+        /// NMM 是否已经是「新架构」（10 个 comp 合并成 CompNMM）。
+        /// 判据是类是否存在 —— 这是唯一能把新老两版分开的可靠信号：
+        /// 新版有 <c>NudityMattersMore.CompNMM</c>，旧版没有。
+        /// </summary>
+        private static int nmmArchState;   // 0=未判, 1=新架构, -1=旧架构
+
+        private static bool NmmHasNewArchitecture()
+        {
+            if (nmmArchState != 0)
+            {
+                return nmmArchState > 0;
+            }
+            bool has = false;
+            try
+            {
+                // 只在 NMM 本体在场时才判；不在场时按「旧架构」处理（= 不删），
+                // 因为 NMM 没装时那些节点本来就不存在，删不删都一样 —— 保守起见不动。
+                Type t = AccessTools.TypeByName("NudityMattersMore.CompNMM");
+                if (t == null)
+                {
+                    Type any = AccessTools.TypeByName("NudityMattersMore.CompProperties_BugsTracker")
+                        ?? AccessTools.TypeByName("NudityMattersMore.CompProperties_CoverBody");
+                    if (any == null)
+                    {
+                        return false;      // 完全判不出来 → 不缓存、按旧架构（不删）
+                    }
+                    has = false;           // 找到旧类型 ⇒ 旧架构
+                    nmmArchState = -1;
+                    return has;
+                }
+                has = true;
+                nmmArchState = 1;
+            }
+            catch (Exception)
+            {
+                has = false;
+            }
+            return has;
         }
 
         /// <summary>
