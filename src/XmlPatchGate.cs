@@ -424,7 +424,63 @@ namespace GNH.LocalFixes
             {
                 return VfeSecurityStillHasLongRangeArtillery();
             }
+            // ── 2026-11-11：把「只考虑最新版」这个盲区扩到 Add / AddModExtension 类 ──
+            //
+            // 上面两条是 Remove 类。但 **Add 类同样会坑旧版玩家**：
+            // 往 def 里塞一个 `<li Class="某第三方类型">`，若那个类型在旧版模组里不存在，
+            // 解析该 def 时就会 `Could not find type named ...`，**整个 def 被丢弃**。
+            //
+            // 下面三条都是「写死了第三方类型名」的，统一按类型存在性分流：
+            //   · 类型在  ⇒ 照做（认为该模组版本支持这套扩展）
+            //   · 类型不在 ⇒ **整段让路**（宁可少修一处，不可让玩家的 def 被丢掉）
+            if (string.Equals(fileName, "VFEE_RoyalTitleExtFix.xml",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                // 18 条 AddModExtension 全部往**原版爵位 def**（Yeoman/Acolyte/Knight…）里塞
+                // VFEEmpire.RoyalTitleDefExtension。旧版 VFEE 若没这个扩展类型，
+                // 被丢的是原版爵位 —— 影响面比本补丁要修的东西大得多。
+                return !TypeExists("VFEEmpire.RoyalTitleDefExtension");
+            }
+            if (string.Equals(fileName, "RJW_SkillSexOrderFix.xml",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                // 【48】往 RJW 的 Sex 技能里塞 CharacterEditorSkillFix.SkillOrderExtension。
+                // FindMod 只能证明「那个模组开着」，证明不了「那个模组有这个类型」。
+                return !TypeExists("CharacterEditorSkillFix.SkillOrderExtension");
+            }
+            // ⚠ 2026-11-11 自查：原本这里还给 ConfigErrorCleanup.xml 加了一条
+            //   「OberoniaAurea.CompProperties_Hackable 不存在就让路」的判据 —— **已删掉**。
+            //   原因：那个 Class 名只出现在**注释**里（是「v1.4.12 已作废」的历史记录），
+            //   该文件 12 条操作里没有一条真的碰它。按注释加守卫 = 让整份文件白白让路，
+            //   属于会误伤其它 11 条修复的多余判据。
             return false;
+        }
+
+        // ── 通用小工具 ──────────────────────────────────────────────
+
+        private static readonly System.Collections.Generic.Dictionary<string, bool> typeCache =
+            new System.Collections.Generic.Dictionary<string, bool>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// 类型是否真实存在（带缓存）。判不出来按「不存在」处理 —— 调用方据此让路。
+        /// </summary>
+        private static bool TypeExists(string fullName)
+        {
+            bool v;
+            if (typeCache.TryGetValue(fullName, out v))
+            {
+                return v;
+            }
+            try
+            {
+                v = AccessTools.TypeByName(fullName) != null;
+            }
+            catch (Exception)
+            {
+                v = false;
+            }
+            typeCache[fullName] = v;
+            return v;
         }
 
         private static int vfeArtState;   // 0=未判, 1=还有该类型, -1=已删除
