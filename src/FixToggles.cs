@@ -107,7 +107,12 @@ namespace GNH.LocalFixes
         internal static bool IsDefaultOff(string id)
         {
             return string.Equals(id, "deepProfilerQuiet", StringComparison.Ordinal)
-                || string.Equals(id, "ew2TranspilerProbe", StringComparison.Ordinal);
+                || string.Equals(id, "ew2TranspilerProbe", StringComparison.Ordinal)
+                // 【54】的取证探头：2026-11-12 加它时漏登记，于是默认是**开着**的，
+                // 每局往日志里最多写 24 条 ERROR，而 About 与界面都写着「默认关闭」——
+                // 文档与实现不一致。它与 ew2TranspilerProbe 同属「只读取证」，
+                // 没有排查需求时不该打扰任何人。
+                || string.Equals(id, "pawnGenDeathProbe", StringComparison.Ordinal);
         }
 
         internal sealed class Entry
