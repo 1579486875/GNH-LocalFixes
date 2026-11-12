@@ -1,4 +1,4 @@
-// ---------------------------------------------------------------------------
+﻿// ---------------------------------------------------------------------------
 // 本文件由 AI 助手「DeepSeek娘·汐蓝」辅助编写。
 // 设计、需求、审阅与实机验证由人类作者（大赢经直插白皮赢道）完成。
 // AI-assisted: written with DeepSeek Niang · Xi Lan (AI);
@@ -316,6 +316,137 @@ namespace GNH.LocalFixes
                 + "★ 字段就绪之后自动放行，不是永久停用；"
                 + "★ 1.7 侧通常根本不会触发（那边时序不同，DefOf 已就绪），这正是预期。",
                 "GNH.LocalFixes.XiuXianCopyBookPostfixGuardFix"),
+
+            // 【60】是一条「int 字段被写成小数」的修正：值本身没变（0.5 早被截断成 0），
+            //   只是把同一个值写成引擎认得的写法，警告随之消失。
+            new Entry("xmlAncientThreatIntField", GroupXmlPatches,
+                "一个整数字段被写成了小数，每次加载刷 38 条（【60】）",
+                "「Ancient amorphous threat」用一条补丁往所有叙事者的父类里加了个组件，"
+                + "其中「第几天触发」那一项写成了 0.5 —— 而它在引擎里是**整数**字段。"
+                + "引擎不会报错，而是把 0.5 截断成 0，再打一条「Parsed 0.5 as int.」；"
+                + "因为那条补丁加在「所有叙事者的父类」上，每个叙事者解析时各报一次，"
+                + "于是 1 处写错被放大成每次加载 38 条。"
+                + "本项把那个值写成显式整数 0。"
+                + "★ 行为一点没变：原来那 0.5 本来就被截断成 0，这个事件一直就是「第 0 天触发」；"
+                + "★ 没有改成 1，是因为那会把触发时间往后推一天，属于改作者的数值设计；"
+                + "★ 作者哪天自己改成整数，本项自动让路（xpath 只匹配文本为 0.5 的那一处）。",
+                xmlPatchFile: "Patch_AncientThreatIntFieldFix.xml"),
+
+            // 【59】纯美术：texPath 少了一层子目录。图其实就在同族主包里。
+            new Entry("xmlNivarianStarfallBeaconTexPath", GroupXmlPatches,
+                "涅瓦莲星陨信标贴图路径少一层目录（【59】）",
+                "涅瓦莲的附加包给「星陨信标」写的贴图路径是"
+                + "「Nivarian/Building/starfall_beacon」，"
+                + "而主包 keeptpa.NivarianRace 里那张图的实际位置是"
+                + "「Nivarian/Building/StarfallBeacon/starfall_beacon.png」——"
+                + "中间少了 StarfallBeacon 这一层。于是加载期报两条"
+                + "「Could not load Texture2D」，游戏里那个建筑显示成紫白方块。"
+                + "本项只把路径改成真正存在的那一条。"
+                + "★ 图是同一套涅瓦莲美术、文件名一致，视觉呈现与作者原意完全一致；"
+                + "★ 主包没启用时整段跳过（路径指向的是主包的 Textures）。"
+                + "★ 「翠绿祝福」引用 lotus 的那条同样是少一层目录（正确位置是 "
+                + "Nivarian/Building/VerdantLocus/lotus），已一并修好；"
+                + "两条都只是把路径补全，用的都是本体自己那份原件，视觉与作者原意一致。",
+                xmlPatchFile: "Patch_NivarianStarfallBeaconTexPath.xml"),
+
+            // 【58】是 XML 层的：上游把 8 种寿司合并成 4 种，VOE 那个前哨没跟上。
+            //   放在 XML 组，因为它由 Patches\Patch_VoeSushiMigration.xml 执行。
+            new Entry("xmlVoeSushiMigration", GroupXmlPatches,
+                "餐厅前哨还在产已被合并掉的 8 种寿司（【58】）",
+                "Vanilla Cooking Expanded - Sushi 在 1.6/1.7 把原来的 8 种寿司合并成 4 种，"
+                + "旧 defName 全部删掉，并提供了官方的迁移定义。"
+                + "但那份迁移只管**存档**里的引用，管不到模组 XML 之间的引用 ——"
+                + "而 VOE 附加前哨的「餐厅」子模块正好是把 8 个旧名字直接写进产出列表里的，"
+                + "于是加载期会连打 8 条「找不到 ThingDef」的 cross-reference 错误，"
+                + "那个前哨的寿司产出也一并失效。"
+                + "本项按上游给出的合并关系把 8 条换成 4 条，数值照抄原文件。"
+                + "★ 如实写明让步：能产的寿司品种从 8 种变成 4 种 —— "
+                + "这不是我们砍的，是上游自己合并的，我们只是让前哨跟上；产出数值一个都没动。"
+                + "★ 上游哪天自己修好、或把新 def 改名，本项会自动让路（每条操作都设了「无论成败都继续」）。",
+                xmlPatchFile: "Patch_VoeSushiMigration.xml"),
+
+            // 【57】是那 720 条红字的真正出口：源头是引擎自己的 Faction.OfPlayer 属性 getter，
+            //   不是某三个模组的补丁。所以修法也不是"去改三个模组"，而是让属性在
+            //   「还没进地图且确实没有玩家派系」时走引擎自带的静默版本。
+            new Entry("factionOfPlayerNoise", GroupSpam,
+                "世界生成期刷 720 条「找不到玩家派系」（【57】）",
+                "每次世界生成都会刷满 240 条「Could not find player faction.」，"
+                + "三次生成就是 720 条，占整份日志 ERROR 的八成以上。"
+                + "日志把责任指向三个模组的「击杀提示」补丁，但真正打出这句话的是引擎自己："
+                + "`Faction.OfPlayer` 这个属性的 getter 在找不到玩家派系时会打一条 Error。"
+                + "而世界生成时玩家派系本来就还没建立（得先有地图、有殖民者），"
+                + "这是正常的中间状态，不是谁的 bug。"
+                + "本项在「还没进地图、且确实没有玩家派系」时改走引擎自带的静默版本。"
+                + "★ 返回值与原先**一模一样**（都是 null），三个模组一行代码都不改；"
+                + "★ 进游戏之后如果真找不到玩家派系，原版照常报红字 —— 那才是真异常；"
+                + "★ 只提示一次，日志里能查到本项在工作。"),
+
+            // 【56】与【55】同一类：日志里只有一行红字，实际是一整块功能没跑起来。
+            //   区别是它自己能 fail-soft（上层有 try/catch），所以排在本组末位。
+            new Entry("rqpFactionLeaderGuard", GroupCompat,
+                "帝国头衔生成时的集合改动异常（【56】）",
+                "「Real Faction Guest」在给派系领袖校正背景故事时，"
+                + "会在遍历某个集合的过程中改动它 —— 于是抛"
+                + "「Collection was modified」，被它自己的上层 catch 掉、"
+                + "记成一条「FactionLeaderValidator Failed」加整段堆栈。"
+                + "这条异常只在世界生成「初始化帝国头衔」那一步出现一次，"
+                + "它自己的 try/catch 本来就会接住，所以**游戏不会中断**；"
+                + "真正的影响是那一次背景修正没做成，外加日志里多一段吓人的红字。"
+                + "本项只把这一种异常单独摘掉并合并成一条提示。"
+                + "★ 如实说明：这属于「让日志说实话」，不是「把功能修好了」——"
+                + "要真修得改那个模组的遍历写法，风险远高于收益，故不做；"
+                + "★ 别的异常（含真正的空引用）原样上抛，一个都不替别人兜。",
+                "GNH.LocalFixes.RqpFactionLeaderValidatorGuardFix"),
+
+            // ---------------- 2026-11-12 第二轮全局日志诊断新增 ----------------
+            //
+            // 【54】是那 720 条红字的根：世界生成期给派系领袖装义体，装到一半被判死亡，
+            //   于是同一个领袖连生 120 次全败，每次失败又触发三处「击杀提示」补丁各打一行。
+            //   本组放两条：一条只取证（默认关闭、只读），一条按取证结论动手（默认开启）。
+            //   分开的理由很实际 —— 死因的最后一环必须由实机日志说了算，
+            //   先取证再加刀，比先猜一个改法把它压下去要靠谱得多。
+            new Entry("pawnGenDeathProbe", GroupDiagnostics,
+                "世界生成期死亡取证（默认关闭）",
+                "专门给「某个派系的领袖怎么都生不出来」这类疑难用的只读勘探工具。"
+                + "症状是日志里反复出现「Generated dead pawn」加一串"
+                + "「Could not generate a pawn after N tries」，最后该派系没有领袖。"
+                + "本项在「引擎准备判定某只小人死亡」的那一刻之前插一脚："
+                + "只有当这只小人正在被生成、且此刻确实已满足死亡条件时才动手，"
+                + "把它的种族、派系、身上每一条 Hediff（含所在部位与严重度）、"
+                + "五项死亡判据的逐条结果、以及全部致命产能的实际数值写进日志。"
+                + "★ 它只读：一个变量都不改，最坏只是多几行日志；"
+                + "★ 每个进程最多输出 24 条，不会把日志刷爆；"
+                + "★ 没有排查需求时建议一直关着。"
+                + "用法：开本项 → 重启游戏 → 开一局新档 → 日志里搜「【54】pawn-gen death probe」。"),
+
+            new Entry("pawnGenRestorePartGuard", GroupCrash,
+                "世界生成期装义体被误判死亡（【54】）",
+                "世界生成时会先给派系成员装配义体。原版装义体的代码里有一句"
+                + "「把这个部位恢复成原样」，而这句话默认会顺手做一次死亡判定 ——"
+                + "可装配本身还没做完，判定自然是错的，于是小人当场被判定死亡，"
+                + "派系领袖连生 120 次全败、每次刷三行红字，累计 720 条。"
+                + "本项只在「这只小人正在被生成」这个窗口里，把那次多余的死亡判定关掉。"
+                + "★ 依据是引擎作者自己：他在「装假体」那条路径上写的是"
+                + " RestorePart(…, checkStateChange: false)，说明他本人也认为这条路径不该判死；"
+                + "本项只是把另一条路径补成同样的语义。"
+                + "★ 玩家在手术台上装义体、战斗中受伤、日常治疗 —— 全部不受影响；"
+                + "★ 生成结束后引擎自己的校验（允许死亡 / 允许倒地）照常生效，"
+                + "该拦的照样拦，没有一处功能被拿掉。"),
+
+            new Entry("twilightGameComponentRebuild", GroupCrash,
+                "贞操科技的核心组件从来没被创建（【55】）",
+                "「缇瓦莱特贞操科技」把「高潮许可挑战」的全部状态放在一个游戏组件里，"
+                + "但那个组件的构造函数写成了无参形式，而引擎统一按"
+                + "「给你一个 Game 对象」的方式去创建它 —— 参数对不上，创建失败，"
+                + "引擎 catch 掉、打一行红字就过去了。"
+                + "后果是这套系统的每一个功能都不工作：挑战计时不跑、进度永远为空、"
+                + "旧存档迁移逻辑不执行，而日志里从头到尾只有那三行红字。"
+                + "本项在引擎建完所有组件之后，用作者写的那种无参构造把它补进去，"
+                + "并做幂等检查（引擎在读档时也会重走一遍这条路径）。"
+                + "★ 作者写的 GameComponentTick / GetHandler 等逻辑一行不改、全部照跑，"
+                + "唯一的变化是「它终于会跑了」；"
+                + "★ 模组没装就直接跳过；作者哪天把构造函数改对了，本项会自动让位、什么都不做；"
+                + "★ 旧存档里没有这个节点，首次加载按空列表起步（正是它本该有的起点），不崩不丢数据。"),
 
             new Entry("mechanitorBandwidthGizmo", GroupSpam,
                 "机械师带宽面板每帧刷屏（【51】）",
@@ -791,7 +922,18 @@ namespace GNH.LocalFixes
             { "gfmIdleCombatDeepCopy", "arandomkiwi.guardsforme" },
             { "ccoeReflection", "keahuy.rjw.ccoe" },
             { "fixVfeeInstrumentSpace", "OskarPotocki.VFE.Empire" },
-            { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },
+            { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },            // Ancient amorphous threat：写错字段的那条补丁由它提供
+            { "xmlAncientThreatIntField", "XMB.AncientThreat.MO" },
+
+            // ---- 2026-11-12 第二轮全局日志诊断新增 ----
+            // 贞操科技：被补建的那个 GameComponent 在这个模组的 dll 里
+            { "twilightGameComponentRebuild", "LT.TwilightChastityTechnology" },
+            // Real Faction Guest：背景校验器在这个模组的 dll 里
+            { "rqpFactionLeaderGuard", "rtxyd.RealFactionGuest" },
+            // 涅瓦莲附加包：写错 texPath 的那个 def 由它提供
+            { "xmlNivarianStarfallBeaconTexPath", "LeatherRingFox.RimSMFramework.NivarianRaceAddon" },
+            // VOE 附加前哨：餐厅前哨的产出列表由它提供
+            { "xmlVoeSushiMigration", "MrHydralisk.VOEAdditionalOutposts" },
             // ⚠ 2026-11-05 复审订正：这一项原来填的是 readyforjeff.rjwpeculiarinstitution
             //   （Peculiar Institution / 小妾项圈）—— **填错了模组**。
             //   本项修的 `rjwpe.SoundReplacementDef` 来自「RimJobWorld Pedophilia Extension」

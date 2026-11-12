@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!--
+    ══════════════════════════════════════════════════════════════════════════
+    【58】VOE「附加前哨」的餐厅前哨还在产 8 种已被上游合并掉的寿司
+
+    ── 症状（本机日志原文，2026-11-12）─────────────────────────────────────
+      17:51:14 (×8)  Could not resolve cross-reference: No Verse.ThingDef named
+                     VCE_Chirashizushi found to give to
+                     VOEAdditionalOutposts.ResultOptionFloat
+
+    ── 根因链（三步，缺一不成立）──────────────────────────────────────────
+      ① Vanilla Cooking Expanded - Sushi（2158539170）在 1.6/1.7 把原来的
+         8 种寿司合并成 4 种，旧 defName 全部删除；
+      ② 上游很负责地提供了 VEF.DefMigrationDef，但那只迁移**存档**里的引用；
+      ③ VOE 附加前哨（2873841790）的寿司子模块用 PatchOperationAdd 把 8 个旧名
+         写进了 Outpost_Restaurant 的 ResultOptions —— 那是 **XML 之间**的引用，
+         DefMigrationDef 管不到，于是加载期 8 条 cross-reference 全部解析失败。
+         该 patch 文件在：
+             2873841790\Mods\VanillaExpanded.VCookESushi\Patches\VanillaExpanded.VCookESushi.xml
+
+    ── 上游的合并结果（从 DefMigrationDefs.xml 逐条读出，不是猜的）──────────
+         VCE_Chirashizushi   -> VCE_Sushi_Simple
+         VCE_Norimaki        -> VCE_Sushi_Simple
+         VCE_Uramaki         -> VCE_Sushi_Fine
+         VCE_Nigiri          -> VCE_Sushi_Fine
+         VCE_Temaki          -> VCE_Sushi_Lavish
+         VCE_Futomaki        -> VCE_Sushi_Lavish
+         VCE_Gunkanmaki      -> VCE_Sushi_Gourmet
+         VCE_Oshizushi       -> VCE_Sushi_Gourmet
+
+    ── 为什么是「换成 4 条」而不是「改名成 8 条」──────────────────────────
+      8 个旧名只对应 4 个新 def。若把 8 条原样改名，ResultOptions 里会出现
+      4 组重复项（同一个 Thing 出现两次），随机抽取的概率分布就被翻倍改变，
+      菜单里也会看到一模一样的两个选项。
+      所以按上游的合并结果收成 4 条，**数值照抄原文件**：
+        Simple   10.2        （原 Chirashizushi / Norimaki 各 10.2）
+        Fine     需 Cooking 16，产出 7      （原 Uramaki / Nigiri）
+        Lavish   需 Cooking 32，产出 3.2    （原 Temaki / Futomaki）
+        Gourmet  需 Cooking 64，产出 1.6    （原 Gunkanmaki / Oshizushi）
+
+    ⚠ 如实写明让步：前哨能产的寿司**品种从 8 种变成 4 种**。
+      这不是我们砍的 —— 是上游 VCE 自己把 8 种合并成 4 种；我们只是让前哨跟上。
+      产出数值一个都没动，「餐厅前哨产寿司」这个功能完整保留。
+
+    ── 自动让路 ─────────────────────────────────────────────────────────
+      · 每条 Operation 都带 <success>Always</success>，所以：
+        上游哪天自己修好了（旧名不再出现）→ Remove 找不到东西，跳过，不报错；
+        上游把新 def 改名了 → Add 失败，跳过，也不报错。
+      · 整段不需要 findMod 守卫：xpath 命中不了就什么都不发生。
+    ══════════════════════════════════════════════════════════════════════════
+  -->
+  <Operation Class="PatchOperationSequence">
+    <!-- success=Always 只影响「Test 不通过时要不要报一条补丁失败」，
+         不改变短路行为：Test 失败 → 整个 Sequence 仍然什么都不做。 -->
+    <success>Always</success>
+    <operations>
+
+      <!-- ── 第 0 步：先确认上游已经把寿司合并成新 def ──
+           为什么要有这一步：本补丁的「8 条换成 4 条」只在「新 def 存在」时才有意义。
+           万一将来某个版本又回到 8 种、或者 VCE 被换成别的实现，
+           这里 Test 不通过 → 整个 Sequence 短路 → 什么都不动（而不是把有效产出删掉）。
+           实测 1.6 与 1.7 两边都已有 VCE_Sushi_Simple，所以正常情况下这步必过。 -->
+      <li Class="PatchOperationTest">
+        <xpath>Defs/ThingDef[defName="VCE_Sushi_Simple"]</xpath>
+      </li>
+
+      <!-- ── 第 1、2 步包在带 success=Always 的内层 Sequence 里 ──
+           外层负责「要不要做」，内层负责「做的过程中别因为某一条失败就中断」。 -->
+      <li Class="PatchOperationSequence">
+        <success>Always</success>
+        <operations>
+
+      <!-- ── 第一步：摘掉 8 条引用旧 defName 的产出项 ── -->
+      <li Class="PatchOperationRemove">
+        <success>Always</success>
+        <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Chirashizushi"]</xpath>
+      </li>
+      <li Class="PatchOperationRemove">
+        <success>Always</success>
+        <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Norimaki"]</xpath>
+      </li>
+      <li Class="PatchOperationRemove">
+        <success>Always</success>
+        <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Uramaki"]</xpath>
+      </li>
+      <li Class="PatchOperationRemove">
+        <success>Always</success>
+        <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Nigiri"]</xpath>
+      </li>
+      <li Class="PatchOperationRemove">
+        <success>Always</success>
+        <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Temaki"]</xpath>
+      </li>
+      <li Class="PatchOperationRemove">
+        <success>Always</success>
+        <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Futomaki"]</xpath>
+      </li>
+      <li Class="PatchOperationRemove">
+        <success>Always</success>
+        <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Gunkanmaki"]</xpath>
+      </li>
+      <li Class="PatchOperationRemove">
+        <success>Always</success>
+        <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Oshizushi"]</xpath>
+      </li>
+
+      <!-- ── 第二步：按上游合并结果补回 4 条（数值照抄原文件） ── -->
+      <li Class="PatchOperationAdd">
+        <success>Always</success>
+        <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions</xpath>
+        <value>
+          <li>
+            <Thing>VCE_Sushi_Simple</Thing>
+            <AmountsPerSkills>
+              <Cooking>10.2</Cooking>
+            </AmountsPerSkills>
+          </li>
+          <li>
+            <Thing>VCE_Sushi_Fine</Thing>
+            <MinSkills>
+              <Cooking>16</Cooking>
+            </MinSkills>
+            <AmountsPerSkills>
+              <Cooking>7</Cooking>
+            </AmountsPerSkills>
+          </li>
+          <li>
+            <Thing>VCE_Sushi_Lavish</Thing>
+            <MinSkills>
+              <Cooking>32</Cooking>
+            </MinSkills>
+            <AmountsPerSkills>
+              <Cooking>3.2</Cooking>
+            </AmountsPerSkills>
+          </li>
+          <li>
+            <Thing>VCE_Sushi_Gourmet</Thing>
+            <MinSkills>
+              <Cooking>64</Cooking>
+            </MinSkills>
+            <AmountsPerSkills>
+              <Cooking>1.6</Cooking>
+            </AmountsPerSkills>
+          </li>
+        </value>
+      </li>
+
+        </operations>
+      </li>
+
+    </operations>
+  </Operation>
+</Patch>

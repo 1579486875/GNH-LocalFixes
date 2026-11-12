@@ -130,8 +130,23 @@ namespace GNH.LocalFixes
     // ==========================================================================
     public static class RjwPawnGenPostfixNullFix
     {
-        /// <summary>RJW 那个补丁类的完整类型名（`internal static class`，只能反射取）。</summary>
-        private const string TargetTypeName = "rjw.Patch_PawnGenerator_GenerateNewPawnInternal";
+        /// <summary>
+        /// 需要打兜底的类型全名 —— **同一模式的所有 RJW 系程序集都列在这里**。
+        ///
+        /// 为什么是复数（2026-11-12 第二轮全局日志诊断实证）：
+        ///   `RJWQuirks` 是 RJW 的**另一个程序集**，它给同一个方法挂了 Postfix，
+        ///   而且一模一样地没判空：
+        ///       at RJWQuirks.QuirkAdder.Generate(Pawn pawn)
+        ///       at RJWQuirks.Patches.Patch_PawnGenerator_GenerateNewPawnInternal.Postfix(…)
+        ///       → NullReferenceException → Error in WorldGenStep
+        ///   它不在 RJW 本体那条兜底的覆盖范围内，所以必须单独列一项。
+        ///   类型名对不上（那个模组没装）就跳过 —— 这不是错误。
+        /// </summary>
+        private static readonly string[] TargetTypeNames =
+        {
+            "rjw.Patch_PawnGenerator_GenerateNewPawnInternal",
+            "RJWQuirks.Patches.Patch_PawnGenerator_GenerateNewPawnInternal",
+        };
 
         /// <summary>它的方法名。</summary>
         private const string TargetMethodName = "Postfix";
@@ -152,47 +167,73 @@ namespace GNH.LocalFixes
 
             try
             {
-                Type targetType = AccessTools.TypeByName(TargetTypeName);
-                if (targetType == null)
-                {
-                    // 没装 RJW —— 正常情况，不是错误。
-                    installed = true;
-                    Log.Message("[GNH LocalFixes] RJW is not present; its pawn-generation null guard was skipped"
-                        + " (nothing to do, other fixes are unaffected).");
-                    return;
-                }
-
-                MethodInfo target = targetType
-                    .GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance)
-                    .FirstOrDefault(m => m.Name == TargetMethodName
-                                         && m.GetParameters().Length == 2
-                                         && m.GetParameters()[1].ParameterType == typeof(Pawn));
-                if (target == null)
-                {
-                    Log.Error("[GNH LocalFixes] RJW is present but " + TargetTypeName + "." + TargetMethodName
-                        + "(…, Pawn) was not found (its API probably changed);"
-                        + " the null guard is deferred and will retry.");
-                    return;
-                }
-
-                MethodInfo finalizer = AccessTools.Method(typeof(RjwPawnGenPostfixNullFix), nameof(Finalizer), null, null);
+                MethodInfo finalizer = AccessTools.Method(
+                    typeof(RjwPawnGenPostfixNullFix), nameof(Finalizer), null, null);
                 if (finalizer == null)
                 {
-                    Log.Error("[GNH LocalFixes] Internal error: RjwPawnGenPostfixNullFix.Finalizer not found."
-                        + " The RJW null guard is NOT active this session.");
+                    Log.Error("[GNH LocalFixes] Internal error: RjwPawnGenPostfixNullFix.Finalizer"
+                        + " not found. The RJW-family null guard is NOT active this session.");
                     return;
                 }
 
-                // 只装 finalizer。理由见文件头「修法」那一大段。
-                LocalFixesMod.HarmonyInstance.Patch(target, null, null, null, new HarmonyMethod(finalizer));
+                int present = 0;   // 外面装了几个 RJW 系模组
+                int patched = 0;   // 其中成功挂上兜底的有几个
+                string unsupported = null;
+
+                for (int i = 0; i < TargetTypeNames.Length; i++)
+                {
+                    string typeName = TargetTypeNames[i];
+                    Type targetType = AccessTools.TypeByName(typeName);
+                    if (targetType == null)
+                    {
+                        continue;   // 这个模组没装 —— 正常情况
+                    }
+
+                    present++;
+
+                    MethodInfo target = targetType
+                        .GetMethods(BindingFlags.Public | BindingFlags.NonPublic
+                                    | BindingFlags.Static | BindingFlags.Instance)
+                        .FirstOrDefault(m => m.Name == TargetMethodName
+                                             && m.GetParameters().Length == 2
+                                             && m.GetParameters()[1].ParameterType == typeof(Pawn));
+                    if (target == null)
+                    {
+                        unsupported = (unsupported == null ? "" : unsupported + ", ")
+                            + typeName + "." + TargetMethodName + "(…, Pawn)";
+                        continue;
+                    }
+
+                    // 只装 finalizer。理由见文件头「修法」那一大段。
+                    LocalFixesMod.HarmonyInstance.Patch(
+                        target, null, null, null, new HarmonyMethod(finalizer));
+                    patched++;
+
+                    Patches info = Harmony.GetPatchInfo(target);
+                    Log.Message("[GNH LocalFixes] Patched " + typeName + "." + TargetMethodName
+                        + " (finalizers=" + (info != null ? info.Finalizers.Count : -1) + ")."
+                        + " A NullReferenceException from that postfix (pawn generation gave up"
+                        + " and returned null) is now swallowed instead of aborting"
+                        + " WorldGenStep_Factions.");
+                }
+
+                if (present == 0)
+                {
+                    // 一个 RJW 系模组都没装 —— 正常情况，不是错误。
+                    installed = true;
+                    Log.Message("[GNH LocalFixes] No RJW-family pawn-generation postfix was found;"
+                        + " the null guard was skipped (nothing to do, other fixes are unaffected).");
+                    return;
+                }
+
+                if (unsupported != null)
+                {
+                    Log.Error("[GNH LocalFixes] Present but not patchable: " + unsupported
+                        + " (its API probably changed). The other " + patched
+                        + " target(s) were patched normally.");
+                }
 
                 installed = true;
-
-                Patches info = Harmony.GetPatchInfo(target);
-                Log.Message("[GNH LocalFixes] Patched " + TargetTypeName + "." + TargetMethodName
-                    + " (finalizers=" + (info != null ? info.Finalizers.Count : -1) + ")."
-                    + " A NullReferenceException from that postfix (pawn generation gave up and returned null)"
-                    + " is now swallowed once per session instead of aborting WorldGenStep_Factions.");
             }
             catch (Exception ex)
             {

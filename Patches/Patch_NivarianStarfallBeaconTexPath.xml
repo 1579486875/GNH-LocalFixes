@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!--
+    ══════════════════════════════════════════════════════════════════════════
+    【59】涅瓦莲两件收藏品的贴图路径各少一层子目录 → 游戏里显示成紫白方块
+
+    ── 症状（本机日志原文，2026-11-12）─────────────────────────────────────
+      17:55:56  Could not load Texture2D at 'Nivarian/Building/starfall_beacon'
+                for def 'NR_RSMF_Collections_StarfallBeacon'
+      17:55:56  Could not load Texture2D at 'Nivarian/Building/lotus'
+                for def 'NR_RSMF_Collections_VerdantBlessing'
+      17:56:00  （同两条，各再来一次 —— Blueprint 变体）
+
+    ── 根因链（三步，缺一不成立）──────────────────────────────────────────
+      ① 定义这两件收藏品的是附加包 LeatherRingFox.RimSMFramework.NivarianRaceAddon
+         （3762527996），它自己**没有任何 Textures 目录**（纯 def/patch 附加包）；
+      ② 贴图实际由本体 keeptpa.NivarianRace（3624805128）的 Content\Textures 提供；
+      ③ 附加包写的 texPath 比本体自己用的少了中间那一层目录：
+             附加包写的                      本体实际位置（本体自己的 def 就写全了）
+             Nivarian/Building/starfall_beacon
+                                       →  Nivarian/Building/StarfallBeacon/starfall_beacon.png
+             Nivarian/Building/lotus
+                                       →  Nivarian/Building/VerdantLocus/lotus.png
+         于是 ContentFinder 找不到图，GraphicDatabase 返回占位图 —— 就是那块紫白方块。
+
+      铁证（本体自己怎么写的，逐字对照）：
+         1.7\Core\Defs\ThingDefs\Buildings_StarfallBeacon.xml:11
+             <texPath>Nivarian/Building/StarfallBeacon/starfall_beacon</texPath>
+         1.7\Royalty\Defs\ThingDef\Nivarian_Psionic_VerdantLocus.xml:30
+             <texPath>Nivarian/Building/VerdantLocus/lotus</texPath>
+
+    ── 修法 ─────────────────────────────────────────────────────────────
+      只把两条 texPath 补全成真正存在的那一条。文件名与大小写都与 PNG 一致
+      （目录 StarfallBeacon / VerdantLocus 首字母大写、文件名全小写），
+      图是同一套涅瓦莲美术、同一张原件，所以**视觉呈现与作者原意完全一致**。
+
+    ── 为什么必须加 findMod 守卫 ─────────────────────────────────────────
+      texPath 指向的是**另一个模组**的 Textures。主包没启用时改完照样找不到图，
+      所以整段包在 <PatchOperationFindMod> 里：主包不在就整段跳过。
+
+    ── 顺带说明：RimImmortal 那条「缺贴图」**不是缺贴图**，别去改它 ────────
+      日志里还有一条 'Could not load Texture2D at Ability/InternalPellet/RI_Ability_InternalFunction'。
+      实测该 AbilityDef 的 iconPath 写的是 'UI/Abilities/InternalPellet/RI_Ability_InternalFunction'，
+      而 Textures\UI\Abilities\InternalPellet\ 下那张 png **一直都在**。
+      也就是说：那条报错来自**旧存档里记录的旧路径**（RI 模组自己改过目录），
+      不是当前 def 的问题 —— 改当前 def 毫无意义，反而会破坏正常的图标。
+    ══════════════════════════════════════════════════════════════════════════
+  -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>keeptpa.NivarianRace</li>
+    </mods>
+    <match Class="PatchOperationSequence">
+      <success>Always</success>
+      <operations>
+
+        <li Class="PatchOperationReplace">
+          <success>Always</success>
+          <xpath>Defs/ThingDef[defName="NR_RSMF_Collections_StarfallBeacon"]/graphicData/texPath</xpath>
+          <value>
+            <texPath>Nivarian/Building/StarfallBeacon/starfall_beacon</texPath>
+          </value>
+        </li>
+
+        <li Class="PatchOperationReplace">
+          <success>Always</success>
+          <xpath>Defs/ThingDef[defName="NR_RSMF_Collections_VerdantBlessing"]/graphicData/texPath</xpath>
+          <value>
+            <texPath>Nivarian/Building/VerdantLocus/lotus</texPath>
+          </value>
+        </li>
+
+      </operations>
+    </match>
+  </Operation>
+</Patch>

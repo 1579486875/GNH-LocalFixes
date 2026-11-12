@@ -441,6 +441,21 @@ namespace GNH.LocalFixes
 
             TryInstall("rjwGenesSpamQuiet", "RjwGenesSpamQuietFix", RjwGenesSpamQuietFix.Install);
 
+            // 【54】/【55】2026-11-12 第二轮全局日志诊断新增。
+            //   诊断项排在最前：它默认关闭，但真要看死因时是第一顺位。
+            TryInstall("pawnGenDeathProbe", "PawnGenDeathCauseFix (diagnostics)",
+                PawnGenDeathCauseFix.InstallDiagnostics);
+            TryInstall("pawnGenRestorePartGuard", "PawnGenDeathCauseFix (guard)",
+                PawnGenDeathCauseFix.InstallGuard);
+            TryInstall("twilightGameComponentRebuild", "TwilightGameComponentRebuildFix",
+                TwilightGameComponentRebuildFix.Install);
+
+            TryInstall("rqpFactionLeaderGuard", "RqpFactionLeaderValidatorGuardFix",
+                RqpFactionLeaderValidatorGuardFix.Install);
+
+            TryInstall("factionOfPlayerNoise", "FactionOfPlayerNoiseFix",
+                FactionOfPlayerNoiseFix.Install);
+
             // 2026-10-11 新增：修掉「雪兔系列」公共库 SRCELib 的并发缺陷。
             //
             // 现象：一局日志被刷到 12.8 MB / 199,045 行，其中

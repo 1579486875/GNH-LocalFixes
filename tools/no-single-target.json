@@ -70,6 +70,15 @@
     "xmlCumworksBadCompRef": "【50】无单一目标：只针对无限精液工坊的两个 defName，且按类型存在性让路",
     "mechanitorBandwidthGizmo": {
       "reason": "【51】改的是**原版** RimWorld.MechanitorBandwidthGizmo.GizmoOnGUI 的排版循环，不针对任何第三方模组，没有单一目标"
+    },
+    "pawnGenDeathProbe": {
+      "reason": "【54】取证工具：观察的是引擎自己的 Pawn_HealthTracker.CheckForStateChange，对所有会「在世界生成期装义体」的模组生效，没有单一目标模组"
+    },
+    "pawnGenRestorePartGuard": {
+      "reason": "【54】修的是引擎自己 Pawn_HealthTracker.RestorePart 的缺省参数语义，所有走「无地图 + 无手术者」分支装义体的模组都受益，没有单一目标模组"
+    },
+    "factionOfPlayerNoise": {
+      "reason": "【57】修的是引擎自己 Faction.OfPlayer 的 getter 打日志行为，所有在世界生成期读它的模组都受益（实测至少三处补丁在读），没有单一目标模组"
     }
   }
 }

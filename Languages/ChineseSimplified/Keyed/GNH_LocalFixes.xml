@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <LanguageData>
   <!--
     ═══════════════════════════════════════════════════════════════
@@ -148,4 +148,26 @@
   <GNH_LocalFixes_Toggle_xmlMiliraApparelPaths_Desc>米莉拉的「穿这件衣服就换成自家贴图」表里，BodyStrap 与 TribalA 这两条各出现了两次。游戏往字典里塞第二条时会抛重复键异常，被 catch 吞掉——表面上只是两条红字，实际后果是这张表的内容与作者预期不一致，该种族整套服装贴图替换会退回人类默认贴图。本项只在「真的重复了」的时候动手：先删掉该键的全部条目，再加回恰好一条。★ 正常只有一条时 xpath 不命中，整段不执行，一个字节都不改——上游修好后本项自动让路。★ 本模组必须排在外星人SA纹理适配之后才有意义，About 里已写 loadAfter。</GNH_LocalFixes_Toggle_xmlMiliraApparelPaths_Desc>
   <GNH_LocalFixes_Toggle_xiuxianCopyBookGuard>边缘仙路配方补丁在 DefOf 就绪前必崩（【53】）</GNH_LocalFixes_Toggle_xiuxianCopyBookGuard>
   <GNH_LocalFixes_Toggle_xiuxianCopyBookGuard_Desc>边缘仙路（RimImmortal-Core）在「配方生成结果」那一步挂了一个 postfix，里面用 try/catch 包住自己的逻辑，但收尾的 finally 里又去解引用同一个 DefOf 字段 ——而 DefOf 要等所有 Def 加载完才注入，那时它还是 null。结果：catch 把第一处空引用吞了、只打一行日志，紧接着 finally 又炸一次，这次没人接，异常逃出整个流程，把 play data 加载打断，游戏随后会重置模组配置并放弃加载。本项在它前面加一道守卫：那个 DefOf 字段还是 null 时，整个 postfix 跳过。★ 字段就绪之后自动放行，不是永久停用；★ 1.7 侧通常根本不会触发（那边时序不同），这正是预期。</GNH_LocalFixes_Toggle_xiuxianCopyBookGuard_Desc>
+
+  <GNH_LocalFixes_Toggle_pawnGenDeathProbe>世界生成期死亡取证（默认关闭）</GNH_LocalFixes_Toggle_pawnGenDeathProbe>
+  <GNH_LocalFixes_Toggle_pawnGenDeathProbe_Desc>给「某个派系的领袖怎么都生不出来」这类疑难用的只读勘探工具。开启后，当引擎准备判定某只小人死亡、而这只小人正在被生成时，会把它的种族 / 派系 / 身上每条 Hediff / 五项死亡判据的逐条结果 / 全部致命产能的实际数值写进日志。只读，不改任何行为，每个进程最多 24 条。</GNH_LocalFixes_Toggle_pawnGenDeathProbe_Desc>
+  <GNH_LocalFixes_Toggle_pawnGenRestorePartGuard>世界生成期装义体被误判死亡（【54】）</GNH_LocalFixes_Toggle_pawnGenRestorePartGuard>
+  <GNH_LocalFixes_Toggle_pawnGenRestorePartGuard_Desc>世界生成时先给派系成员装义体，原版装义体的代码里有一句「恢复这个部位」，它默认会顺手做一次死亡判定 —— 可装配还没做完，于是小人当场被判死，派系领袖连生 120 次全败、累计 720 条红字。本项只在「小人正在生成」时关掉那次多余的判定。依据是引擎作者自己在「装假体」路径上就传了 checkStateChange: false。★ 手术台 / 战斗 / 日常治疗全部不受影响；生成结束后引擎自己的校验照常生效。</GNH_LocalFixes_Toggle_pawnGenRestorePartGuard_Desc>
+  <GNH_LocalFixes_Toggle_twilightGameComponentRebuild>贞操科技的核心组件从来没被创建（【55】）</GNH_LocalFixes_Toggle_twilightGameComponentRebuild>
+  <GNH_LocalFixes_Toggle_twilightGameComponentRebuild_Desc>「缇瓦莱特贞操科技」的核心组件把构造函数写成了无参形式，而引擎按「传一个 Game 对象」的方式创建它，参数对不上 → 创建失败 → 引擎 catch 掉只打一行红字。结果这套系统的所有功能都不工作。本项在引擎建完组件之后用无参构造把它补进去，并做幂等检查。★ 作者的逻辑一行不改、全部照跑，唯一变化是「它终于会跑了」；★ 模组没装就跳过；作者改对后本项自动让位。</GNH_LocalFixes_Toggle_twilightGameComponentRebuild_Desc>
+
+  <GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>帝国头衔生成时的集合改动异常（【56】）</GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>
+  <GNH_LocalFixes_Toggle_rqpFactionLeaderGuard_Desc>「Real Faction Guest」给派系领袖校正背景故事时，会在遍历某个集合的过程中改动它，抛出「Collection was modified」。它自己的上层有 try/catch，所以游戏不会中断；真正的影响是那一次背景修正没做成，日志里多一段整栈红字。本项只把这一种异常单独摘掉并合并成一条提示。★ 这是「让日志说实话」，不是「把功能修好了」；★ 别的异常原样上抛。</GNH_LocalFixes_Toggle_rqpFactionLeaderGuard_Desc>
+
+  <GNH_LocalFixes_Toggle_factionOfPlayerNoise>世界生成期刷 720 条「找不到玩家派系」（【57】）</GNH_LocalFixes_Toggle_factionOfPlayerNoise>
+  <GNH_LocalFixes_Toggle_factionOfPlayerNoise_Desc>每次世界生成都会刷 240 条「Could not find player faction.」，三次就是 720 条。真正打出这句话的是引擎自己：Faction.OfPlayer 的 getter 在找不到玩家派系时会打一条 Error，而世界生成时玩家派系本来就还没建立 —— 这是正常的中间状态。本项在「还没进地图且确实没有玩家派系」时改走引擎自带的静默版本。★ 返回值与原先一模一样（都是 null），不改任何模组；★ 进游戏后真找不到玩家派系，原版照常报红字。</GNH_LocalFixes_Toggle_factionOfPlayerNoise_Desc>
+
+  <GNH_LocalFixes_Toggle_xmlVoeSushiMigration>餐厅前哨还在产已被合并掉的 8 种寿司（【58】）</GNH_LocalFixes_Toggle_xmlVoeSushiMigration>
+  <GNH_LocalFixes_Toggle_xmlVoeSushiMigration_Desc>VCE - Sushi 在 1.6/1.7 把 8 种寿司合并成 4 种、旧名全删，官方的迁移定义只管存档引用，管不到模组 XML 之间的引用。VOE 附加前哨的餐厅子模块正好写死了那 8 个旧名，于是加载期连打 8 条错误、该前哨的寿司产出也失效。本项按上游的合并关系把 8 条换成 4 条，数值照抄原文件。★ 品种从 8 种变 4 种是上游自己的合并，产出数值未动；★ 上游修好后本项自动让路。</GNH_LocalFixes_Toggle_xmlVoeSushiMigration_Desc>
+
+  <GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath>涅瓦莲星陨信标贴图路径少一层目录（【59】）</GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath>
+  <GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath_Desc>附加包给「星陨信标」写的贴图路径少了 StarfallBeacon 这一层子目录，图其实就在同族主包里。于是加载期报两条「找不到贴图」，游戏里显示成紫白方块。本项只把路径改成真正存在的那一条，视觉与作者原意完全一致。★ 「翠绿祝福」的 lotus 同样是少一层目录，已一并修好；两条都只是把路径补全，用的是本体自己那份原件。</GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath_Desc>
+
+  <GNH_LocalFixes_Toggle_xmlAncientThreatIntField>一个整数字段被写成了小数，每次加载刷 38 条（【60】）</GNH_LocalFixes_Toggle_xmlAncientThreatIntField>
+  <GNH_LocalFixes_Toggle_xmlAncientThreatIntField_Desc>「Ancient amorphous threat」往所有叙事者的父类里加了个组件，其中「第几天触发」写成了 0.5，而它在引擎里是整数字段 —— 引擎会截断成 0 并打一条「Parsed 0.5 as int.」，因为加在父类上，每个叙事者各报一次，于是每次加载 38 条。本项把值写成显式整数 0。★ 行为完全不变（原来就被截断成 0）；★ 没改成 1 是因为那会推迟触发时间，属于改作者数值设计。</GNH_LocalFixes_Toggle_xmlAncientThreatIntField_Desc>
 </LanguageData>

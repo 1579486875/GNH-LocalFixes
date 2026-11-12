@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Patch>
+  <!--
+    ══════════════════════════════════════════════════════════════════════════
+    【60】`Parsed 0.5 as int.` × 38 —— 一个整数字段被写成了小数
+
+    ── 症状（本机日志，2026-11-12）─────────────────────────────────────────
+        WARN [Verse] Parsed 0.5 as int.
+          at Verse.ParseHelper.ParseIntPermissive(String str)
+          at …ParseAndSetComplexTypeField_System_Int32(…)
+          at …ParseAndAddComplexTypeToList_SharedBody(…)
+          at …ParseAndSetListField_RimWorld_StorytellerCompProperties(…)
+          at …ParseAndReturnDef_Verse_Def(…)
+      每加载一次刷 38 条（报告里写 220 条是把两份日志加在一起了，单份实测 110 条，
+      其中属于本栈的是 38 条）。
+
+    ── 根因链（三步，缺一不成立）──────────────────────────────────────────
+      ① 模组 **Ancient amorphous threat**（工坊 3313313985，packageId `XMB.AncientThreat.MO`）
+         用一条 PatchOperationAdd 往 `Defs/StorytellerDef[@Name="BaseStoryteller"]/comps` 里
+         加了一个 `StorytellerCompProperties_SingleOnceFixed`：
+             Patches\StoryTeller.xml 第 7 行 →  <fireAfterDaysPassed>0.5</fireAfterDaysPassed>
+      ② 那个字段在 Assembly-CSharp 里是 **Int32**（不是 Single）：
+             RimWorld.StorytellerCompProperties_SingleOnceFixed.fireAfterDaysPassed  →  Int32
+         引擎的 `ParseHelper.ParseIntPermissive` 解析失败时不会报错，而是**截断**：
+             if (!int.TryParse(str, …)) { result = (int)float.Parse(str, …);   // 0.5 -> 0
+                                           Log.Warning("Parsed " + str + " as int."); }
+      ③ 那条补丁加在 **BaseStoryteller**（所有叙事者的抽象基类）上，
+         而每个 StorytellerDef 解析时都会各自重跑一遍这段 comps，
+         所以 1 处写错 → 每个叙事者各报 1 条 → 启用集 38 个叙事者 = 38 条/次加载。
+
+    ── 修法：把「实际生效值」写成显式整数 ─────────────────────────────────
+      改成 `<fireAfterDaysPassed>0</fireAfterDaysPassed>`。
+      **行为一点没变**：原来那 0.5 本来就被截断成 0，这个 comp 一直是「第 0 天触发」。
+      现在只是把同一个值写成引擎认得的写法，警告随之消失。
+
+      ⚠ 为什么**不**改成 1（「第 1 天触发」）：那会把这个事件的触发时间往后推一天，
+        属于改作者的数值设计。模板 §0.2 的判据是「只允许牺牲已经坏掉的东西」——
+        这里能保住原样（0）就没有理由改数值。
+
+    ── 顺带说明：**不要**去改其它那几个「看起来也是小数」的字段 ─────────────
+      实测 `StorytellerCompProperties` 全系里 int 字段只有 8 个
+      （delayTicks / countdownFactorAnyConnectors / fireAfterDaysPassed /
+        minColonistCount / mtbDays(仅 MechanitorComplexQuest) / minColonyWealth 等），
+      而 `minSpacingDays` / `onDays` / `offDays` / `minDaysPassed` / `mtbDays`（RandomMain 等）
+      全都是 **Single**，写小数本来就是对的。全库这 8 个 int 字段里只有本文这一处被赋了小数。
+
+    ── 自动让路 ─────────────────────────────────────────────────────────
+      用 PatchOperationFindMod 守卫；作者哪天自己改成整数，xpath 不再命中，
+      整段什么都不做（也不会报一条补丁失败）。
+    ══════════════════════════════════════════════════════════════════════════
+  -->
+  <Operation Class="PatchOperationFindMod">
+    <mods>
+      <li>XMB.AncientThreat.MO</li>
+    </mods>
+    <match Class="PatchOperationSequence">
+      <success>Always</success>
+      <operations>
+        <li Class="PatchOperationReplace">
+          <success>Always</success>
+          <xpath>Defs/StorytellerDef[@Name="BaseStoryteller"]/comps/li[@Class="StorytellerCompProperties_SingleOnceFixed"]/fireAfterDaysPassed[text()="0.5"]</xpath>
+          <value>
+            <fireAfterDaysPassed>0</fireAfterDaysPassed>
+          </value>
+        </li>
+      </operations>
+    </match>
+  </Operation>
+</Patch>
