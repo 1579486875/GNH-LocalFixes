@@ -147,11 +147,23 @@ def main():
         bad.append(('补丁文件没有对应开关', sorted(realfiles - declared)))
 
     # ④ 补丁类登记表 vs 源码里真实存在的 Patch_ 类
+    # ⚠ 必须先剥注释：源码里会**引用别人的**类名
+    #   （例：RjwPawnGenPostfixNullFix.cs 的注释里写着
+    #    `internal static class Patch_PawnGenerator_GenerateNewPawnInternal`，
+    #    那是 RJW 模组 `rjw.` 命名空间下的类，不是我们的）。
+    #   2026-11-12 就因为没剥注释，把一个外部类名当成「我们新增但忘了登记的补丁类」，
+    #   误报了整整一轮。
+    def strip_comments(text):
+        text = re.sub(r'/\*[\s\S]*?\*/', '', text)
+        text = re.sub(r'//[^\n]*', '', text)
+        return text
+
     src_classes = set()
     for f in os.listdir(SRC):
         if not f.endswith('.cs'):
             continue
-        for m in re.finditer(r'class\s+(Patch_\w+)', read(os.path.join(SRC, f))):
+        body = strip_comments(read(os.path.join(SRC, f)))
+        for m in re.finditer(r'\bclass\s+(Patch_\w+)', body):
             src_classes.add('GNH.LocalFixes.' + m.group(1))
     if src_classes - clsreg:
         bad.append(('补丁类没登记进登记表（退化路径会漏装）', sorted(src_classes - clsreg)))

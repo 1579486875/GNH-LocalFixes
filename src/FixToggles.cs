@@ -775,6 +775,12 @@ namespace GNH.LocalFixes
             new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
         {
             { "nmmIdeoTrackerNull", "dord.nuditymattersmore" },
+            // RimJobWorld 本体；它挂的 Postfix 就在 rim.job.world 里
+            { "rjwPawnGenPostfixNull", "rim.job.world" },
+            // 边缘仙路本体（工坊 3296476341）；被守卫的 Postfix 在这个模组的 MOD.dll 里
+            { "xiuxianCopyBookGuard", "RI.RimImmortal.Core" },
+            // 米莉拉种族；被去重的 individualPaths 在它的 alienRace 定义里
+            { "xmlMiliraApparelPaths", "Ancot.MiliraRace" },
             { "alliesAreHelpfulCurJobNull", "ninagoblin.alliesarehelpful" },
             // ⚠ 这一项修的是 SRCELib.dll 的并发缺陷，而 SRCELib.dll 由
             //   「Snow Rabbit Commodities Expansion——Playbunny Corporation」
