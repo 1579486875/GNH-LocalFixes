@@ -49,21 +49,24 @@
       整段什么都不做（也不会报一条补丁失败）。
     ══════════════════════════════════════════════════════════════════════════
   -->
-  <Operation Class="PatchOperationFindMod">
-    <mods>
-      <li>XMB.AncientThreat.MO</li>
-    </mods>
-    <match Class="PatchOperationSequence">
-      <success>Always</success>
-      <operations>
-        <li Class="PatchOperationReplace">
+  <Operation Class="PatchOperationSequence">
+    <success>Always</success>
+    <operations>
+
+      <!-- 守卫：直接验「那个值为 0.5 的节点真的存在」。
+           ⚠ 不用 PatchOperationFindMod —— 它比的是模组**显示名**而不是 packageId。 -->
+      <li Class="PatchOperationTest">
+        <xpath>Defs/StorytellerDef[@Name="BaseStoryteller"]/comps/li[@Class="StorytellerCompProperties_SingleOnceFixed"]/fireAfterDaysPassed[text()="0.5"]</xpath>
+      </li>
+
+      <li Class="PatchOperationReplace">
           <success>Always</success>
           <xpath>Defs/StorytellerDef[@Name="BaseStoryteller"]/comps/li[@Class="StorytellerCompProperties_SingleOnceFixed"]/fireAfterDaysPassed[text()="0.5"]</xpath>
           <value>
             <fireAfterDaysPassed>0</fireAfterDaysPassed>
           </value>
-        </li>
-      </operations>
-    </match>
+      </li>
+
+    </operations>
   </Operation>
 </Patch>

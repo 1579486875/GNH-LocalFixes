@@ -46,13 +46,17 @@
       不是当前 def 的问题 —— 改当前 def 毫无意义，反而会破坏正常的图标。
     ══════════════════════════════════════════════════════════════════════════
   -->
-  <Operation Class="PatchOperationFindMod">
-    <mods>
-      <li>keeptpa.NivarianRace</li>
-    </mods>
-    <match Class="PatchOperationSequence">
-      <success>Always</success>
-      <operations>
+  <Operation Class="PatchOperationSequence">
+    <success>Always</success>
+    <operations>
+
+      <!-- 守卫：目标 def 与那条「写短了」的 texPath 都必须真的存在。
+           ⚠ 这里刻意**不用** PatchOperationFindMod —— 它比的是模组**显示名**而不是
+             packageId（反编译 ModLister.HasActiveModWithName 只有 mod.Name == name），
+             写 packageId 会永远不命中。用 Test 直接验节点，最稳。 -->
+      <li Class="PatchOperationTest">
+        <xpath>Defs/ThingDef[defName="NR_RSMF_Collections_StarfallBeacon"]/graphicData/texPath[text()="Nivarian/Building/starfall_beacon"]</xpath>
+      </li>
 
         <li Class="PatchOperationReplace">
           <success>Always</success>
@@ -70,7 +74,6 @@
           </value>
         </li>
 
-      </operations>
-    </match>
+    </operations>
   </Operation>
 </Patch>
