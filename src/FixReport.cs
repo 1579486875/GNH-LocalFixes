@@ -87,6 +87,10 @@ namespace GNH.LocalFixes
             }
             catch (Exception)
             {
+                // ⚠ 这里刻意吞异常：本方法只做「记账」——把没装上的 Id 记进 failed，
+                //   好让设置界面与日志汇总能显示出来。记账本身失败绝不该影响任何补丁的安装
+                //   （那些安装各自有 try/catch）。吞掉时不留日志是有意的：这条路径每次启动
+                //   都会跑一遍，真出错会刷屏，而它出错的唯一后果就是「界面上少显示一条」。
             }
         }
 
@@ -343,6 +347,9 @@ namespace GNH.LocalFixes
             }
             catch (Exception)
             {
+                // ⚠ 同样刻意吞：这里只是「探测有没有装 DefLoadCache 那类模组」，
+                //   用于决定要不要跳过某些清理逻辑。探测失败时按下限处理（found=false），
+                //   即「当作没装」—— 那样保守、不会多做动作。不让探测失败影响本模组其余功能。
             }
             anyDefLoadCacheMod = found;
             return found;
