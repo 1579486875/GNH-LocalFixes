@@ -104,7 +104,7 @@ def build_pkg_index():
     """扫 Mods / workshop / 1.6 Mods 的 About.xml，建 packageId → 模组根目录。"""
     idx = {}
     for base in (r'D:\steam\steamapps\common\RimWorld\Mods',
-                 r'D:\steam\steamapps\workshop\content94100',
+                 r'D:\steam\steamapps\workshop\content\294100',
                  r'D:\RimWorld-1.6\Mods'):
         if not os.path.isdir(base):
             continue
