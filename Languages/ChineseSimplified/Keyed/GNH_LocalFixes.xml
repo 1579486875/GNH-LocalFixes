@@ -170,4 +170,7 @@
 
   <GNH_LocalFixes_Toggle_xmlAncientThreatIntField>一个整数字段被写成了小数，每次加载刷 38 条（【60】）</GNH_LocalFixes_Toggle_xmlAncientThreatIntField>
   <GNH_LocalFixes_Toggle_xmlAncientThreatIntField_Desc>「Ancient amorphous threat」往所有叙事者的父类里加了个组件，其中「第几天触发」写成了 0.5，而它在引擎里是整数字段 —— 引擎会截断成 0 并打一条「Parsed 0.5 as int.」，因为加在父类上，每个叙事者各报一次，于是每次加载 38 条。本项把值写成显式整数 0。★ 行为完全不变（原来就被截断成 0）；★ 没改成 1 是因为那会推迟触发时间，属于改作者数值设计。</GNH_LocalFixes_Toggle_xmlAncientThreatIntField_Desc>
+
+  <GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard>世界生成期被「Just A Flesh Wound」判死（【61】）</GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard>
+  <GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard_Desc>「[Kit] Just A Flesh Wound」把每条 MissingBodyPart 按部位最大生命值折算成伤害、四肢还有倍率，从一份「韧性」里扣、扣光就判死。而装义体本身就会产生一批 MissingBodyPart —— 于是 UFC 那种全身义体化打手在世界生成时一次装 4 件义体，36 个部位变缺失，韧性扣光、当场判死，领袖连生 120 次全败。本项只在「小人正在被生成」时跳过它那一次重算；游戏内真实受伤与断肢时逻辑一点不改。</GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard_Desc>
 </LanguageData>

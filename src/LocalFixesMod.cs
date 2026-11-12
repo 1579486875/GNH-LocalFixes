@@ -452,6 +452,8 @@ namespace GNH.LocalFixes
 
             TryInstall("rqpFactionLeaderGuard", "RqpFactionLeaderValidatorGuardFix",
                 RqpFactionLeaderValidatorGuardFix.Install);
+            TryInstall("jafwLethalDamageGenGuard", "JafwLethalDamageGenerationGuardFix",
+                JafwLethalDamageGenerationGuardFix.Install);
 
             TryInstall("factionOfPlayerNoise", "FactionOfPlayerNoiseFix",
                 FactionOfPlayerNoiseFix.Install);

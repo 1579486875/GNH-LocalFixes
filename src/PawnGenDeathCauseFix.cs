@@ -1,4 +1,4 @@
-// ---------------------------------------------------------------------------
+﻿// ---------------------------------------------------------------------------
 // 本文件由 AI 助手「DeepSeek娘·汐蓝」辅助编写。
 // 设计、需求、审阅与实机验证由人类作者（大赢经直插白皮赢道）完成。
 // AI-assisted: written with DeepSeek Niang · Xi Lan (AI);
@@ -262,6 +262,10 @@ namespace GNH.LocalFixes
                   .Append(" sev=").Append(h.Severity.ToString("0.###"))
                   .Append(" part=").Append(h.Part == null ? "(whole body)" : h.Part.Label)
                   .Append(" class=").Append(h.GetType().Name)
+                  // ★ 2026-11-13 加：ShouldBeDeadFromLethalDamageThreshold 只累加
+                  //   `is Hediff_Injury` 的那些，所以到底谁被算进去必须一眼看得到。
+                  .Append(" isInjury=").Append(h is Hediff_Injury ? "YES" : "no")
+                  .Append(" causeDeath=").Append(h.CauseDeathNow() ? "YES" : "no")
                   .Append('\n');
             }
 
@@ -271,14 +275,24 @@ namespace GNH.LocalFixes
             bool preventsDeath = tracker.hediffSet.HasPreventsDeath;
             sb.Append("    HasPreventsDeath      = ").Append(preventsDeath).Append('\n');
 
+            int causeDeathHits = 0;
             for (int i = 0; i < tracker.hediffSet.hediffs.Count; i++)
             {
                 Hediff h = tracker.hediffSet.hediffs[i];
                 if (h != null && h.CauseDeathNow())
                 {
+                    causeDeathHits++;
                     sb.Append("    CauseDeathNow         = ").Append(h.def.defName)
                       .Append(" (sev ").Append(h.Severity.ToString("0.###")).Append(")\n");
                 }
+            }
+
+            if (causeDeathHits == 0)
+            {
+                // ★ 2026-11-13 加：一条都没命中时也要留痕 ——
+                //   否则「没打印」与「打印了空」在日志里长得一样。
+                sb.Append("    CauseDeathNow         = (none of ")
+                  .Append(tracker.hediffSet.hediffs.Count).Append(" hediffs)").Append('\n');
             }
 
             PawnCapacityDef failing = null;
@@ -359,6 +373,113 @@ namespace GNH.LocalFixes
             }
 
             sb.Append("    LethalDamageThreshold = ").Append(lethalDmg).Append('\n');
+
+            // ★ 2026-11-13 加：这一条判据成立与否，取决于「伤害和」与「阈值」两个数。
+            //   原来只打了布尔结果，看不到数，才会出现「数学上不该成立却成立」的死角。
+            try
+            {
+                float scale = pawn.HealthScale;
+                float thr = tracker.LethalDamageThreshold;
+                float sum = 0f;
+                int injuryCount = 0;
+                for (int i = 0; i < tracker.hediffSet.hediffs.Count; i++)
+                {
+                    Hediff h = tracker.hediffSet.hediffs[i];
+                    if (h is Hediff_Injury)
+                    {
+                        sum += h.Severity;
+                        injuryCount++;
+                    }
+                }
+
+                sb.Append("    HealthScale           = ").Append(scale.ToString("0.####")).Append('\n');
+                sb.Append("    LethalDamageThresholdV= ").Append(thr.ToString("0.####")).Append('\n');
+                sb.Append("    InjurySum             = ").Append(sum.ToString("0.####"))
+                  .Append("  (count=").Append(injuryCount).Append(')').Append('\n');
+                // ★ 2026-11-13 加：验证「这个判据方法有没有被模组 Patch 过」。
+                //   实测 InjurySum=0 而阈值 150 时它仍返回 True，与反编译的 IL 矛盾，
+                //   唯一可能是别人在这个方法上挂了补丁。
+                try
+                {
+                    System.Reflection.MethodInfo mi = AccessTools.Method(
+                        typeof(Pawn_HealthTracker), "ShouldBeDeadFromLethalDamageThreshold");
+                    Patches pi = mi == null ? null : Harmony.GetPatchInfo(mi);
+                    if (mi == null)
+                    {
+                        sb.Append("    ThresholdMethod       = (method not found)").Append('\n');
+                    }
+                    else if (pi == null)
+                    {
+                        sb.Append("    ThresholdMethod       = no harmony patches").Append('\n');
+                    }
+                    else
+                    {
+                        sb.Append("    ThresholdMethod       = prefixes=").Append(pi.Prefixes.Count)
+                          .Append(" postfixes=").Append(pi.Postfixes.Count)
+                          .Append(" transpilers=").Append(pi.Transpilers.Count)
+                          .Append('\n');
+                        foreach (Patch p in pi.Prefixes)
+                        {
+                            sb.Append("      prefix ").Append(p.owner).Append('\n');
+                        }
+                        foreach (Patch p in pi.Postfixes)
+                        {
+                            sb.Append("      postfix ").Append(p.owner).Append('\n');
+                        }
+                        foreach (Patch p in pi.Transpilers)
+                        {
+                            sb.Append("      transpiler ").Append(p.owner).Append('\n');
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    sb.Append("    ThresholdMethod       = threw ").Append(ex.GetType().Name).Append('\n');
+                }
+
+                // 整体判死结果（同一时刻再算一次）
+                try
+                {
+                    sb.Append("    ShouldBeDeadWhole     = ").Append(tracker.ShouldBeDead()).Append('\n');
+                }
+                catch (Exception ex)
+                {
+                    sb.Append("    ShouldBeDeadWhole     = threw ").Append(ex.GetType().Name).Append('\n');
+                }
+
+                // 把所有 is Hediff_Injury 的列出来（0 条也留一行）
+                {
+                    StringBuilder inj = new StringBuilder();
+                    int cnt = 0;
+                    for (int i = 0; i < tracker.hediffSet.hediffs.Count; i++)
+                    {
+                        Hediff h = tracker.hediffSet.hediffs[i];
+                        if (h is Hediff_Injury)
+                        {
+                            cnt++;
+                            inj.Append(' ').Append(h.def == null ? "(nulldef)" : h.def.defName)
+                               .Append('(').Append(h.Severity.ToString("0.###")).Append(')');
+                        }
+                    }
+                    sb.Append("    InjuryList            = ")
+                      .Append(cnt == 0 ? "(none)" : inj.ToString().Trim())
+                      .Append('\n');
+                }
+
+                sb.Append("    baseHealthScale       = ")
+                  .Append(pawn.RaceProps == null ? "(null)" : pawn.RaceProps.baseHealthScale.ToString("0.####"))
+                  .Append('\n');
+                sb.Append("    lifeStageHealthScale  = ")
+                  .Append(pawn.ageTracker == null || pawn.ageTracker.CurLifeStage == null
+                          ? "(null)"
+                          : pawn.ageTracker.CurLifeStage.healthScaleFactor.ToString("0.####"))
+                  .Append('\n');
+            }
+            catch (Exception ex)
+            {
+                sb.Append("    (threshold numbers)   = threw ").Append(ex.GetType().Name)
+                  .Append(": ").Append(ex.Message).Append('\n');
+            }
 
             return sb.ToString();
         }

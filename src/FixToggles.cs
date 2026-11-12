@@ -322,6 +322,27 @@ namespace GNH.LocalFixes
                 + "★ 1.7 侧通常根本不会触发（那边时序不同，DefOf 已就绪），这正是预期。",
                 "GNH.LocalFixes.XiuXianCopyBookPostfixGuardFix"),
 
+            // 【61】是「UFC 领袖生不出来」这条链的**最后一环**：
+            //   前因（【54】）是装配义体时多做了一次死亡判定；
+            //   真正把 pawn 判死的是 Just A Flesh Wound 对致命伤害的重算。
+            //   两者各管一段，缺一都不算修完。
+            new Entry("jafwLethalDamageGenGuard", GroupCrash,
+                "世界生成期被「Just A Flesh Wound」判死（【61】）",
+                "「[Kit] Just A Flesh Wound」重做了致命伤害：它把每一条 MissingBodyPart "
+                + "按「该部位的最大生命值」折算成伤害、四肢还有倍率，从一份「韧性」里扣，扣光就判死。"
+                + "问题在于——**装义体本身就会产生一批 MissingBodyPart**"
+                + "（BionicLeg 替代原腿，引擎会把原腿及其子部位标成缺失）。"
+                + "于是 UFC 那种「全身义体化打手」在世界生成时一次装 4 件义体，"
+                + "双臂双腿连指带趾 36 个部位全变缺失，韧性当场扣光、pawn 被判死，"
+                + "领袖连生 120 次全败、那个派系开局没有领袖，顺带刷出 720 条红字。"
+                + "本项只在「这只小人正在被生成」时跳过它那一次重算，"
+                + "**游戏内真实受伤与断肢时 Just A Flesh Wound 的逻辑一个字节都不改**。"
+                + "★ 实测依据：取证探头抓到 InjurySum=0、阈值 150，原版算法本该返回 false，"
+                + "而它返回 true —— 顺着这条矛盾反编译到 JustAFleshWound 的 Postfix，"
+                + "里面写着 `current is Hediff_MissingPart ? part.def.hitPoints * healthScale : Severity`。"
+                + "★ 把它的「新致命伤害系统」关掉后本项即便装上也不产生任何影响（跳过一个空操作）。",
+                "GNH.LocalFixes.JafwLethalDamageGenerationGuardFix"),
+
             // 【60】是一条「int 字段被写成小数」的修正：值本身没变（0.5 早被截断成 0），
             //   只是把同一个值写成引擎认得的写法，警告随之消失。
             new Entry("xmlAncientThreatIntField", GroupXmlPatches,
@@ -927,7 +948,9 @@ namespace GNH.LocalFixes
             { "gfmIdleCombatDeepCopy", "arandomkiwi.guardsforme" },
             { "ccoeReflection", "keahuy.rjw.ccoe" },
             { "fixVfeeInstrumentSpace", "OskarPotocki.VFE.Empire" },
-            { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },            // Ancient amorphous threat：写错字段的那条补丁由它提供
+            { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },            // Ancient amorphous threat：写错字段的那条补丁由它提供            // Just A Flesh Wound：被守卫的那个 Postfix 在它的 dll 里
+            { "jafwLethalDamageGenGuard", "kittahkhan.justafleshwound" },
+
             { "xmlAncientThreatIntField", "XMB.AncientThreat.MO" },
 
             // ---- 2026-11-12 第二轮全局日志诊断新增 ----
