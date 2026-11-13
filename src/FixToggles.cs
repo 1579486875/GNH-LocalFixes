@@ -343,6 +343,22 @@ namespace GNH.LocalFixes
                 + "★ 把它的「新致命伤害系统」关掉后本项即便装上也不产生任何影响（跳过一个空操作）。",
                 "GNH.LocalFixes.JafwLethalDamageGenerationGuardFix"),
 
+            // 【65】第三轮日志诊断 P2-2：雪兔的分层建筑渲染在非主线程加载贴图。
+            new Entry("snowRabbitGraphicThread", GroupCrash,
+                "雪兔的分层建筑上层显示成紫块（【65】）",
+                "「SnowRabbit」（工坊 3643594275）的 `Comp_LayeredBuildingRenderer` 把贴图加载"
+                + "放在了 `Initialize()` 里，而 `Initialize` 会被 `ThingWithComps.ExposeData` 触发 ——"
+                + "**`ExposeData` 读档时跑在 ScribeLoader 的异步线程上，不是主线程**。"
+                + "Unity 的 `Texture2D` 加载必须在主线程，所以这条必然失败："
+                + "日志里就是「Attempted to load a graphic off the main thread」，"
+                + "而那栋建筑的上层从此显示成紫块。"
+                + "★ 更麻烦的是它的 `PostSpawnSetup` 里那句补加载写成 `if (!respawningAfterLoad)`，"
+                + "读档时这个值是 true，所以**永远不会补**。"
+                + "★ 本项把「加载贴图」挪到第一次 `PostDraw`（一定在主线程）："
+                + "非主线程时跳过原调用、主线程里发现 `upperGraphic` 还是 null 就补一次。"
+                + "**作者的代码一行没改**，只是把加载时机挪到了它本来就该在的线程上。",
+                "GNH.LocalFixes.SnowRabbitGraphicThreadFix"),
+
             // 【60】是一条「int 字段被写成小数」的修正：值本身没变（0.5 早被截断成 0），
             //   只是把同一个值写成引擎认得的写法，警告随之消失。
             new Entry("xmlAncientThreatIntField", GroupXmlPatches,
@@ -976,7 +992,9 @@ namespace GNH.LocalFixes
             // 【64】改的是 LDR（边缘弹道导弹:【地球科技】）自己写错的小数
             { "xmlSiloTubeIntField", "nekotee.irbmldr" },
 
-            { "xmlAncientThreatIntField", "XMB.AncientThreat.MO" },
+            { "xmlAncientThreatIntField", "XMB.AncientThreat.MO" },
+            // 【65】改的是 SnowRabbit 的贴图加载时机
+            { "snowRabbitGraphicThread", "Gugustar.SnowRabbitRaceBeta" },
 
             // ---- 2026-11-12 第二轮全局日志诊断新增 ----
             // 贞操科技：被补建的那个 GameComponent 在这个模组的 dll 里

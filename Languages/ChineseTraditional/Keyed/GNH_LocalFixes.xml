@@ -177,4 +177,7 @@
 
   <GNH_LocalFixes_Toggle_xmlSiloTubeIntField>發射井的管子尺寸與開蓋動畫被截斷成 0（【64】）</GNH_LocalFixes_Toggle_xmlSiloTubeIntField>
   <GNH_LocalFixes_Toggle_xmlSiloTubeIntField_Desc>「邊緣彈道導彈:【地球科技】」把 141 個值寫成了小數，而它們在 IRBM.SiloTube 裡都是整數：size 有 0.1/0.2/0.3 共 70 處，coverMovementTicks 有 0.5/0.1 共 71 處。引擎不報錯，悄悄截斷成 0 再各打一條「Parsed 0.5 as int.」。後果不是噪音：size 的預設是 1，變 0 後井蓋可能不顯示；coverMovementTicks 的預設是 60（1 秒），變 0 後開蓋沒動畫。本項按作者意圖折算成整數：size 取 1，coverMovementTicks 0.5 秒→30、0.1 秒→6。</GNH_LocalFixes_Toggle_xmlSiloTubeIntField_Desc>
+
+  <GNH_LocalFixes_Toggle_snowRabbitGraphicThread>雪兔的分層建築上層顯示成紫塊（【65】）</GNH_LocalFixes_Toggle_snowRabbitGraphicThread>
+  <GNH_LocalFixes_Toggle_snowRabbitGraphicThread_Desc>「SnowRabbit」把貼圖載入放在了 Comp_LayeredBuildingRenderer.Initialize() 裡，而讀檔時 Initialize 跑在 ScribeLoader 的非同步執行緒上 —— Unity 貼圖必須在主執行緒載入，於是必然失敗，那棟建築的上層從此是紫塊。本項把載入挪到第一次 PostDraw（一定在主執行緒）：非主執行緒跳過、主執行緒補一次。作者的程式碼一行沒改。</GNH_LocalFixes_Toggle_snowRabbitGraphicThread_Desc>
 </LanguageData>
