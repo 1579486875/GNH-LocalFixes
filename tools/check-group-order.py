@@ -10,7 +10,7 @@ import io
 import re
 import os
 
-P = r"E:\TAML\modfix\GNH-LocalFixes\src\FixToggles.cs"
+P = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "FixToggles.cs")
 s = io.open(P, encoding="utf-8-sig").read()
 
 # 抓所有 Entry：id + group + label
