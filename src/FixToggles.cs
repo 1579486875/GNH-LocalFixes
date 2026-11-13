@@ -395,6 +395,23 @@ namespace GNH.LocalFixes
                 + "★ 最多打 6 条明细，之后只静音不刷屏。",
                 "GNH.LocalFixes.NotifyNewLinkNoiseFix"),
 
+            // 【68】第三轮日志诊断 P3-5：鼠族基因扩展留了三条调试输出。
+            new Entry("debugSpamPrefix", GroupSpam,
+                "读档刷「Debug:________isCustomSite」等调试输出（【68】）",
+                "每次读档刷三条 `Debug:________isCustomSite / parentQuest / customQuests count`。"
+                + "`Debug:` 后面那串下划线本身就说明「这是开发者准备事后删的」。"
+                + "★ 本轮定位：全库扫 5,505 个 dll + 132,043 个 xml（按 UTF-16LE 搜字符串），"
+                + "三个 needle **只在一个文件**里命中 —— "
+                + "`RatkinGeneExpanded.dll`（鼠族基因扩展，工坊 3043354134）。"
+                + "反编译 `RatkinGeneExpanded.CustomSiteComp.PostExposeData()` 看到："
+                + "三条 `Log.Warning(\"Debug:________…\")` 夹在 `Scribe_*` 与 "
+                + "`TryInitializeCustomSite` 之间，不做任何判断、不改变任何状态。"
+                + "★ 修法：给 `Log.Warning(string)` 挂 Prefix，**按那 13 个字符的前缀过滤**。"
+                + "判据极窄（`StartsWith(\"Debug:________\")`），正常日志里不可能出现；"
+                + "而且不依赖「哪个方法调用」，作者怎么改都还能拦住。"
+                + "★ 顺带把其它模组同风格的调试输出也挡住。",
+                "GNH.LocalFixes.DebugSpamPrefixFix"),
+
             // 【60】是一条「int 字段被写成小数」的修正：值本身没变（0.5 早被截断成 0），
             //   只是把同一个值写成引擎认得的写法，警告随之消失。
             new Entry("xmlAncientThreatIntField", GroupXmlPatches,

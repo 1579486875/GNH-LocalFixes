@@ -460,6 +460,8 @@ namespace GNH.LocalFixes
                 RitualObligationIdFix.Install);
             TryInstall("notifyNewLinkNoise", "NotifyNewLinkNoiseFix",
                 NotifyNewLinkNoiseFix.Install);
+            TryInstall("debugSpamPrefix", "DebugSpamPrefixFix",
+                DebugSpamPrefixFix.Install);
 
             TryInstall("factionOfPlayerNoise", "FactionOfPlayerNoiseFix",
                 FactionOfPlayerNoiseFix.Install);

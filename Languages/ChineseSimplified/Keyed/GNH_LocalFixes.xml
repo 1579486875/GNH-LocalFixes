@@ -185,4 +185,7 @@
 
   <GNH_LocalFixes_Toggle_notifyNewLinkNoise>读档时「同一条设施链接被重复登记」的告警（【67】）</GNH_LocalFixes_Toggle_notifyNewLinkNoise>
   <GNH_LocalFixes_Toggle_notifyNewLinkNoise_Desc>读档刷「Notify_NewLink was called but the link is already here.」，全在 Map.FinalizeLoading 期间、全是工作台。反编译确认：发现重复时原方法只会 Log.Error 然后 return，不会重复添加——所以设施加成没有失效，这只是多余的调用产生的噪音。本项在重复时自己返回，少掉那条 Error，同时打一条带 Label 的 Warning 方便定位。</GNH_LocalFixes_Toggle_notifyNewLinkNoise_Desc>
+
+  <GNH_LocalFixes_Toggle_debugSpamPrefix>读档刷「Debug:________isCustomSite」等调试输出（【68】）</GNH_LocalFixes_Toggle_debugSpamPrefix>
+  <GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>鼠族基因扩展（RatkinGeneExpanded）在 CustomSiteComp.PostExposeData 里留了三条 Log.Warning(「Debug:________…」)，每次读档刷一次。本项给 Log.Warning 挂一个极窄的前缀过滤：只丢掉以「Debug:________」开头的行（那 13 个字符正常日志里不可能出现），其余一律放行。</GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>
 </LanguageData>

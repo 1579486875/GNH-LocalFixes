@@ -186,4 +186,7 @@ The fixes are still in effect - the cache holds the post-patch result. Changing 
 
   <GNH_LocalFixes_Toggle_notifyNewLinkNoise>Duplicate facility-link warnings on load (§67)</GNH_LocalFixes_Toggle_notifyNewLinkNoise>
   <GNH_LocalFixes_Toggle_notifyNewLinkNoise_Desc>Loading a save logs 'Notify_NewLink was called but the link is already here.' during Map.FinalizeLoading, always on work tables. Decompiling shows the vanilla method only logs the error and returns - it never adds the facility twice - so the facility bonuses were never broken; this is noise from a redundant call. This fix returns early on duplicates (exactly what vanilla does) so the error line disappears, and logs one informative warning naming the parent and facility so the caller can be identified.</GNH_LocalFixes_Toggle_notifyNewLinkNoise_Desc>
+
+  <GNH_LocalFixes_Toggle_debugSpamPrefix>Debug spam printed on every load (§68)</GNH_LocalFixes_Toggle_debugSpamPrefix>
+  <GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>RatkinGeneExpanded left three Log.Warning calls starting with 'Debug:________' inside CustomSiteComp.PostExposeData, so they print on every load. This fix adds a very narrow prefix filter to Log.Warning: only lines starting with those 13 characters are dropped (that marker cannot appear in real log lines), everything else passes through untouched.</GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>
 </LanguageData>
