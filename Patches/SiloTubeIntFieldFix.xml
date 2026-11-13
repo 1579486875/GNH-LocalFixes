@@ -96,6 +96,16 @@
     <value>
       <size>1</size>
     </value>
+    <!--
+      <success>Always</success> 吞掉的失败（模板 §3.2.1 要求写明）：
+        ① 目标模组 nekotee.irbmldr 没装 → 5 条 xpath 全 0 命中，本该「什么都不做」；
+        ② 它更新后把这 5 个值改成整数 → 同上，本该「什么都不做」。
+      真正该被发现的失败是「xpath 本身写错」，由实机判据兜底：
+      正常情况下 `Parsed X as int.` 应从 181 条降到约 40 条；压不下去就是 xpath 错了。
+      为什么不用 PatchOperationFindMod 守卫：它比对的是 ModMetaData.Name（显示名），
+      不是 packageId；LDR 显示名是「边缘弹道导弹:【地球科技】」，改名/换语言会静默失效。
+    -->
+    <success>Always</success>
   </Operation>
 
   <!-- size：0.2 → 1 -->
@@ -104,6 +114,16 @@
     <value>
       <size>1</size>
     </value>
+    <!--
+      <success>Always</success> 吞掉的失败（模板 §3.2.1 要求写明）：
+        ① 目标模组 nekotee.irbmldr 没装 → 5 条 xpath 全 0 命中，本该「什么都不做」；
+        ② 它更新后把这 5 个值改成整数 → 同上，本该「什么都不做」。
+      真正该被发现的失败是「xpath 本身写错」，由实机判据兜底：
+      正常情况下 `Parsed X as int.` 应从 181 条降到约 40 条；压不下去就是 xpath 错了。
+      为什么不用 PatchOperationFindMod 守卫：它比对的是 ModMetaData.Name（显示名），
+      不是 packageId；LDR 显示名是「边缘弹道导弹:【地球科技】」，改名/换语言会静默失效。
+    -->
+    <success>Always</success>
   </Operation>
 
   <!-- size：0.3 → 1 -->
@@ -112,6 +132,16 @@
     <value>
       <size>1</size>
     </value>
+    <!--
+      <success>Always</success> 吞掉的失败（模板 §3.2.1 要求写明）：
+        ① 目标模组 nekotee.irbmldr 没装 → 5 条 xpath 全 0 命中，本该「什么都不做」；
+        ② 它更新后把这 5 个值改成整数 → 同上，本该「什么都不做」。
+      真正该被发现的失败是「xpath 本身写错」，由实机判据兜底：
+      正常情况下 `Parsed X as int.` 应从 181 条降到约 40 条；压不下去就是 xpath 错了。
+      为什么不用 PatchOperationFindMod 守卫：它比对的是 ModMetaData.Name（显示名），
+      不是 packageId；LDR 显示名是「边缘弹道导弹:【地球科技】」，改名/换语言会静默失效。
+    -->
+    <success>Always</success>
   </Operation>
 
   <!-- coverMovementTicks：0.5 秒 → 30 tick -->
@@ -120,6 +150,16 @@
     <value>
       <coverMovementTicks>30</coverMovementTicks>
     </value>
+    <!--
+      <success>Always</success> 吞掉的失败（模板 §3.2.1 要求写明）：
+        ① 目标模组 nekotee.irbmldr 没装 → 5 条 xpath 全 0 命中，本该「什么都不做」；
+        ② 它更新后把这 5 个值改成整数 → 同上，本该「什么都不做」。
+      真正该被发现的失败是「xpath 本身写错」，由实机判据兜底：
+      正常情况下 `Parsed X as int.` 应从 181 条降到约 40 条；压不下去就是 xpath 错了。
+      为什么不用 PatchOperationFindMod 守卫：它比对的是 ModMetaData.Name（显示名），
+      不是 packageId；LDR 显示名是「边缘弹道导弹:【地球科技】」，改名/换语言会静默失效。
+    -->
+    <success>Always</success>
   </Operation>
 
   <!-- coverMovementTicks：0.1 秒 → 6 tick -->
@@ -128,6 +168,16 @@
     <value>
       <coverMovementTicks>6</coverMovementTicks>
     </value>
+    <!--
+      <success>Always</success> 吞掉的失败（模板 §3.2.1 要求写明）：
+        ① 目标模组 nekotee.irbmldr 没装 → 5 条 xpath 全 0 命中，本该「什么都不做」；
+        ② 它更新后把这 5 个值改成整数 → 同上，本该「什么都不做」。
+      真正该被发现的失败是「xpath 本身写错」，由实机判据兜底：
+      正常情况下 `Parsed X as int.` 应从 181 条降到约 40 条；压不下去就是 xpath 错了。
+      为什么不用 PatchOperationFindMod 守卫：它比对的是 ModMetaData.Name（显示名），
+      不是 packageId；LDR 显示名是「边缘弹道导弹:【地球科技】」，改名/换语言会静默失效。
+    -->
+    <success>Always</success>
   </Operation>
 
 </Patch>

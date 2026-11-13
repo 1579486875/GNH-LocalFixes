@@ -1,4 +1,4 @@
-﻿// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // 本文件由 AI 助手「DeepSeek娘·汐蓝」辅助编写。
 // 设计、需求、审阅与实机验证由人类作者（大赢经直插白皮赢道）完成。
 // AI-assisted: written with DeepSeek Niang · Xi Lan (AI);
@@ -115,8 +115,15 @@ namespace GNH.LocalFixes
         {
             return string.Equals(id, "ew2TranspilerProbe", StringComparison.Ordinal)
                 || string.Equals(id, "pawnGenDeathProbe", StringComparison.Ordinal)
-                || string.Equals(id, "parsedIntLocator", StringComparison.Ordinal)
-                || string.Equals(id, "allDiagnostics", StringComparison.Ordinal);
+                || string.Equals(id, "parsedIntLocator", StringComparison.Ordinal);
+            // 【2026-11-13 订正】这里**绝不能**把 `allDiagnostics` 算进来。
+            // 上一版写了 `|| string.Equals(id, "allDiagnostics", …)`，与上面那段
+            // 「allDiagnostics 自己不在这个集合里」的注释直接矛盾。
+            // 后果不是自引用死循环，而是一条更隐蔽的路径：
+            //   IsDefaultOff 里没有 allDiagnostics → settings.IsOn("allDiagnostics") 默认 true
+            //   → IsFixEnabled() 里那条「总控开就抬成 true」对三个诊断全部命中
+            //   → **三个诊断在出厂状态下全部生效**，与 About/界面写的「默认关闭」相反。
+            // 本轮实机日志里【69】在跑就是它：设置文件里根本没有 parsedIntLocator 这一项。
         }
 
         internal static bool IsDefaultOff(string id)
@@ -130,7 +137,11 @@ namespace GNH.LocalFixes
                 || string.Equals(id, "pawnGenDeathProbe", StringComparison.Ordinal)
                 // 【69】与上面几个同属「只读取证」：它给日志加行、
                 // 不改变任何加载结果，没有排查需求时不该打扰任何人。
-                || string.Equals(id, "parsedIntLocator", StringComparison.Ordinal);
+                || string.Equals(id, "parsedIntLocator", StringComparison.Ordinal)
+                // 【2026-11-13 订正】总控自己也要默认关。
+                // 少了这一条，`IsFixEnabled` 里那条「总控开 → 三个诊断视为开」
+                // 会在**出厂默认**下全部命中 —— 三个诊断全开，而界面写着「默认关闭」。
+                || string.Equals(id, "allDiagnostics", StringComparison.Ordinal);
         }
 
         internal sealed class Entry
@@ -1080,11 +1091,11 @@ new Entry("allDiagnostics", GroupDiagnostics,
             { "ccoeReflection", "keahuy.rjw.ccoe" },
             { "fixVfeeInstrumentSpace", "OskarPotocki.VFE.Empire" },
             { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },            // Ancient amorphous threat：写错字段的那条补丁由它提供            // Just A Flesh Wound：被守卫的那个 Postfix 在它的 dll 里
-            { "jafwLethalDamageGenGuard", "kittahkhan.justafleshwound" },
+            { "jafwLethalDamageGenGuard", "kittahkhan.justafleshwound" },
             // 【64】改的是 LDR（边缘弹道导弹:【地球科技】）自己写错的小数
             { "xmlSiloTubeIntField", "nekotee.irbmldr" },
 
-            { "xmlAncientThreatIntField", "XMB.AncientThreat.MO" },
+            { "xmlAncientThreatIntField", "XMB.AncientThreat.MO" },
             // 【65】改的是 SnowRabbit 的贴图加载时机
             { "snowRabbitGraphicThread", "Gugustar.SnowRabbitRaceBeta" },
 

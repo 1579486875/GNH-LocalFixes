@@ -167,6 +167,57 @@ for fn in sorted(os.listdir(pd)):
             break
 print("  22 个 Patch 文件合计 %d 个 Operation" % ops_total)
 
+# ── E2. 裸露操作检查（模板 §2：定位型操作必须有容错）──────────────────
+# 判据：Remove / Replace / Add / Insert / AttributeSet 这类需要 xpath 定位的操作，
+# 要么自己带 <success>Always</success>，要么被 Conditional / Sequence / FindMod 包着。
+# 两者都没有 = 裸露 —— 目标模组一卸载就 0 命中，PatchOperation.Complete() 打一条
+# `Patch operation … failed`。
+#
+# ⚠ 2026-11-13 加这一项的原因：本轮实测 128 个 Operation 里有 5 个裸露，全在
+#   SiloTubeIntFieldFix.xml（当时刚新加的【64】）—— 而本脚本当时的 E 段只看
+#   「有没有 xpath」，完全查不出这一类。现在把它补成硬判据。
+LOCATING_OPS = {"PatchOperationRemove", "PatchOperationReplace", "PatchOperationAdd",
+                "PatchOperationInsert", "PatchOperationAttributeSet",
+                "PatchOperationAttributeAdd", "PatchOperationAttributeRemove"}
+GUARD_OPS = {"PatchOperationConditional", "PatchOperationSequence", "PatchOperationFindMod",
+             "PatchOperationTest", "PatchOperationChoose"}
+
+
+def _walk_ops(el, guarded, out):
+    # ⚠ Patch 的写法是 <Operation Class="PatchOperationReplace">，标签名永远是 Operation，
+    #   真实类型在 Class 属性里 —— 只读 el.tag 会一条都抓不到。
+    ln = el.get("Class") or el.tag.split("}")[-1]
+    is_guard = ln in GUARD_OPS
+    if ln.startswith("PatchOperation") and ln != "PatchOperation":
+        has_ok = (el.find("success") is not None
+                  and (el.findtext("success") or "").strip().lower() == "always")
+        out.append((ln, has_ok, guarded))
+    for c in el:
+        _walk_ops(c, guarded or is_guard, out)
+
+
+bare_sites = []
+all_ops = 0
+for fn in sorted(os.listdir(pd)):
+    if not fn.endswith(".xml"):
+        continue
+    p = os.path.join(pd, fn)
+    try:
+        r = ET.parse(p).getroot()
+    except Exception:
+        continue
+    out = []
+    for c in r:
+        _walk_ops(c, False, out)
+    for ln, has_ok, guarded in out:
+        all_ops += 1
+        if ln in LOCATING_OPS and not has_ok and not guarded:
+            bare_sites.append((fn, ln))
+print("  递归展开后 Operation 共 %d 个；裸露（定位型且无 success、无守卫）%d 个"
+      % (all_ops, len(bare_sites)))
+for fn, ln in bare_sites:
+    add("ERROR", "存在裸露的定位型 Operation（目标模组一卸载就刷 failed）", fn + " :: " + ln)
+
 print()
 print("=" * 72)
 print("F. C# 源码通用纪律")
