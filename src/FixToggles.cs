@@ -416,7 +416,7 @@ namespace GNH.LocalFixes
                 "GNH.LocalFixes.DebugSpamPrefixFix"),
 
             // 【69】诊断：把「Parsed X as int」定位到具体 XML 文件。默认关闭。
-            new Entry("parsedIntLocator", GroupAdvanced,
+            new Entry("parsedIntLocator", GroupDiagnostics,
                 "定位「Parsed X as int」的具体来源文件（【69】，默认关闭）",
                 "第三轮日志诊断里那 181 条 `Parsed <小数> as int.`，141 条已由【64】修掉，"
                 + "**还剩约 40 条没定位** —— 堆栈是 `ParseAndSetComplexTypeField_System_Int32`，"
@@ -1118,7 +1118,13 @@ namespace GNH.LocalFixes
             //    目标模组只有 dord.nuditymattersmore 一个。此前漏登记，界面就永远显示不出
             //    「目标模组未启用」这一档 —— 玩家装了别的模组时看不出本项在空转。
             { "fixPawnScribeNull", "dord.nuditymattersmore" },
-            { "ew2TranspilerProbe", "mrk.extraweapon2" },             // 工坊 3692964069
+            // 【2026-11-13 撤销】原先这里登记了 { "ew2TranspilerProbe", "mrk.extraweapon2" }，
+            // 那是**错的**：`Ew2HarmonyId` 在 Ew2CompatProbe.Collect 里只用来
+            // 「数出外来 transpiler 的个数」（owner != "EW2_Patch" 就 foreignTranspilers++），
+            // **不是用来筛选要扫哪些方法**。它扫的是固定的那几个目标方法（EW2 本来会改的），
+            // 所以 **EW2 没装时它照样能干活** —— 那些方法上依然可能有别的模组在 patch，
+            // 正是要查的东西。登记 requiresModById 会让界面上挂一句
+            // 「目标模组未启用」，玩家打开后以为白开了。
             { "ew2DeathPathRepair", "mrk.extraweapon2" },             // 【43】同上
             { "xmlExtensionsFindMod", "imranfish.xmlextensions" },    // 工坊 2574315206
             { "realtimeDrawNreSwallow", "zuoyao.ravenrace" },              // 【38】Raven Race - Embers in Shadow
