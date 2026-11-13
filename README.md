@@ -444,7 +444,6 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 66 | 读档时仪式义务列表里可能少一条（`RitualObligation_0` 撞 ID） | 反编译 `RimWorld.RitualObligation`：`public int ID;` 默认就是 0，**只有带参数的构造函数**才调 `GetNextRitualObligationID()`，无参构造函数是空的。任何代码走无参构造 → ID 恒 0 → `GetUniqueLoadID()` 恒为 `RitualObligation_0` → `CrossRefHandler` 注册第二个时撞 ID、报错、拿不到引用。 | 在 `CrossRefHandler.ResolveAllCrossReferences` 的 Prefix 里扫一遍所有 Ideo 的 `activeObligations` / `completedObligations`，把 `ID <= 0` 的补成唯一 ID。★ 那是**注册前**的最后一站：更早拿不到完整的 IdeoManager，更晚报错已经发生。★ `ID` 本来就不该是 0，补它不改变任何游戏逻辑。 |
 | 67 | 读档刷 12 条「Notify_NewLink ... already here」 | **报告里「设施加成失效」的推断不成立**——反编译原文显示发现重复时只 `Log.Error` 然后 `return`，**不会重复添加**，所以那份 `linkedFacilities` 一直是完整的；那 12 个工作台的加成没有失效，这只是多了一次多余调用产生的噪音。 | 重复时由我们自己返回（与原方法等价），少掉那条 Error，同时打一条**带 Label 的 Warning**（parent + facility）方便定位是谁在重复调用。★ 最多打 6 条明细，之后只静音不刷屏。 |
 | 68 | 每次读档刷三条 `Debug:________isCustomSite / parentQuest / customQuests count` | `Debug:` 后面那串下划线说明这是作者准备事后删的。全库扫 5,505 个 dll + 132,043 个 xml （UTF-16LE 搜字符串），三个 needle **只在一个文件**里命中：`RatkinGeneExpanded.dll`（鼠族基因扩展，工坊 3043354134）。反编译 `CustomSiteComp.PostExposeData()` 看到三条 `Log.Warning` 夹在 `Scribe_*` 与 `TryInitializeCustomSite` 之间，不做判断、不改状态。 | 给 `Log.Warning(string)` 挂 Prefix，**按那 13 个字符的前缀过滤**。判据极窄（`StartsWith("Debug:________")`），正常日志里不可能出现；不依赖「哪个方法调用」，作者怎么改都还能拦住。 |
-| 69 | 剩下约 40 条 `Parsed X as int` 找不到是谁写的 | 141 条已由【64】修掉，剩下的堆栈是 `ParseAndSetComplexTypeField_System_Int32`，日志里**既没有 defName 也没有文件名**；全库搜那些值也没用（0.1 / 1.5 / 14.9 在小数字段里太常见，无法区分哪个是 Int32）。 | **纯诊断**：给 `DirectXmlToObjectNew.DefFromNodeNew` 与 `ParseHelper.ParseIntPermissive` 各挂一个 Prefix——前者记下「现在解析哪个 XML 文件」（`LoadableXmlAsset.name` / `fullFolderPath`），后者只在小数时把这条信息一起打出来。★ **不改变任何加载结果**；**默认关闭**，排查时再开。 |
 
 ## 🔄 上游模组更新后，本补丁会不会帮倒忙？
 
@@ -1568,3 +1567,17 @@ dotnet build GNH.LocalFixes.csproj -c Release
 ```
 
 产物 `bin\Release\` 就是可直接部署的模组结构（About + Assemblies + Patches），整体复制到 `RimWorld\Mods\` 即可。
+
+## 诊断工具（只读，不占修复编号）
+
+设置界面最上面那一组是**只读取证工具**，它们不修任何东西，**也不算进修复条数**：
+
+| 工具 | 查什么 |
+|---|---|
+| 详细错误勘探 | transpiler 撞车（「补丁装上了、实际改错地方」这类） |
+| 世界生成期死亡取证 | 某个派系的领袖怎么都生不出来 |
+| 定位「Parsed X as int」 | 哪个 XML 把小数值写进了整数字段（需要排查时才打开） |
+
+外加一个 **「全部诊断一起开」** 的总控：开了它等于同时开上面三个；关掉它三个回到各自开关，**原来的勾选状态不会被改动**。
+
+它们全部默认关闭 —— 没有排查需求时不该让日志多出任何一行。

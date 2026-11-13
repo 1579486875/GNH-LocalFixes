@@ -177,14 +177,7 @@ namespace GNH.LocalFixes
         // ======================================================================
         internal static readonly Entry[] All = new Entry[]
         {
-            // ---------------- 诊断工具（默认关闭） ----------------
-            //
-            // 这一组**排在最前面**（用户 2026-11-05 明确要求）：它不是修复项，平时默认关着、
-            // 不该打扰任何人；但真要排查疑难时，位置必须一眼能找到 —— 埋在一长串
-            // 「我修了什么」的末尾，等于让人翻三次才找到「帮我看看哪里坏了」那个开关。
-            //
-            // 同样因为它不是修复，**不占修复清单的编号**（编号只给真正修东西的项）。            // 【2026-11-13】总控：开了它 = 下面三个诊断一起开。它们各自仍可单控。
-            new Entry("allDiagnostics", GroupDiagnostics,
+new Entry("allDiagnostics", GroupDiagnostics,
                 "全部诊断一起开（总控，默认关闭）",
                 "本组下面那三个都是**只读取证**工具："
                 + "「详细错误勘探」（查 transpiler 撞车）、"
@@ -196,6 +189,22 @@ namespace GNH.LocalFixes
                 + "★ 它自己也默认关闭 —— 不排查时不该让日志多出任何一行。",
                 null),
 
+            new Entry("parsedIntLocator", GroupDiagnostics,
+                "定位「Parsed X as int」的具体来源文件（默认关闭）",
+                "第三轮日志诊断里那 181 条 `Parsed <小数> as int.`，141 条已由【64】修掉，"
+                + "**还剩约 40 条没定位** —— 堆栈是 `ParseAndSetComplexTypeField_System_Int32`，"
+                + "日志里既没有 defName 也没有文件名，光看日志找不出来；"
+                + "全库搜那些值也没用（0.1 / 1.5 / 14.9 这类在小数字段里太常见）。"
+                + "★ 本项是一条**纯诊断**：给 `DirectXmlToObjectNew.DefFromNodeNew` 与 "
+                + "`ParseHelper.ParseIntPermissive` 各挂一个 Prefix —— 前者记下"
+                + "「现在在解析哪个 XML 文件」（`LoadableXmlAsset.name` / `fullFolderPath`），"
+                + "后者只在小数时把这条信息一起打出来。"
+                + "★ **它不改变任何加载结果**，开着关着都不影响存档。"
+                + "★ **默认关闭**（因为它会给日志加行）：要排查那 40 条时在设置里打开，查完关掉。",
+                "GNH.LocalFixes.ParsedIntLocatorDiagnostic"),
+
+            // 【60】是一条「int 字段被写成小数」的修正：值本身没变（0.5 早被截断成 0），
+            //   只是把同一个值写成引擎认得的写法，警告随之消失。
             new Entry("ew2TranspilerProbe", GroupDiagnostics,
                 "详细错误勘探（默认关闭）",
                 "专门给「游戏一闪就没了、日志里一个字都没有」这类疑难用的只读勘探工具。"
@@ -214,6 +223,20 @@ namespace GNH.LocalFixes
             //
             // 【45】放在本组第一条：它修的不是某一个模组，而是「一个补丁类坏掉、
             //   整批补丁陪葬」这个结构性问题。影响面比下面任何一条都大。
+            new Entry("pawnGenDeathProbe", GroupDiagnostics,
+                "世界生成期死亡取证（默认关闭）",
+                "专门给「某个派系的领袖怎么都生不出来」这类疑难用的只读勘探工具。"
+                + "症状是日志里反复出现「Generated dead pawn」加一串"
+                + "「Could not generate a pawn after N tries」，最后该派系没有领袖。"
+                + "本项在「引擎准备判定某只小人死亡」的那一刻之前插一脚："
+                + "只有当这只小人正在被生成、且此刻确实已满足死亡条件时才动手，"
+                + "把它的种族、派系、身上每一条 Hediff（含所在部位与严重度）、"
+                + "五项死亡判据的逐条结果、以及全部致命产能的实际数值写进日志。"
+                + "★ 它只读：一个变量都不改，最坏只是多几行日志；"
+                + "★ 每个进程最多输出 24 条，不会把日志刷爆；"
+                + "★ 没有排查需求时建议一直关着。"
+                + "用法：开本项 → 重启游戏 → 开一局新档 → 日志里搜「【54】pawn-gen death probe」。"),
+
             new Entry("harmonyPatchClassIsolate", GroupCrash,
                 "单个补丁失败不再连累整批（【45】）",
                 "Harmony 批量安装补丁时没有逐个兜底：只要有一个补丁类找不到目标方法，"
@@ -226,55 +249,6 @@ namespace GNH.LocalFixes
                 + "与 CQF-RT（目标类型不存在，同样整批失效）。",
                 "GNH.LocalFixes.Patch_PatchClassProcessor_Isolate"),
 
-            new Entry("assemblyGetTypesFallback", GroupCrash,
-                "坏程序集不再拖垮整批补丁",
-                "某个模组的 dll 引用了根本不存在的程序集时，游戏枚举「所有类」会整体失败，"
-                + "排在后面的模组就全部扫不到。本项把「整份清单作废」降级成「少几个类，但清单还能用」。"),
-
-            new Entry("techHediffsZeroBudget", GroupCrash,
-                "植入体预算为 0 时的空引用崩溃",
-                "原版在「植入体预算恰好为 0」时会以 0 权重抽到 null 然后解引用崩溃。本项补上空值保护。"),
-
-            new Entry("musicManagerFadeout", GroupCrash,
-                "音乐淡出每帧报错",
-                "「乐器」分组里混进真实类型不是乐器的对象时，音乐淡出会每帧抛 InvalidCastException。"
-                + "本项在源头拦截并附带一层兜底。"),
-
-            new Entry("nmmIdeoTrackerNull", GroupCrash,
-                "开新局卡死在生成阶段",
-                "NudityMattersMore 的 CoverBody.UpdateIdeo 会在「静态表里残留同号记录」时解引用空引用，"
-                + "把整条角色生成流程掀翻——表现就是同一个进程里连续开新局会卡死。本项在它之前清掉残留。"),
-
-            new Entry("alliesAreHelpfulCurJobNull", GroupCrash,
-                "Allies are Helpful 的角色空引用",
-                "该模组在「角色当前没有工作」这个常见情形下没有拦住，会读空对象并中断 TickRare。"
-                + "本项把那几处读 Job 字段的地方改成 null 安全写法。"),
-
-            new Entry("srceLibConcurrency", GroupCrash,
-                "雪兔公共库的并发崩溃",
-                "SRCELib 的两个静态缓存全程没有锁，并行渲染下会同时扩容、写坏集合，"
-                + "导致部分角色每次绘制都抛异常、干脆不显示。本项给它套一把锁。"),
-
-            new Entry("gfmIdleCombatDeepCopy", GroupCrash,
-                "Guards For Me 的行为树残缺",
-                "该模组的 DeepCopy 是从原版复制来的，忘了把强转的目标类型一起改，必然抛 InvalidCastException，"
-                + "导致三棵行为树没被复制、用到它们的种族 AI 行为缺失。本项只改那两条 IL 指令。"),
-
-            new Entry("ccoeReflection", GroupCrash,
-                "CCOE 的反射异常红字",
-                "CCOE 有三个前缀方法在「角色没有对应组件」时会抛 System.Reflection.TargetException，"
-                + "让月经结算流程失败并刷红字。本项把三处都改成安全写法。"),
-
-            new Entry("fixVfeeInstrumentSpace", GroupCrash,
-                "修复 VFE Empire「乐器空间」的空引用崩溃",
-                "给 VFE Empire 那句会崩的判断补上空值保护：不补的话，九个用到「乐器空间」的爵位"
-                + "（Archcount / Marquess / Archduke 等）的房间需求无法正常工作。"
-                + "★ 多数情况下不必手动关：本项自带探测，一旦发现原版那句判断已经安全（多半是作者自己修好了），"
-                + "会自动让路、什么都不做。"),
-
-            // 【50】放在本组最前面：它修的不是「某处报红字」，而是
-            //   「一个派系的 BOSS 生不出来」被放大成「整个世界生成步骤失败」。
-            //   影响面是**开新档**——轻则该派系没有领袖，重则档根本建不出来。
             new Entry("rjwPawnGenPostfixNull", GroupCrash,
                 "RJW 生成失败被放大成世界生成崩溃（【50】）",
                 "RJW 给「生成小人」挂的那段后处理没有判空：一旦上游重试了上百次之后"
@@ -287,57 +261,6 @@ namespace GNH.LocalFixes
                 + "★ 它只管「不要让一个生成失败拖垮整步」，**不负责**修那个本身生不出小人的派系。",
                 "GNH.LocalFixes.RjwPawnGenPostfixNullFix"),
 
-            new Entry("crossPromotionUnpatch", GroupCrash,
-                "打开「模组」页面崩溃",
-                "CrossPromotion 在模组页面里去取 Steam 信息，会调用 Steam 官方早已废弃的接口，"
-                + "导致一打开「模组」页面就崩。本项把它那段前置处理摘掉。"),
-
-            // ⚠ RimUnityPostFxUnpatch 曾经也在这一组里，2026-10-17 由用户指示移除。
-            //
-            // 原因：那场崩溃（crash-20261016-132826.txt）的根因是**本机引擎快照落后** ——
-            //      D:\RimWorld-1.7 是 2026-10-13 的构建，而 RimUnity 0.1.7 是按**更新的**
-            //      Waylith 引擎编译的，于是 CLR 找不到 PostEffectPass 的新重载。
-            //      这是本地环境版本落后，**不是模组之间的兼容问题** —— 引擎快照更新后自愈，
-            //      不该在兼容补丁里长期兜着。
-            //
-            // ⚠ 但「**不要停用 RimUnity**」这条警告仍然有效：ZuoYao_RavenRace 在编译时引用了
-            //    RimUnity 的类型，停用会让整份程序集不可用，进而使大量 Def 解析失败
-            //    （实测 3 分钟 5.7 万条 ERROR）。快照更新前若又崩，先升级快照 —— 别去停用 RimUnity。
-            //
-            // 完整推导见备份 _backup/pre-rimunity-postfx-20261016-134657/ 与当时的 RimUnityPostFxUnpatch.cs。
-
-            new Entry("steamWorkshopHook", GroupCrash,
-                "Steam 工坊信息崩溃（第二道保险）",
-                "与上一项是同一场崩溃的另一条路：把「取工坊信息」这条链路上的空值与异常接住。"
-                + "两项都开着最稳。"),
-
-            // ---------------- 日志刷屏 ----------------
-            new Entry("baseGenMimicSpawnerQuiet", GroupSpam,
-                "古代神殿警告刷屏",
-                "生成古代神殿时，每个小格子都会刷一条「找不到 mimicSpawner 规则」的警告（实测一次开局 34 条）。"
-                + "原版那条路径本来就是「拒绝 + 什么都不做」，所以本项只是不再刷警告，行为完全等价。"),
-
-            // 2026-10-30 新增：原版只让「需要实时绘制」的建筑进 DynamicDrawPhase 循环，
-            // RavenRace 的史莱姆覆盖层在那里读一个没有判空的静态设置，取不到就每帧抛 NRE。
-            new Entry("realtimeDrawNreSwallow", GroupSpam,
-                "实时绘制空引用刷屏（【38】）",
-                "某些建筑（如 Dubs Rimatomics 的反应堆控制台）需要逐帧绘制，"
-                + "而 RavenRace 的史莱姆覆盖层在这条路上读一个没有判空的静态设置 —— "
-                + "取不到就每帧抛一次 NullReferenceException。实测 8.5 小时刷出 66 万条 ERROR、"
-                + "2.07 GB 日志、进程内存涨到 28 GB。"
-                + "本项只吞空引用并按 500 次一条记录，其它异常照常抛出。"
-                + "★ 找不到 RavenRace 的史莱姆覆盖层时会自动让路、什么都不做；"
-                + "上游补上判空后异常不再出现，本项也就自然不再动作。",
-                "GNH.LocalFixes.Patch_Thing_DynamicDrawPhase_SwallowRealtimeNre"),
-
-            // 【51】放在本组第一条之后：它的危害不是「报错」，而是**把日志打满**。
-            //   Verse.Log 累计 10,000 条之后会执行 Debug.unityLogger.logEnabled = false，
-            //   于是从那以后所有模组的报错都写不进日志 —— 比崩溃更难查。
-            //   实测一次 4 小时的会话被这一条刷了 57,137 条。
-            // 【53】紧跟【50】：两者都属于「加载期一个异常把整局拖垮」这一类。
-            //   区别是【50】修 RJW 的锅，本项修边缘仙路自己的锅 —— 而且它的 bug 更隐蔽：
-            //   `try/catch` 把 AddCopyBookRecipes 的异常吞了，但 `finally` 里又解引用同一个
-            //   还没初始化的 DefOf 字段，**finally 不归 catch 管**，异常直接逃出去。
             new Entry("xiuxianCopyBookGuard", GroupCrash,
                 "边缘仙路配方补丁在 DefOf 就绪前必崩（【53】）",
                 "边缘仙路（RimImmortal-Core）在「配方生成结果」那一步挂了一个 postfix，"
@@ -356,6 +279,35 @@ namespace GNH.LocalFixes
             //   前因（【54】）是装配义体时多做了一次死亡判定；
             //   真正把 pawn 判死的是 Just A Flesh Wound 对致命伤害的重算。
             //   两者各管一段，缺一都不算修完。
+            new Entry("pawnGenRestorePartGuard", GroupCrash,
+                "世界生成期装义体被误判死亡（【54】）",
+                "世界生成时会先给派系成员装配义体。原版装义体的代码里有一句"
+                + "「把这个部位恢复成原样」，而这句话默认会顺手做一次死亡判定 ——"
+                + "可装配本身还没做完，判定自然是错的，于是小人当场被判定死亡，"
+                + "派系领袖连生 120 次全败、每次刷三行红字，累计 720 条。"
+                + "本项只在「这只小人正在被生成」这个窗口里，把那次多余的死亡判定关掉。"
+                + "★ 依据是引擎作者自己：他在「装假体」那条路径上写的是"
+                + " RestorePart(…, checkStateChange: false)，说明他本人也认为这条路径不该判死；"
+                + "本项只是把另一条路径补成同样的语义。"
+                + "★ 玩家在手术台上装义体、战斗中受伤、日常治疗 —— 全部不受影响；"
+                + "★ 生成结束后引擎自己的校验（允许死亡 / 允许倒地）照常生效，"
+                + "该拦的照样拦，没有一处功能被拿掉。"),
+
+            new Entry("twilightGameComponentRebuild", GroupCrash,
+                "贞操科技的核心组件从来没被创建（【55】）",
+                "「缇瓦莱特贞操科技」把「高潮许可挑战」的全部状态放在一个游戏组件里，"
+                + "但那个组件的构造函数写成了无参形式，而引擎统一按"
+                + "「给你一个 Game 对象」的方式去创建它 —— 参数对不上，创建失败，"
+                + "引擎 catch 掉、打一行红字就过去了。"
+                + "后果是这套系统的每一个功能都不工作：挑战计时不跑、进度永远为空、"
+                + "旧存档迁移逻辑不执行，而日志里从头到尾只有那三行红字。"
+                + "本项在引擎建完所有组件之后，用作者写的那种无参构造把它补进去，"
+                + "并做幂等检查（引擎在读档时也会重走一遍这条路径）。"
+                + "★ 作者写的 GameComponentTick / GetHandler 等逻辑一行不改、全部照跑，"
+                + "唯一的变化是「它终于会跑了」；"
+                + "★ 模组没装就直接跳过；作者哪天把构造函数改对了，本项会自动让位、什么都不做；"
+                + "★ 旧存档里没有这个节点，首次加载按空列表起步（正是它本该有的起点），不崩不丢数据。"),
+
             new Entry("jafwLethalDamageGenGuard", GroupCrash,
                 "世界生成期被「Just A Flesh Wound」判死（【61】）",
                 "「[Kit] Just A Flesh Wound」重做了致命伤害：它把每一条 MissingBodyPart "
@@ -410,6 +362,159 @@ namespace GNH.LocalFixes
                 "GNH.LocalFixes.RitualObligationIdFix"),
 
             // 【67】第三轮日志诊断 P2-1：Notify_NewLink 重复告警，纯噪音。
+            new Entry("assemblyGetTypesFallback", GroupCrash,
+                "坏程序集不再拖垮整批补丁",
+                "某个模组的 dll 引用了根本不存在的程序集时，游戏枚举「所有类」会整体失败，"
+                + "排在后面的模组就全部扫不到。本项把「整份清单作废」降级成「少几个类，但清单还能用」。"),
+
+            new Entry("techHediffsZeroBudget", GroupCrash,
+                "植入体预算为 0 时的空引用崩溃",
+                "原版在「植入体预算恰好为 0」时会以 0 权重抽到 null 然后解引用崩溃。本项补上空值保护。"),
+
+            new Entry("musicManagerFadeout", GroupCrash,
+                "音乐淡出每帧报错",
+                "「乐器」分组里混进真实类型不是乐器的对象时，音乐淡出会每帧抛 InvalidCastException。"
+                + "本项在源头拦截并附带一层兜底。"),
+
+            new Entry("nmmIdeoTrackerNull", GroupCrash,
+                "开新局卡死在生成阶段",
+                "NudityMattersMore 的 CoverBody.UpdateIdeo 会在「静态表里残留同号记录」时解引用空引用，"
+                + "把整条角色生成流程掀翻——表现就是同一个进程里连续开新局会卡死。本项在它之前清掉残留。"),
+
+            new Entry("alliesAreHelpfulCurJobNull", GroupCrash,
+                "Allies are Helpful 的角色空引用",
+                "该模组在「角色当前没有工作」这个常见情形下没有拦住，会读空对象并中断 TickRare。"
+                + "本项把那几处读 Job 字段的地方改成 null 安全写法。"),
+
+            new Entry("srceLibConcurrency", GroupCrash,
+                "雪兔公共库的并发崩溃",
+                "SRCELib 的两个静态缓存全程没有锁，并行渲染下会同时扩容、写坏集合，"
+                + "导致部分角色每次绘制都抛异常、干脆不显示。本项给它套一把锁。"),
+
+            new Entry("gfmIdleCombatDeepCopy", GroupCrash,
+                "Guards For Me 的行为树残缺",
+                "该模组的 DeepCopy 是从原版复制来的，忘了把强转的目标类型一起改，必然抛 InvalidCastException，"
+                + "导致三棵行为树没被复制、用到它们的种族 AI 行为缺失。本项只改那两条 IL 指令。"),
+
+            new Entry("ccoeReflection", GroupCrash,
+                "CCOE 的反射异常红字",
+                "CCOE 有三个前缀方法在「角色没有对应组件」时会抛 System.Reflection.TargetException，"
+                + "让月经结算流程失败并刷红字。本项把三处都改成安全写法。"),
+
+            new Entry("fixVfeeInstrumentSpace", GroupCrash,
+                "修复 VFE Empire「乐器空间」的空引用崩溃",
+                "给 VFE Empire 那句会崩的判断补上空值保护：不补的话，九个用到「乐器空间」的爵位"
+                + "（Archcount / Marquess / Archduke 等）的房间需求无法正常工作。"
+                + "★ 多数情况下不必手动关：本项自带探测，一旦发现原版那句判断已经安全（多半是作者自己修好了），"
+                + "会自动让路、什么都不做。"),
+
+            // 【50】放在本组最前面：它修的不是「某处报红字」，而是
+            //   「一个派系的 BOSS 生不出来」被放大成「整个世界生成步骤失败」。
+            //   影响面是**开新档**——轻则该派系没有领袖，重则档根本建不出来。
+            new Entry("crossPromotionUnpatch", GroupCrash,
+                "打开「模组」页面崩溃",
+                "CrossPromotion 在模组页面里去取 Steam 信息，会调用 Steam 官方早已废弃的接口，"
+                + "导致一打开「模组」页面就崩。本项把它那段前置处理摘掉。"),
+
+            // ⚠ RimUnityPostFxUnpatch 曾经也在这一组里，2026-10-17 由用户指示移除。
+            //
+            // 原因：那场崩溃（crash-20261016-132826.txt）的根因是**本机引擎快照落后** ——
+            //      D:\RimWorld-1.7 是 2026-10-13 的构建，而 RimUnity 0.1.7 是按**更新的**
+            //      Waylith 引擎编译的，于是 CLR 找不到 PostEffectPass 的新重载。
+            //      这是本地环境版本落后，**不是模组之间的兼容问题** —— 引擎快照更新后自愈，
+            //      不该在兼容补丁里长期兜着。
+            //
+            // ⚠ 但「**不要停用 RimUnity**」这条警告仍然有效：ZuoYao_RavenRace 在编译时引用了
+            //    RimUnity 的类型，停用会让整份程序集不可用，进而使大量 Def 解析失败
+            //    （实测 3 分钟 5.7 万条 ERROR）。快照更新前若又崩，先升级快照 —— 别去停用 RimUnity。
+            //
+            // 完整推导见备份 _backup/pre-rimunity-postfx-20261016-134657/ 与当时的 RimUnityPostFxUnpatch.cs。
+
+            new Entry("steamWorkshopHook", GroupCrash,
+                "Steam 工坊信息崩溃（第二道保险）",
+                "与上一项是同一场崩溃的另一条路：把「取工坊信息」这条链路上的空值与异常接住。"
+                + "两项都开着最稳。"),
+
+            // ---------------- 日志刷屏 ----------------
+            new Entry("realtimeDrawNreSwallow", GroupSpam,
+                "实时绘制空引用刷屏（【38】）",
+                "某些建筑（如 Dubs Rimatomics 的反应堆控制台）需要逐帧绘制，"
+                + "而 RavenRace 的史莱姆覆盖层在这条路上读一个没有判空的静态设置 —— "
+                + "取不到就每帧抛一次 NullReferenceException。实测 8.5 小时刷出 66 万条 ERROR、"
+                + "2.07 GB 日志、进程内存涨到 28 GB。"
+                + "本项只吞空引用并按 500 次一条记录，其它异常照常抛出。"
+                + "★ 找不到 RavenRace 的史莱姆覆盖层时会自动让路、什么都不做；"
+                + "上游补上判空后异常不再出现，本项也就自然不再动作。",
+                "GNH.LocalFixes.Patch_Thing_DynamicDrawPhase_SwallowRealtimeNre"),
+
+            // 【51】放在本组第一条之后：它的危害不是「报错」，而是**把日志打满**。
+            //   Verse.Log 累计 10,000 条之后会执行 Debug.unityLogger.logEnabled = false，
+            //   于是从那以后所有模组的报错都写不进日志 —— 比崩溃更难查。
+            //   实测一次 4 小时的会话被这一条刷了 57,137 条。
+            // 【53】紧跟【50】：两者都属于「加载期一个异常把整局拖垮」这一类。
+            //   区别是【50】修 RJW 的锅，本项修边缘仙路自己的锅 —— 而且它的 bug 更隐蔽：
+            //   `try/catch` 把 AddCopyBookRecipes 的异常吞了，但 `finally` 里又解引用同一个
+            //   还没初始化的 DefOf 字段，**finally 不归 catch 管**，异常直接逃出去。
+            new Entry("logSpamFilter", GroupSpam,
+                "两处调试输出刷屏（【39】）",
+                "WeaponStats（工坊 974066449）在 Source\\WeaponsTab\\Turret.cs:74 里写着 "
+                + "Log.Message(th.def.defName) —— 每开一次武器统计面板，每个炮塔就刷一行"
+                + "（实测 21 点一小时 2,737 条，Turret_MiniTurret 552 次）；同文件还有固定串「Update weapons list」。"
+                + "RimImmortal.Core（工坊 3296476341）有个前缀方法每次进来都写一行「…::Start」（实测 190 条）。"
+                + "两处都是作者留在正式版里的调试输出，不是报错。"
+                + "本项在 Verse.Log.Message 上按三个收紧的判据拦下它们，其它日志一律照常输出。"),
+
+            new Entry("fixPawnScribeNull", GroupSpam,
+                "读档刷上百条 /fixPawn 报错（【41】）",
+                "「裸体评价」的 Fixation 组件在 PostExposeData 里**无条件**执行 "
+                + "Scribe_References.Look(ref fixPawn, \"fixPawn\")，而这些存档里的 fixPawn "
+                + "在 1.6→1.7 迁移后解析不出来（null）—— 于是登记了一个 null loadID，"
+                + "每次读档固定刷「Tried to register the same load ID twice」与"
+                + "「never added during LoadingVars」各 66 条（实测涉及 100 个 Pawn）。"
+                + "本项只在「label 是 fixPawn 且引用本身是 null」时跳过登记；"
+                + "有效引用一个字节都不动，存档序列化格式完全不变。"),
+
+            new Entry("assignableCompDupeGuard", GroupSpam,
+                "同一台建筑挂了两个「可分配」组件（【42】）",
+                "有些存档里的床 / 座椅身上被塞进了两个 CompAssignableToPawn 系组件，"
+                + "两者用同一个父对象登记 /assignedPawns，键完全相同 —— 读档时固定刷"
+                + "「Tried to register the same list of load IDs twice」与"
+                + "「Could not get load IDs list … never added during LoadingVars」"
+                + "（实测 8 + 8 + 8 + 8 = 32 条/局，涉及 2 台）。"
+                + "查存档可见该 Thing 块里 assignedPawns 与 uninstalledAssignedPawns 各写了两遍，中间夹着 quality。"
+                + "游戏自己遇到这种情况也是「用第一份、丢第二份」，本项只是把这件既定的事提前做完、不再报红字；"
+                + "不动任何对象，不改存档格式，单组件的正常建筑完全不受影响。"),
+
+            // ---------------- 兼容与判定 ----------------
+            new Entry("mechanitorBandwidthGizmo", GroupSpam,
+                "机械师带宽面板每帧刷屏（【51】）",
+                "选中单个机械师小人时，右上角那个「带宽」小面板会摆一排小方块表示已用带宽。"
+                + "它的排版循环有个除零隐患：行数一旦加过头，格子边长被算成 0，"
+                + "随后「每行几个」变成无穷大，循环条件永远成立 —— 跑满 1000 次后报一条错、"
+                + "整个面板不画，而且**每帧都重来一次**。"
+                + "真正要紧的是后半句：Verse.Log 累计 10,000 条之后会把自己整个关掉，"
+                + "于是从那以后别的模组报什么错你都看不到。实测一次会话被它刷了 57,137 条。"
+                + "本项给「要摆几个格子」加一个上限，让循环一定能收敛；"
+                + "再把那条每帧重复的报错降级成「整局只报一次」兜底。"
+                + "★ 带宽真超过上限时，面板只画前一部分方块 —— 那么小的区域本来就分辨不出来；"
+                + "★ 官方哪天自己修好了，本项会自动让路、什么都不做。",
+                "GNH.LocalFixes.MechanitorBandwidthGizmoFix"),
+
+            new Entry("factionOfPlayerNoise", GroupSpam,
+                "世界生成期刷 720 条「找不到玩家派系」（【57】）",
+                "每次世界生成都会刷满 240 条「Could not find player faction.」，"
+                + "三次生成就是 720 条，占整份日志 ERROR 的八成以上。"
+                + "日志把责任指向三个模组的「击杀提示」补丁，但真正打出这句话的是引擎自己："
+                + "`Faction.OfPlayer` 这个属性的 getter 在找不到玩家派系时会打一条 Error。"
+                + "而世界生成时玩家派系本来就还没建立（得先有地图、有殖民者），"
+                + "这是正常的中间状态，不是谁的 bug。"
+                + "本项在「还没进地图、且确实没有玩家派系」时改走引擎自带的静默版本。"
+                + "★ 返回值与原先**一模一样**（都是 null），三个模组一行代码都不改；"
+                + "★ 进游戏之后如果真找不到玩家派系，原版照常报红字 —— 那才是真异常；"
+                + "★ 只提示一次，日志里能查到本项在工作。"),
+
+            // 【56】与【55】同一类：日志里只有一行红字，实际是一整块功能没跑起来。
+            //   区别是它自己能 fail-soft（上层有 try/catch），所以排在本组末位。
             new Entry("notifyNewLinkNoise", GroupSpam,
                 "读档时「同一条设施链接被重复登记」的告警（【67】）",
                 "读档刷 12 条 `Notify_NewLink was called but the link is already here.`，"
@@ -443,188 +548,13 @@ namespace GNH.LocalFixes
                 "GNH.LocalFixes.DebugSpamPrefixFix"),
 
             // 【69】诊断：把「Parsed X as int」定位到具体 XML 文件。默认关闭。
-            new Entry("parsedIntLocator", GroupDiagnostics,
-                "定位「Parsed X as int」的具体来源文件（【69】，默认关闭）",
-                "第三轮日志诊断里那 181 条 `Parsed <小数> as int.`，141 条已由【64】修掉，"
-                + "**还剩约 40 条没定位** —— 堆栈是 `ParseAndSetComplexTypeField_System_Int32`，"
-                + "日志里既没有 defName 也没有文件名，光看日志找不出来；"
-                + "全库搜那些值也没用（0.1 / 1.5 / 14.9 这类在小数字段里太常见）。"
-                + "★ 本项是一条**纯诊断**：给 `DirectXmlToObjectNew.DefFromNodeNew` 与 "
-                + "`ParseHelper.ParseIntPermissive` 各挂一个 Prefix —— 前者记下"
-                + "「现在在解析哪个 XML 文件」（`LoadableXmlAsset.name` / `fullFolderPath`），"
-                + "后者只在小数时把这条信息一起打出来。"
-                + "★ **它不改变任何加载结果**，开着关着都不影响存档。"
-                + "★ **默认关闭**（因为它会给日志加行）：要排查那 40 条时在设置里打开，查完关掉。",
-                "GNH.LocalFixes.ParsedIntLocatorDiagnostic"),
+            new Entry("baseGenMimicSpawnerQuiet", GroupSpam,
+                "古代神殿警告刷屏",
+                "生成古代神殿时，每个小格子都会刷一条「找不到 mimicSpawner 规则」的警告（实测一次开局 34 条）。"
+                + "原版那条路径本来就是「拒绝 + 什么都不做」，所以本项只是不再刷警告，行为完全等价。"),
 
-            // 【60】是一条「int 字段被写成小数」的修正：值本身没变（0.5 早被截断成 0），
-            //   只是把同一个值写成引擎认得的写法，警告随之消失。
-            new Entry("xmlAncientThreatIntField", GroupXmlPatches,
-                "一个整数字段被写成了小数，每次加载刷 38 条（【60】）",
-                "「Ancient amorphous threat」用一条补丁往所有叙事者的父类里加了个组件，"
-                + "其中「第几天触发」那一项写成了 0.5 —— 而它在引擎里是**整数**字段。"
-                + "引擎不会报错，而是把 0.5 截断成 0，再打一条「Parsed 0.5 as int.」；"
-                + "因为那条补丁加在「所有叙事者的父类」上，每个叙事者解析时各报一次，"
-                + "于是 1 处写错被放大成每次加载 38 条。"
-                + "本项把那个值写成显式整数 0。"
-                + "★ 行为一点没变：原来那 0.5 本来就被截断成 0，这个事件一直就是「第 0 天触发」；"
-                + "★ 没有改成 1，是因为那会把触发时间往后推一天，属于改作者的数值设计；"
-                + "★ 作者哪天自己改成整数，本项自动让路（xpath 只匹配文本为 0.5 的那一处）。",
-                xmlPatchFile: "Patch_AncientThreatIntFieldFix.xml"),
-
-            // 【59】纯美术：texPath 少了一层子目录。图其实就在同族主包里。
-            new Entry("xmlNivarianStarfallBeaconTexPath", GroupXmlPatches,
-                "涅瓦莲星陨信标贴图路径少一层目录（【59】）",
-                "涅瓦莲的附加包给「星陨信标」写的贴图路径是"
-                + "「Nivarian/Building/starfall_beacon」，"
-                + "而主包 keeptpa.NivarianRace 里那张图的实际位置是"
-                + "「Nivarian/Building/StarfallBeacon/starfall_beacon.png」——"
-                + "中间少了 StarfallBeacon 这一层。于是加载期报两条"
-                + "「Could not load Texture2D」，游戏里那个建筑显示成紫白方块。"
-                + "本项只把路径改成真正存在的那一条。"
-                + "★ 图是同一套涅瓦莲美术、文件名一致，视觉呈现与作者原意完全一致；"
-                + "★ 主包没启用时整段跳过（路径指向的是主包的 Textures）。"
-                + "★ 「翠绿祝福」引用 lotus 的那条同样是少一层目录（正确位置是 "
-                + "Nivarian/Building/VerdantLocus/lotus），已一并修好；"
-                + "两条都只是把路径补全，用的都是本体自己那份原件，视觉与作者原意一致。",
-                xmlPatchFile: "Patch_NivarianStarfallBeaconTexPath.xml"),
-
-            // 【64】第三轮日志诊断 P1-1：LDR（边缘弹道导弹:【地球科技】）把 141 个
-            //   Int32 字段写成了小数 —— 全被静默截断成 0。
-            //   ★ 第三轮报告把这条标成「写入方未定位（C 级）」，本轮定位到了：
-            //     IRBM 本体那份 XML 是干净的，写小数的是 LDR 的 Buildings_MissileSilo_LDR.xml。
-            new Entry("xmlSiloTubeIntField", GroupXmlPatches,
-                "发射井的管子尺寸与开盖动画被截断成 0（【64】）",
-                "「边缘弹道导弹:【地球科技】」（nekotee.irbmldr）那份 1,157 行的 XML 里，"
-                + "把 141 个值写成了小数：`size` 有 0.1/0.2/0.3 共 70 处，"
-                + "`coverMovementTicks` 有 0.5/0.1 共 71 处 ——"
-                + "而这两个字段在 `IRBM.SiloTube` 里都是 **Int32**"
-                + "（反编译确认：整类里只有这两个不是 float/Vector2/String）。"
-                + "引擎不报错，用 `ParseIntPermissive` 悄悄截断成 0，再各打一条"
-                + "「Parsed 0.5 as int.」—— 于是 141 个值全变成 0，日志里 158 条警告。"
-                + "★ 后果不是噪音：`size` 的默认值是 1，变成 0 后那 10 个 ThingDef 的井盖可能根本不显示；"
-                + "`coverMovementTicks` 的默认值是 60（1 秒），变成 0 后开盖没有过渡动画。"
-                + "★ 修法按「作者想表达的意思」折算：`size` 一律取 1"
-                + "（Int32 的最小有效值，也是它的默认值；作者写 0.1 多半是「想很小」）；"
-                + "`coverMovementTicks` 按秒折算成 tick —— 0.5 秒 → 30、0.1 秒 → 6。"
-                + "★ 每条 xpath 都带值匹配（`[text()=\"0.1\"]`），"
-                + "所以作者哪天自己改成整数，本项自动让路，不需要额外判据。"
-                + "★ 一条 xpath 能改全部（反编译确认 `PatchOperationReplace.ApplyWorker` 会遍历所有匹配节点）。",
-                xmlPatchFile: "SiloTubeIntFieldFix.xml"),
-
-            // 【58】是 XML 层的：上游把 8 种寿司合并成 4 种，VOE 那个前哨没跟上。
-            //   放在 XML 组，因为它由 Patches\Patch_VoeSushiMigration.xml 执行。
-            new Entry("xmlVoeSushiMigration", GroupXmlPatches,
-                "餐厅前哨还在产已被合并掉的 8 种寿司（【58】）",
-                "Vanilla Cooking Expanded - Sushi 在 1.6/1.7 把原来的 8 种寿司合并成 4 种，"
-                + "旧 defName 全部删掉，并提供了官方的迁移定义。"
-                + "但那份迁移只管**存档**里的引用，管不到模组 XML 之间的引用 ——"
-                + "而 VOE 附加前哨的「餐厅」子模块正好是把 8 个旧名字直接写进产出列表里的，"
-                + "于是加载期会连打 8 条「找不到 ThingDef」的 cross-reference 错误，"
-                + "那个前哨的寿司产出也一并失效。"
-                + "本项按上游给出的合并关系把 8 条换成 4 条，数值照抄原文件。"
-                + "★ 如实写明让步：能产的寿司品种从 8 种变成 4 种 —— "
-                + "这不是我们砍的，是上游自己合并的，我们只是让前哨跟上；产出数值一个都没动。"
-                + "★ 上游哪天自己修好、或把新 def 改名，本项会自动让路（每条操作都设了「无论成败都继续」）。",
-                xmlPatchFile: "Patch_VoeSushiMigration.xml"),
-
-            // 【57】是那 720 条红字的真正出口：源头是引擎自己的 Faction.OfPlayer 属性 getter，
-            //   不是某三个模组的补丁。所以修法也不是"去改三个模组"，而是让属性在
-            //   「还没进地图且确实没有玩家派系」时走引擎自带的静默版本。
-            new Entry("factionOfPlayerNoise", GroupSpam,
-                "世界生成期刷 720 条「找不到玩家派系」（【57】）",
-                "每次世界生成都会刷满 240 条「Could not find player faction.」，"
-                + "三次生成就是 720 条，占整份日志 ERROR 的八成以上。"
-                + "日志把责任指向三个模组的「击杀提示」补丁，但真正打出这句话的是引擎自己："
-                + "`Faction.OfPlayer` 这个属性的 getter 在找不到玩家派系时会打一条 Error。"
-                + "而世界生成时玩家派系本来就还没建立（得先有地图、有殖民者），"
-                + "这是正常的中间状态，不是谁的 bug。"
-                + "本项在「还没进地图、且确实没有玩家派系」时改走引擎自带的静默版本。"
-                + "★ 返回值与原先**一模一样**（都是 null），三个模组一行代码都不改；"
-                + "★ 进游戏之后如果真找不到玩家派系，原版照常报红字 —— 那才是真异常；"
-                + "★ 只提示一次，日志里能查到本项在工作。"),
-
-            // 【56】与【55】同一类：日志里只有一行红字，实际是一整块功能没跑起来。
-            //   区别是它自己能 fail-soft（上层有 try/catch），所以排在本组末位。
-            new Entry("rqpFactionLeaderGuard", GroupCompat,
-                "帝国头衔生成时的集合改动异常（【56】）",
-                "「Real Faction Guest」在给派系领袖校正背景故事时，"
-                + "会在遍历某个集合的过程中改动它 —— 于是抛"
-                + "「Collection was modified」，被它自己的上层 catch 掉、"
-                + "记成一条「FactionLeaderValidator Failed」加整段堆栈。"
-                + "这条异常只在世界生成「初始化帝国头衔」那一步出现一次，"
-                + "它自己的 try/catch 本来就会接住，所以**游戏不会中断**；"
-                + "真正的影响是那一次背景修正没做成，外加日志里多一段吓人的红字。"
-                + "本项只把这一种异常单独摘掉并合并成一条提示。"
-                + "★ 如实说明：这属于「让日志说实话」，不是「把功能修好了」——"
-                + "要真修得改那个模组的遍历写法，风险远高于收益，故不做；"
-                + "★ 别的异常（含真正的空引用）原样上抛，一个都不替别人兜。",
-                "GNH.LocalFixes.RqpFactionLeaderValidatorGuardFix"),
-
-            // ---------------- 2026-11-12 第二轮全局日志诊断新增 ----------------
-            //
-            // 【54】是那 720 条红字的根：世界生成期给派系领袖装义体，装到一半被判死亡，
-            //   于是同一个领袖连生 120 次全败，每次失败又触发三处「击杀提示」补丁各打一行。
-            //   本组放两条：一条只取证（默认关闭、只读），一条按取证结论动手（默认开启）。
-            //   分开的理由很实际 —— 死因的最后一环必须由实机日志说了算，
-            //   先取证再加刀，比先猜一个改法把它压下去要靠谱得多。
-            new Entry("pawnGenDeathProbe", GroupDiagnostics,
-                "世界生成期死亡取证（默认关闭）",
-                "专门给「某个派系的领袖怎么都生不出来」这类疑难用的只读勘探工具。"
-                + "症状是日志里反复出现「Generated dead pawn」加一串"
-                + "「Could not generate a pawn after N tries」，最后该派系没有领袖。"
-                + "本项在「引擎准备判定某只小人死亡」的那一刻之前插一脚："
-                + "只有当这只小人正在被生成、且此刻确实已满足死亡条件时才动手，"
-                + "把它的种族、派系、身上每一条 Hediff（含所在部位与严重度）、"
-                + "五项死亡判据的逐条结果、以及全部致命产能的实际数值写进日志。"
-                + "★ 它只读：一个变量都不改，最坏只是多几行日志；"
-                + "★ 每个进程最多输出 24 条，不会把日志刷爆；"
-                + "★ 没有排查需求时建议一直关着。"
-                + "用法：开本项 → 重启游戏 → 开一局新档 → 日志里搜「【54】pawn-gen death probe」。"),
-
-            new Entry("pawnGenRestorePartGuard", GroupCrash,
-                "世界生成期装义体被误判死亡（【54】）",
-                "世界生成时会先给派系成员装配义体。原版装义体的代码里有一句"
-                + "「把这个部位恢复成原样」，而这句话默认会顺手做一次死亡判定 ——"
-                + "可装配本身还没做完，判定自然是错的，于是小人当场被判定死亡，"
-                + "派系领袖连生 120 次全败、每次刷三行红字，累计 720 条。"
-                + "本项只在「这只小人正在被生成」这个窗口里，把那次多余的死亡判定关掉。"
-                + "★ 依据是引擎作者自己：他在「装假体」那条路径上写的是"
-                + " RestorePart(…, checkStateChange: false)，说明他本人也认为这条路径不该判死；"
-                + "本项只是把另一条路径补成同样的语义。"
-                + "★ 玩家在手术台上装义体、战斗中受伤、日常治疗 —— 全部不受影响；"
-                + "★ 生成结束后引擎自己的校验（允许死亡 / 允许倒地）照常生效，"
-                + "该拦的照样拦，没有一处功能被拿掉。"),
-
-            new Entry("twilightGameComponentRebuild", GroupCrash,
-                "贞操科技的核心组件从来没被创建（【55】）",
-                "「缇瓦莱特贞操科技」把「高潮许可挑战」的全部状态放在一个游戏组件里，"
-                + "但那个组件的构造函数写成了无参形式，而引擎统一按"
-                + "「给你一个 Game 对象」的方式去创建它 —— 参数对不上，创建失败，"
-                + "引擎 catch 掉、打一行红字就过去了。"
-                + "后果是这套系统的每一个功能都不工作：挑战计时不跑、进度永远为空、"
-                + "旧存档迁移逻辑不执行，而日志里从头到尾只有那三行红字。"
-                + "本项在引擎建完所有组件之后，用作者写的那种无参构造把它补进去，"
-                + "并做幂等检查（引擎在读档时也会重走一遍这条路径）。"
-                + "★ 作者写的 GameComponentTick / GetHandler 等逻辑一行不改、全部照跑，"
-                + "唯一的变化是「它终于会跑了」；"
-                + "★ 模组没装就直接跳过；作者哪天把构造函数改对了，本项会自动让位、什么都不做；"
-                + "★ 旧存档里没有这个节点，首次加载按空列表起步（正是它本该有的起点），不崩不丢数据。"),
-
-            new Entry("mechanitorBandwidthGizmo", GroupSpam,
-                "机械师带宽面板每帧刷屏（【51】）",
-                "选中单个机械师小人时，右上角那个「带宽」小面板会摆一排小方块表示已用带宽。"
-                + "它的排版循环有个除零隐患：行数一旦加过头，格子边长被算成 0，"
-                + "随后「每行几个」变成无穷大，循环条件永远成立 —— 跑满 1000 次后报一条错、"
-                + "整个面板不画，而且**每帧都重来一次**。"
-                + "真正要紧的是后半句：Verse.Log 累计 10,000 条之后会把自己整个关掉，"
-                + "于是从那以后别的模组报什么错你都看不到。实测一次会话被它刷了 57,137 条。"
-                + "本项给「要摆几个格子」加一个上限，让循环一定能收敛；"
-                + "再把那条每帧重复的报错降级成「整局只报一次」兜底。"
-                + "★ 带宽真超过上限时，面板只画前一部分方块 —— 那么小的区域本来就分辨不出来；"
-                + "★ 官方哪天自己修好了，本项会自动让路、什么都不做。",
-                "GNH.LocalFixes.MechanitorBandwidthGizmoFix"),
-
+            // 2026-10-30 新增：原版只让「需要实时绘制」的建筑进 DynamicDrawPhase 循环，
+            // RavenRace 的史莱姆覆盖层在那里读一个没有判空的静态设置，取不到就每帧抛 NRE。
             new Entry("rjwGenesSpamQuiet", GroupSpam,
                 "RJW-Genes 调试刷屏",
                 "开发者模式下每帧都写一行 [RJW-Genes] multipreg checks（实测一局 3 万条、占整份日志 65%），"
@@ -659,37 +589,52 @@ namespace GNH.LocalFixes
 
             // ── 2026-10-31 新增三项（来自 1.7 移交清单，都是日志/内存层的噪音）──
 
-            new Entry("logSpamFilter", GroupSpam,
-                "两处调试输出刷屏（【39】）",
-                "WeaponStats（工坊 974066449）在 Source\\WeaponsTab\\Turret.cs:74 里写着 "
-                + "Log.Message(th.def.defName) —— 每开一次武器统计面板，每个炮塔就刷一行"
-                + "（实测 21 点一小时 2,737 条，Turret_MiniTurret 552 次）；同文件还有固定串「Update weapons list」。"
-                + "RimImmortal.Core（工坊 3296476341）有个前缀方法每次进来都写一行「…::Start」（实测 190 条）。"
-                + "两处都是作者留在正式版里的调试输出，不是报错。"
-                + "本项在 Verse.Log.Message 上按三个收紧的判据拦下它们，其它日志一律照常输出。"),
+            new Entry("ew2DeathPathRepair", GroupCompat,
+                "ExtraWeapon2 额外武器击杀回调兜底（【43】）",
+                "ExtraWeapon2 在「角色死亡」的统一通知点（Pawn_EquipmentTracker.Notify_KilledPawn）挂了"
+                + "一个 postfix，遍历额外武器、逐个调原版的 Notify_KilledPawn。"
+                + "它自己那层遍历已经做了防护（按索引走、每项判空），真正的风险落在被调的那个原版方法上："
+                + "它会读 pawn.Ideo，再遍历这件武器的所有 comp —— 任何一个第三方 comp 抛异常，"
+                + "都会中断整条 postfix 链，排在它后面的死亡处理"
+                + "（掉装备、尸体生成、记录与关系更新）就全部跳过，一次死亡会停在半截。"
+                + "本项给那层 postfix 加一层 Finalizer：捕获、留日志、吞掉。"
+                + "★ 不改 ExtraWeapon2 的任何逻辑，只保证它的异常不外溢；"
+                + "前 3 次打完整堆栈，之后只计数，不会刷屏。"),
 
-            new Entry("fixPawnScribeNull", GroupSpam,
-                "读档刷上百条 /fixPawn 报错（【41】）",
-                "「裸体评价」的 Fixation 组件在 PostExposeData 里**无条件**执行 "
-                + "Scribe_References.Look(ref fixPawn, \"fixPawn\")，而这些存档里的 fixPawn "
-                + "在 1.6→1.7 迁移后解析不出来（null）—— 于是登记了一个 null loadID，"
-                + "每次读档固定刷「Tried to register the same load ID twice」与"
-                + "「never added during LoadingVars」各 66 条（实测涉及 100 个 Pawn）。"
-                + "本项只在「label 是 fixPawn 且引用本身是 null」时跳过登记；"
-                + "有效引用一个字节都不动，存档序列化格式完全不变。"),
+            // ---------------- 行为与设置 ----------------
+            new Entry("xmlCumworksBadCompRef", GroupCompat,
+                "无限精液工坊：两个储液桶写了不存在的组件（【49】）",
+                "它的两个储液桶（CumworksNet_CumBucket / _Advanced_）各写了一行 "
+                + "Class=\"RJW_Menstruation_Fluids.CompProperties_CumGatherer\"，"
+                + "而那个类型在 ELT 月经体液模组的三个 dll 里都不存在 —— "
+                + "MayRequire 只查模组是否启用、不查类型是否存在，所以这两行一路走到解析阶段才炸。"
+                + "comps 是整表解析，一失效连宿主 ThingDef 一起丢，也就是说这两个桶本体里根本不存在。"
+                + "本项把这两行删掉，宿主与其它组件都不动。"
+                + "★ 按类型存在性让路：作者哪天把该类型加回来，本项自动不动作。",
+                xmlPatchFile: "CumworksBadCompRefFix.xml"),
 
-            new Entry("assignableCompDupeGuard", GroupSpam,
-                "同一台建筑挂了两个「可分配」组件（【42】）",
-                "有些存档里的床 / 座椅身上被塞进了两个 CompAssignableToPawn 系组件，"
-                + "两者用同一个父对象登记 /assignedPawns，键完全相同 —— 读档时固定刷"
-                + "「Tried to register the same list of load IDs twice」与"
-                + "「Could not get load IDs list … never added during LoadingVars」"
-                + "（实测 8 + 8 + 8 + 8 = 32 条/局，涉及 2 台）。"
-                + "查存档可见该 Thing 块里 assignedPawns 与 uninstalledAssignedPawns 各写了两遍，中间夹着 quality。"
-                + "游戏自己遇到这种情况也是「用第一份、丢第二份」，本项只是把这件既定的事提前做完、不再报红字；"
-                + "不动任何对象，不改存档格式，单组件的正常建筑完全不受影响。"),
+            new Entry("rqpFactionLeaderGuard", GroupCompat,
+                "帝国头衔生成时的集合改动异常（【56】）",
+                "「Real Faction Guest」在给派系领袖校正背景故事时，"
+                + "会在遍历某个集合的过程中改动它 —— 于是抛"
+                + "「Collection was modified」，被它自己的上层 catch 掉、"
+                + "记成一条「FactionLeaderValidator Failed」加整段堆栈。"
+                + "这条异常只在世界生成「初始化帝国头衔」那一步出现一次，"
+                + "它自己的 try/catch 本来就会接住，所以**游戏不会中断**；"
+                + "真正的影响是那一次背景修正没做成，外加日志里多一段吓人的红字。"
+                + "本项只把这一种异常单独摘掉并合并成一条提示。"
+                + "★ 如实说明：这属于「让日志说实话」，不是「把功能修好了」——"
+                + "要真修得改那个模组的遍历写法，风险远高于收益，故不做；"
+                + "★ 别的异常（含真正的空引用）原样上抛，一个都不替别人兜。",
+                "GNH.LocalFixes.RqpFactionLeaderValidatorGuardFix"),
 
-            // ---------------- 兼容与判定 ----------------
+            // ---------------- 2026-11-12 第二轮全局日志诊断新增 ----------------
+            //
+            // 【54】是那 720 条红字的根：世界生成期给派系领袖装义体，装到一半被判死亡，
+            //   于是同一个领袖连生 120 次全败，每次失败又触发三处「击杀提示」补丁各打一行。
+            //   本组放两条：一条只取证（默认关闭、只读），一条按取证结论动手（默认开启）。
+            //   分开的理由很实际 —— 死因的最后一环必须由实机日志说了算，
+            //   先取证再加刀，比先猜一个改法把它压下去要靠谱得多。
             new Entry("patchVerbPropertiesAdjustedRange", GroupCompat,
                 "射程计算空引用",
                 "原版算射程时有两处直接使用「攻击者」却没有先判空，特定情况下会刷空引用。本项补上判空。", "GNH.LocalFixes.Patch_VerbProperties_AdjustedRange"),
@@ -735,19 +680,6 @@ namespace GNH.LocalFixes
             //    真正的风险在被调的 ThingWithComps.Notify_KilledPawn：它读 pawn.Ideo、
             //    再遍历这武器身上所有 comp，第三方 comp 一抛就中断整条 postfix 链。
             //    文案已按事实改写；护栏本身仍然成立，只是理由换了。
-            new Entry("ew2DeathPathRepair", GroupCompat,
-                "ExtraWeapon2 额外武器击杀回调兜底（【43】）",
-                "ExtraWeapon2 在「角色死亡」的统一通知点（Pawn_EquipmentTracker.Notify_KilledPawn）挂了"
-                + "一个 postfix，遍历额外武器、逐个调原版的 Notify_KilledPawn。"
-                + "它自己那层遍历已经做了防护（按索引走、每项判空），真正的风险落在被调的那个原版方法上："
-                + "它会读 pawn.Ideo，再遍历这件武器的所有 comp —— 任何一个第三方 comp 抛异常，"
-                + "都会中断整条 postfix 链，排在它后面的死亡处理"
-                + "（掉装备、尸体生成、记录与关系更新）就全部跳过，一次死亡会停在半截。"
-                + "本项给那层 postfix 加一层 Finalizer：捕获、留日志、吞掉。"
-                + "★ 不改 ExtraWeapon2 的任何逻辑，只保证它的异常不外溢；"
-                + "前 3 次打完整堆栈，之后只计数，不会刷屏。"),
-
-            // ---------------- 行为与设置 ----------------
             new Entry("keepLeaderTitle", GroupBehaviour,
                 "保护自定义的领袖头衔",
                 "开启时：你已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，"
@@ -790,51 +722,35 @@ namespace GNH.LocalFixes
             //
             // ⚠ 总控那一项（xmlPatchGate）控制的是「这套开关机制本身是否生效」：
             //   关掉它 = 不跳过任何 XML 补丁 = 全部执行。它本身不修任何问题。
-            new Entry("xmlPatchGate", GroupXmlPatches,
-                "让 XML 补丁也能单独关闭",
-                "开启时：下面每个 XML 补丁文件各有一个开关，关掉哪个就只有那个文件里的修复不生效。"
-                + "关闭时：所有 XML 补丁照常全部执行（等于把它们全部打开）。"
-                + "★ 这一项只决定「开关是否生效」，本身不修任何问题。",
-                "GNH.LocalFixes.Patch_PatchOperation_Apply"),
-
-            new Entry("xmlConfigErrorCleanup", GroupXmlPatches,
-                "配置自检噪音 + 字段级清理",
-                "一个文件里装着多条彼此独立的小修复：量子温控设备的射击/视线豁免、"
-                + "Sex_MC_UAP 标签方括号豁免、softresin 当成装备的问题，"
-                + "以及【33】LT 贞操带/胸罩的耐久与可燃字段、【34】两个基因分类排序撞号、"
-                + "【35】三条指向不存在 def 的交叉引用。",
-                xmlPatchFile: "ConfigErrorCleanup.xml"),
-
-            new Entry("xmlDamageDefPurificationBurn", GroupXmlPatches,
-                "把 HediffDef 当 DamageDef 引用（【32】）",
-                "Fortification Industrial - Citadel 在 damageMultipliers 里写了 PurificationBurn，"
-                + "而它在 Monolyn Race 里是 HediffDef —— 每次都报「No Verse.DamageDef named」。"
-                + "摘掉那条从来没生效过的倍率条目。",
-                xmlPatchFile: "DamageDefPurificationBurnFix.xml"),
+            new Entry("xmlVfeeRoyalTitleExt", GroupXmlPatches,
+                "VFE Empire 爵位扩展被清空（【3】）",
+                "disroom.mashiro 把爵位的 modExtensions 整片换空，"
+                + "而 WorldComponent_Hierarchy 取扩展时不判空 —— 会中断整轮世界组件初始化。"
+                + "本项按「实际生效的 def」逐个补回。"
+                + "⚠ 属于补丁打补丁：必须排在 disroom.mashiro 之后，见 About.xml 的 loadAfter。",
+                xmlPatchFile: "VFEE_RoyalTitleExtFix.xml"),
 
             new Entry("xmlElToroAnimsRottiRef", GroupXmlPatches,
                 "通用动物动画的 Rotti 死引用（【7】）",
                 "动画定义里还列着已经被删掉的 Rotti 种族，加载时刷悬空引用。",
                 xmlPatchFile: "ElToroAnimsRottiRefFix.xml"),
 
+            new Entry("xmlVfePianoFirepit", GroupXmlPatches,
+                "VFE 钢琴/营火/石棺补丁没执行（【8】）",
+                "VFE 自己的 PatchOperationFindMod 比的是显示名，中文下 Royalty 被译成「皇权」而匹配不上。"
+                + "本项补做那 8 条操作。"
+                + "★ 若「中文名判定」那一项（findModLanguage）开着，VFE 自己就会执行，本项会自动匹配 0 个节点、不动作。",
+                xmlPatchFile: "VFEPianoFirepitRestore.xml"),
+
+            // 2026-10-29 补登记：下面两项原先与「HediffStage.visible」那条一起挤在
+            // RJW17_XmlFieldCleanup.xml 一个文件里。而一个 Entry 只能挂一个文件名
+            // （Entry.XmlPatchFile 是单个字符串），于是两项都进不了设置界面、也进不了统计。
+            // 已把那个文件拆成两个（各留原注释），这里各建一个开关。
             new Entry("xmlTY2ValleyArtillery", GroupXmlPatches,
                 "溪谷联邦炮塔引用已删除的类型（【13】）",
                 "该模组往炮塔里塞了 VFE Security 1.6 已删除的 CompProperties_LongRangeArtillery，"
                 + "整个 Def 加载失败、炮塔消失。本项把这个节点摘掉。",
                 xmlPatchFile: "FixTY2ValleyLongRangeArtillery.xml"),
-
-            new Entry("xmlIncestuosIssueRestore", GroupXmlPatches,
-                "补回被删掉的戒律 issue（【30】）",
-                "「乱伦许可」把 Incestuos_Disapproved_CloseOnly 的 issue 节点删了，"
-                + "而它自己的 preceptClass 是空的 —— 打开文化界面一次刷 350 条空引用。"
-                + "本项只把 issue 补回来，不复活被一并删掉的 comps。",
-                xmlPatchFile: "IncestuosCloseOnlyIssueRestore.xml"),
-
-            new Entry("xmlMiliraNavigatorUniform", GroupXmlPatches,
-                "米莉拉领航员制服的 layers / comps（【31】）",
-                "那件制服把父类的 apparel/layers 与 comps 写成了含空白文本的空元素，"
-                + "导致每次染色都报「Failed to get last layer」，还丢了「避免友伤」。",
-                xmlPatchFile: "MiliraNavigatorUniformFix.xml"),
 
             new Entry("xmlOasfcTsarXenotype", GroupXmlPatches,
                 "金鸢尾兰「不知名的沙皇」缺 xenotypeSet（【18】）",
@@ -849,25 +765,26 @@ namespace GNH.LocalFixes
                 "iconPath 与磁盘文件名大小写不一致，文化界面刷红字。本项改回真实文件名。",
                 xmlPatchFile: "SnowRabbitTattooIconFix.xml"),
 
-            new Entry("xmlVfeeRoyalTitleExt", GroupXmlPatches,
-                "VFE Empire 爵位扩展被清空（【3】）",
-                "disroom.mashiro 把爵位的 modExtensions 整片换空，"
-                + "而 WorldComponent_Hierarchy 取扩展时不判空 —— 会中断整轮世界组件初始化。"
-                + "本项按「实际生效的 def」逐个补回。"
-                + "⚠ 属于补丁打补丁：必须排在 disroom.mashiro 之后，见 About.xml 的 loadAfter。",
-                xmlPatchFile: "VFEE_RoyalTitleExtFix.xml"),
+            new Entry("xmlIncestuosIssueRestore", GroupXmlPatches,
+                "补回被删掉的戒律 issue（【30】）",
+                "「乱伦许可」把 Incestuos_Disapproved_CloseOnly 的 issue 节点删了，"
+                + "而它自己的 preceptClass 是空的 —— 打开文化界面一次刷 350 条空引用。"
+                + "本项只把 issue 补回来，不复活被一并删掉的 comps。",
+                xmlPatchFile: "IncestuosCloseOnlyIssueRestore.xml"),
 
-            new Entry("xmlVfePianoFirepit", GroupXmlPatches,
-                "VFE 钢琴/营火/石棺补丁没执行（【8】）",
-                "VFE 自己的 PatchOperationFindMod 比的是显示名，中文下 Royalty 被译成「皇权」而匹配不上。"
-                + "本项补做那 8 条操作。"
-                + "★ 若「中文名判定」那一项（findModLanguage）开着，VFE 自己就会执行，本项会自动匹配 0 个节点、不动作。",
-                xmlPatchFile: "VFEPianoFirepitRestore.xml"),
+            new Entry("xmlMiliraNavigatorUniform", GroupXmlPatches,
+                "米莉拉领航员制服的 layers / comps（【31】）",
+                "那件制服把父类的 apparel/layers 与 comps 写成了含空白文本的空元素，"
+                + "导致每次染色都报「Failed to get last layer」，还丢了「避免友伤」。",
+                xmlPatchFile: "MiliraNavigatorUniformFix.xml"),
 
-            // 2026-10-29 补登记：下面两项原先与「HediffStage.visible」那条一起挤在
-            // RJW17_XmlFieldCleanup.xml 一个文件里。而一个 Entry 只能挂一个文件名
-            // （Entry.XmlPatchFile 是单个字符串），于是两项都进不了设置界面、也进不了统计。
-            // 已把那个文件拆成两个（各留原注释），这里各建一个开关。
+            new Entry("xmlDamageDefPurificationBurn", GroupXmlPatches,
+                "把 HediffDef 当 DamageDef 引用（【32】）",
+                "Fortification Industrial - Citadel 在 damageMultipliers 里写了 PurificationBurn，"
+                + "而它在 Monolyn Race 里是 HediffDef —— 每次都报「No Verse.DamageDef named」。"
+                + "摘掉那条从来没生效过的倍率条目。",
+                xmlPatchFile: "DamageDefPurificationBurnFix.xml"),
+
             new Entry("xmlRjw17SraeLibField", GroupXmlPatches,
                 "1.7 下 SRAELib 字段缺失刷红字（【36】）",
                 "雪兔服装扩展（工坊 3668025052）的 1.6\\Assemblies 里躺着两个程序集名都是 "
@@ -944,17 +861,6 @@ namespace GNH.LocalFixes
                 + "★ 三层守卫：目标修复模组不在场 / RJW 没装 / 扩展已存在，都不动作。",
                 xmlPatchFile: "RJW_SkillSexOrderFix.xml"),
 
-            new Entry("xmlCumworksBadCompRef", GroupCompat,
-                "无限精液工坊：两个储液桶写了不存在的组件（【49】）",
-                "它的两个储液桶（CumworksNet_CumBucket / _Advanced_）各写了一行 "
-                + "Class=\"RJW_Menstruation_Fluids.CompProperties_CumGatherer\"，"
-                + "而那个类型在 ELT 月经体液模组的三个 dll 里都不存在 —— "
-                + "MayRequire 只查模组是否启用、不查类型是否存在，所以这两行一路走到解析阶段才炸。"
-                + "comps 是整表解析，一失效连宿主 ThingDef 一起丢，也就是说这两个桶本体里根本不存在。"
-                + "本项把这两行删掉，宿主与其它组件都不动。"
-                + "★ 按类型存在性让路：作者哪天把该类型加回来，本项自动不动作。",
-                xmlPatchFile: "CumworksBadCompRefFix.xml"),
-
             new Entry("xmlMiliraApparelPaths", GroupXmlPatches,
                 "米莉拉服装贴图表里有重复条目（【52】）",
                 "米莉拉的「穿这件衣服就换成自家贴图」表里，BodyStrap 与 TribalA 这两条各出现了两次。"
@@ -963,7 +869,95 @@ namespace GNH.LocalFixes
                 + "本项只在「真的重复了」的时候动手：先删掉该键的全部条目，再加回恰好一条。"
                 + "★ 正常只有一条时 xpath 不命中，整段不执行，一个字节都不改 —— 所以上游修好后本项自动让路。"
                 + "★ 本模组必须排在外星人SA纹理适配（adk.sar.alien）之后才有意义，About 里已写 loadAfter。",
-                xmlPatchFile: "MiliraApparelPathsDedupe.xml"),
+                xmlPatchFile: "MiliraApparelPathsDedupe.xml"),new Entry("xmlVoeSushiMigration", GroupXmlPatches,
+                "餐厅前哨还在产已被合并掉的 8 种寿司（【58】）",
+                "Vanilla Cooking Expanded - Sushi 在 1.6/1.7 把原来的 8 种寿司合并成 4 种，"
+                + "旧 defName 全部删掉，并提供了官方的迁移定义。"
+                + "但那份迁移只管**存档**里的引用，管不到模组 XML 之间的引用 ——"
+                + "而 VOE 附加前哨的「餐厅」子模块正好是把 8 个旧名字直接写进产出列表里的，"
+                + "于是加载期会连打 8 条「找不到 ThingDef」的 cross-reference 错误，"
+                + "那个前哨的寿司产出也一并失效。"
+                + "本项按上游给出的合并关系把 8 条换成 4 条，数值照抄原文件。"
+                + "★ 如实写明让步：能产的寿司品种从 8 种变成 4 种 —— "
+                + "这不是我们砍的，是上游自己合并的，我们只是让前哨跟上；产出数值一个都没动。"
+                + "★ 上游哪天自己修好、或把新 def 改名，本项会自动让路（每条操作都设了「无论成败都继续」）。",
+                xmlPatchFile: "Patch_VoeSushiMigration.xml"),
+
+            // 【57】是那 720 条红字的真正出口：源头是引擎自己的 Faction.OfPlayer 属性 getter，
+            //   不是某三个模组的补丁。所以修法也不是"去改三个模组"，而是让属性在
+            //   「还没进地图且确实没有玩家派系」时走引擎自带的静默版本。
+            new Entry("xmlNivarianStarfallBeaconTexPath", GroupXmlPatches,
+                "涅瓦莲星陨信标贴图路径少一层目录（【59】）",
+                "涅瓦莲的附加包给「星陨信标」写的贴图路径是"
+                + "「Nivarian/Building/starfall_beacon」，"
+                + "而主包 keeptpa.NivarianRace 里那张图的实际位置是"
+                + "「Nivarian/Building/StarfallBeacon/starfall_beacon.png」——"
+                + "中间少了 StarfallBeacon 这一层。于是加载期报两条"
+                + "「Could not load Texture2D」，游戏里那个建筑显示成紫白方块。"
+                + "本项只把路径改成真正存在的那一条。"
+                + "★ 图是同一套涅瓦莲美术、文件名一致，视觉呈现与作者原意完全一致；"
+                + "★ 主包没启用时整段跳过（路径指向的是主包的 Textures）。"
+                + "★ 「翠绿祝福」引用 lotus 的那条同样是少一层目录（正确位置是 "
+                + "Nivarian/Building/VerdantLocus/lotus），已一并修好；"
+                + "两条都只是把路径补全，用的都是本体自己那份原件，视觉与作者原意一致。",
+                xmlPatchFile: "Patch_NivarianStarfallBeaconTexPath.xml"),
+
+            // 【64】第三轮日志诊断 P1-1：LDR（边缘弹道导弹:【地球科技】）把 141 个
+            //   Int32 字段写成了小数 —— 全被静默截断成 0。
+            //   ★ 第三轮报告把这条标成「写入方未定位（C 级）」，本轮定位到了：
+            //     IRBM 本体那份 XML 是干净的，写小数的是 LDR 的 Buildings_MissileSilo_LDR.xml。
+            new Entry("xmlAncientThreatIntField", GroupXmlPatches,
+                "一个整数字段被写成了小数，每次加载刷 38 条（【60】）",
+                "「Ancient amorphous threat」用一条补丁往所有叙事者的父类里加了个组件，"
+                + "其中「第几天触发」那一项写成了 0.5 —— 而它在引擎里是**整数**字段。"
+                + "引擎不会报错，而是把 0.5 截断成 0，再打一条「Parsed 0.5 as int.」；"
+                + "因为那条补丁加在「所有叙事者的父类」上，每个叙事者解析时各报一次，"
+                + "于是 1 处写错被放大成每次加载 38 条。"
+                + "本项把那个值写成显式整数 0。"
+                + "★ 行为一点没变：原来那 0.5 本来就被截断成 0，这个事件一直就是「第 0 天触发」；"
+                + "★ 没有改成 1，是因为那会把触发时间往后推一天，属于改作者的数值设计；"
+                + "★ 作者哪天自己改成整数，本项自动让路（xpath 只匹配文本为 0.5 的那一处）。",
+                xmlPatchFile: "Patch_AncientThreatIntFieldFix.xml"),
+
+            // 【59】纯美术：texPath 少了一层子目录。图其实就在同族主包里。
+            new Entry("xmlSiloTubeIntField", GroupXmlPatches,
+                "发射井的管子尺寸与开盖动画被截断成 0（【64】）",
+                "「边缘弹道导弹:【地球科技】」（nekotee.irbmldr）那份 1,157 行的 XML 里，"
+                + "把 141 个值写成了小数：`size` 有 0.1/0.2/0.3 共 70 处，"
+                + "`coverMovementTicks` 有 0.5/0.1 共 71 处 ——"
+                + "而这两个字段在 `IRBM.SiloTube` 里都是 **Int32**"
+                + "（反编译确认：整类里只有这两个不是 float/Vector2/String）。"
+                + "引擎不报错，用 `ParseIntPermissive` 悄悄截断成 0，再各打一条"
+                + "「Parsed 0.5 as int.」—— 于是 141 个值全变成 0，日志里 158 条警告。"
+                + "★ 后果不是噪音：`size` 的默认值是 1，变成 0 后那 10 个 ThingDef 的井盖可能根本不显示；"
+                + "`coverMovementTicks` 的默认值是 60（1 秒），变成 0 后开盖没有过渡动画。"
+                + "★ 修法按「作者想表达的意思」折算：`size` 一律取 1"
+                + "（Int32 的最小有效值，也是它的默认值；作者写 0.1 多半是「想很小」）；"
+                + "`coverMovementTicks` 按秒折算成 tick —— 0.5 秒 → 30、0.1 秒 → 6。"
+                + "★ 每条 xpath 都带值匹配（`[text()=\"0.1\"]`），"
+                + "所以作者哪天自己改成整数，本项自动让路，不需要额外判据。"
+                + "★ 一条 xpath 能改全部（反编译确认 `PatchOperationReplace.ApplyWorker` 会遍历所有匹配节点）。",
+                xmlPatchFile: "SiloTubeIntFieldFix.xml"),
+
+            // 【58】是 XML 层的：上游把 8 种寿司合并成 4 种，VOE 那个前哨没跟上。
+            //   放在 XML 组，因为它由 Patches\Patch_VoeSushiMigration.xml 执行。
+            new Entry("xmlPatchGate", GroupXmlPatches,
+                "让 XML 补丁也能单独关闭",
+                "开启时：下面每个 XML 补丁文件各有一个开关，关掉哪个就只有那个文件里的修复不生效。"
+                + "关闭时：所有 XML 补丁照常全部执行（等于把它们全部打开）。"
+                + "★ 这一项只决定「开关是否生效」，本身不修任何问题。",
+                "GNH.LocalFixes.Patch_PatchOperation_Apply"),
+
+            new Entry("xmlConfigErrorCleanup", GroupXmlPatches,
+                "配置自检噪音 + 字段级清理",
+                "一个文件里装着多条彼此独立的小修复：量子温控设备的射击/视线豁免、"
+                + "Sex_MC_UAP 标签方括号豁免、softresin 当成装备的问题，"
+                + "以及【33】LT 贞操带/胸罩的耐久与可燃字段、【34】两个基因分类排序撞号、"
+                + "【35】三条指向不存在 def 的交叉引用。",
+                xmlPatchFile: "ConfigErrorCleanup.xml"),
+
+            
+
 
         };
 
