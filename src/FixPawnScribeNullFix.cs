@@ -123,6 +123,29 @@ namespace GNH.LocalFixes
                     usedName = ExposeMethodName17;
                 }
 
+                // ⚠⚠ 2026-11-13 实机订正（1.6 最小环境）：必须要求「这个方法真的是本类声明的」。
+                //
+                //   `AccessTools.Method` 默认会往基类找 —— 1.6 版的
+                //   `NudityMattersMore.Fixation` **根本没有 PostExposeData / ExposeData**
+                //   （反编译 1.6 的 NudityMattersMore.dll 核实：40 个成员里没有任何 ExposeData），
+                //   于是它返回的是基类 `Verse.ThingComp.PostExposeData`。
+                //   Harmony 对「未在本类实现的抽象/虚基方法」会直接抛：
+                //       ArgumentException: You can only patch implemented methods/constructors.
+                //       Patch the declared method virtual System.Void Verse.ThingComp::PostExposeData() instead.
+                //   结果就是日志里一条「安装【41】…失败（下次会重试）」，每局重试、每局失败。
+                //
+                //   而 1.6 既然没有这个方法，就说明**那个版本根本不写 fixPawn 到存档**，
+                //   本项在 1.6 下本来就不需要 —— 正确行为是「静默跳过」，不是「失败重试」。
+                if (target != null && target.DeclaringType != fixationType)
+                {
+                    Log.Message("[GNH LocalFixes] 【41】不是本项适用版本：" + FixationTypeName
+                        + " 自身没有声明 " + usedName + "()（找到的是基类 "
+                        + (target.DeclaringType?.Name ?? "?") + " 的实现）；该版本不写 fixPawn 字段，"
+                        + "本项跳过。这不是故障。");
+                    installed = true;   // 已判定为「本版本不适用」，不必每局重试
+                    return;
+                }
+
                 if (target == null)
                 {
                     // ⚠ 这里**故意用 Log.Message 而不是 Log.Error**，也**故意不设 installed**：
