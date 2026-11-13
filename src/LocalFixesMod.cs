@@ -458,6 +458,8 @@ namespace GNH.LocalFixes
                 SnowRabbitGraphicThreadFix.Install);
             TryInstall("ritualObligationId", "RitualObligationIdFix",
                 RitualObligationIdFix.Install);
+            TryInstall("notifyNewLinkNoise", "NotifyNewLinkNoiseFix",
+                NotifyNewLinkNoiseFix.Install);
 
             TryInstall("factionOfPlayerNoise", "FactionOfPlayerNoiseFix",
                 FactionOfPlayerNoiseFix.Install);

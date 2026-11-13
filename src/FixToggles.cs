@@ -379,6 +379,22 @@ namespace GNH.LocalFixes
                 + "成因不同、未定位，本项不动它们（按 §0.2：没定位到根因就不动）。",
                 "GNH.LocalFixes.RitualObligationIdFix"),
 
+            // 【67】第三轮日志诊断 P2-1：Notify_NewLink 重复告警，纯噪音。
+            new Entry("notifyNewLinkNoise", GroupSpam,
+                "读档时「同一条设施链接被重复登记」的告警（【67】）",
+                "读档刷 12 条 `Notify_NewLink was called but the link is already here.`，"
+                + "全在 `Map.FinalizeLoading` 期间、全是 `Building_WorkTable`。"
+                + "★ **报告里说的「设施加成失效」不成立** —— 反编译原文显示："
+                + "发现重复时它 `Log.Error(...)` 然后 `return`，"
+                + "**不会再把同一个 facility 加进 linkedFacilities**。"
+                + "所以那份列表一直是完整的，那 12 个工作台的加成没有失效，"
+                + "这只是**多了一次多余调用**产生的噪音。"
+                + "★ 本项在重复时由我们自己返回（等价于原方法的「返回、不添加」），"
+                + "少掉那条 Error，同时打一条**信息量更大的 Warning**"
+                + "（带 parent 与 facility 的 Label），方便定位是哪个模组在重复调用。"
+                + "★ 最多打 6 条明细，之后只静音不刷屏。",
+                "GNH.LocalFixes.NotifyNewLinkNoiseFix"),
+
             // 【60】是一条「int 字段被写成小数」的修正：值本身没变（0.5 早被截断成 0），
             //   只是把同一个值写成引擎认得的写法，警告随之消失。
             new Entry("xmlAncientThreatIntField", GroupXmlPatches,

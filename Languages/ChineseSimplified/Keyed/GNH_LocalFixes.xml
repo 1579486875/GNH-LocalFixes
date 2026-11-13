@@ -182,4 +182,7 @@
 
   <GNH_LocalFixes_Toggle_ritualObligationId>读档时「仪式义务」的 ID 撞车（【66】）</GNH_LocalFixes_Toggle_ritualObligationId>
   <GNH_LocalFixes_Toggle_ritualObligationId_Desc>读档刷「Cannot register RitualObligation, (id=RitualObligation_0)」——「_0」说明那个对象的 load id 是 0。反编译确认 RitualObligation 的 ID 默认就是 0，只有带参数的构造函数才分配 ID，无参构造函数是空的。本项在注册前扫一遍所有 Ideo 的所有仪式义务，把 ID ≤ 0 的补成唯一 ID。后果是「仪式义务列表里可能有一条被顶掉」，补 ID 不改变任何游戏逻辑。</GNH_LocalFixes_Toggle_ritualObligationId_Desc>
+
+  <GNH_LocalFixes_Toggle_notifyNewLinkNoise>读档时「同一条设施链接被重复登记」的告警（【67】）</GNH_LocalFixes_Toggle_notifyNewLinkNoise>
+  <GNH_LocalFixes_Toggle_notifyNewLinkNoise_Desc>读档刷「Notify_NewLink was called but the link is already here.」，全在 Map.FinalizeLoading 期间、全是工作台。反编译确认：发现重复时原方法只会 Log.Error 然后 return，不会重复添加——所以设施加成没有失效，这只是多余的调用产生的噪音。本项在重复时自己返回，少掉那条 Error，同时打一条带 Label 的 Warning 方便定位。</GNH_LocalFixes_Toggle_notifyNewLinkNoise_Desc>
 </LanguageData>

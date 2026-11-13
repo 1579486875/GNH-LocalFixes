@@ -2,7 +2,7 @@
 
 > **多项针对性修复 —— 每一项都对应一次真实故障，每一项都独立生效。**
 
-> **当前版本：1.4.45** · 共 64 项修复，**66 个独立开关**（每一条都能在游戏设置里单独关；准确条数以设置界面顶部汇总为准）。`Patches\` 下 22 个 XML 补丁自 v1.4.10 起也各有开关。完整版本变迁见《技术说明.md》。
+> **当前版本：1.4.45** · 共 65 项修复，**67 个独立开关**（每一条都能在游戏设置里单独关；准确条数以设置界面顶部汇总为准）。`Patches\` 下 22 个 XML 补丁自 v1.4.10 起也各有开关。完整版本变迁见《技术说明.md》。
 
 | 项目 | 说明 |
 |---|---|
@@ -442,6 +442,7 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 64 | 发射井的「管子尺寸」与「开盖动画」一直是 0 | 「边缘弹道导弹:【地球科技】」把 141 个值写成了小数，而 `IRBM.SiloTube` 的 `size` 与 `coverMovementTicks` 都是 **Int32** —— 引擎用 `ParseIntPermissive` 悄悄截断成 0，再各打一条「Parsed 0.5 as int.」。`size` 默认是 1、`coverMovementTicks` 默认是 60，归一零就等于井盖不显示、开盖没动画。 | 按作者想表达的意思折算成整数：`size` 取 1（Int32 最小有效值=默认值），`coverMovementTicks` 按秒折算成 tick（0.5s→30、0.1s→6）。★ 每条 xpath 带值匹配，作者自己改对了就自动让路。 |
 | 65 | 雪兔的分层建筑上层一直显示成紫块 | 「SnowRabbit」（工坊 3643594275）把贴图加载放在 `Comp_LayeredBuildingRenderer.Initialize()` 里，而读档时这个方法跑在 ScribeLoader 的**异步线程**上——Unity 的 Texture2D 必须在主线程加载，所以必然失败；更麻烦的是它的 `PostSpawnSetup` 里那句补加载写成 `if (!respawningAfterLoad)`，读档时该值为 true，于是**永远不补**。 | 把加载挪到第一次 `PostDraw`（一定在主线程）：非主线程时跳过原调用、主线程里发现 `upperGraphic` 还是 null 就补一次。★ **作者的代码一行没改**，只是把加载时机挪到了它本来就该在的线程上。 |
 | 66 | 读档时仪式义务列表里可能少一条（`RitualObligation_0` 撞 ID） | 反编译 `RimWorld.RitualObligation`：`public int ID;` 默认就是 0，**只有带参数的构造函数**才调 `GetNextRitualObligationID()`，无参构造函数是空的。任何代码走无参构造 → ID 恒 0 → `GetUniqueLoadID()` 恒为 `RitualObligation_0` → `CrossRefHandler` 注册第二个时撞 ID、报错、拿不到引用。 | 在 `CrossRefHandler.ResolveAllCrossReferences` 的 Prefix 里扫一遍所有 Ideo 的 `activeObligations` / `completedObligations`，把 `ID <= 0` 的补成唯一 ID。★ 那是**注册前**的最后一站：更早拿不到完整的 IdeoManager，更晚报错已经发生。★ `ID` 本来就不该是 0，补它不改变任何游戏逻辑。 |
+| 67 | 读档刷 12 条「Notify_NewLink ... already here」 | **报告里「设施加成失效」的推断不成立**——反编译原文显示发现重复时只 `Log.Error` 然后 `return`，**不会重复添加**，所以那份 `linkedFacilities` 一直是完整的；那 12 个工作台的加成没有失效，这只是多了一次多余调用产生的噪音。 | 重复时由我们自己返回（与原方法等价），少掉那条 Error，同时打一条**带 Label 的 Warning**（parent + facility）方便定位是谁在重复调用。★ 最多打 6 条明细，之后只静音不刷屏。 |
 
 ## 🔄 上游模组更新后，本补丁会不会帮倒忙？
 
