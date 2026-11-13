@@ -179,4 +179,7 @@
 
   <GNH_LocalFixes_Toggle_snowRabbitGraphicThread>雪兔的分层建筑上层显示成紫块（【65】）</GNH_LocalFixes_Toggle_snowRabbitGraphicThread>
   <GNH_LocalFixes_Toggle_snowRabbitGraphicThread_Desc>「SnowRabbit」把贴图加载放在了 Comp_LayeredBuildingRenderer.Initialize() 里，而读档时 Initialize 跑在 ScribeLoader 的异步线程上 —— Unity 贴图必须在主线程加载，于是必然失败，那栋建筑的上层从此是紫块。本项把加载挪到第一次 PostDraw（一定在主线程）：非主线程跳过、主线程补一次。作者的代码一行没改。</GNH_LocalFixes_Toggle_snowRabbitGraphicThread_Desc>
+
+  <GNH_LocalFixes_Toggle_ritualObligationId>读档时「仪式义务」的 ID 撞车（【66】）</GNH_LocalFixes_Toggle_ritualObligationId>
+  <GNH_LocalFixes_Toggle_ritualObligationId_Desc>读档刷「Cannot register RitualObligation, (id=RitualObligation_0)」——「_0」说明那个对象的 load id 是 0。反编译确认 RitualObligation 的 ID 默认就是 0，只有带参数的构造函数才分配 ID，无参构造函数是空的。本项在注册前扫一遍所有 Ideo 的所有仪式义务，把 ID ≤ 0 的补成唯一 ID。后果是「仪式义务列表里可能有一条被顶掉」，补 ID 不改变任何游戏逻辑。</GNH_LocalFixes_Toggle_ritualObligationId_Desc>
 </LanguageData>

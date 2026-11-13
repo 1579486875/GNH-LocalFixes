@@ -456,6 +456,8 @@ namespace GNH.LocalFixes
                 JafwLethalDamageGenerationGuardFix.Install);
             TryInstall("snowRabbitGraphicThread", "SnowRabbitGraphicThreadFix",
                 SnowRabbitGraphicThreadFix.Install);
+            TryInstall("ritualObligationId", "RitualObligationIdFix",
+                RitualObligationIdFix.Install);
 
             TryInstall("factionOfPlayerNoise", "FactionOfPlayerNoiseFix",
                 FactionOfPlayerNoiseFix.Install);

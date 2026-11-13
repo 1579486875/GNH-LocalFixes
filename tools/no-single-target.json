@@ -79,6 +79,7 @@
     },
     "factionOfPlayerNoise": {
       "reason": "【57】修的是引擎自己 Faction.OfPlayer 的 getter 打日志行为，所有在世界生成期读它的模组都受益（实测至少三处补丁在读），没有单一目标模组"
-    }
+    },
+    "ritualObligationId": "它扫的是「所有 Ideo 的所有 Precept_Ritual 的仪式义务」，不针对任何特定模组 —— 触发它的是「某个模组走了 RitualObligation 的无参构造函数」，而那个模组尚未定位（反编译只能证明 ID 默认 0 这个机制，证明不了是谁 new 的）。所以没法写 requiresModById；修法本身是通用的（把 ID<=0 的补成唯一 ID），对任何存档都安全。"
   }
 }

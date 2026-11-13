@@ -180,4 +180,7 @@
 
   <GNH_LocalFixes_Toggle_snowRabbitGraphicThread>雪兔的分層建築上層顯示成紫塊（【65】）</GNH_LocalFixes_Toggle_snowRabbitGraphicThread>
   <GNH_LocalFixes_Toggle_snowRabbitGraphicThread_Desc>「SnowRabbit」把貼圖載入放在了 Comp_LayeredBuildingRenderer.Initialize() 裡，而讀檔時 Initialize 跑在 ScribeLoader 的非同步執行緒上 —— Unity 貼圖必須在主執行緒載入，於是必然失敗，那棟建築的上層從此是紫塊。本項把載入挪到第一次 PostDraw（一定在主執行緒）：非主執行緒跳過、主執行緒補一次。作者的程式碼一行沒改。</GNH_LocalFixes_Toggle_snowRabbitGraphicThread_Desc>
+
+  <GNH_LocalFixes_Toggle_ritualObligationId>讀檔時「儀式義務」的 ID 撞車（【66】）</GNH_LocalFixes_Toggle_ritualObligationId>
+  <GNH_LocalFixes_Toggle_ritualObligationId_Desc>讀檔刷「Cannot register RitualObligation, (id=RitualObligation_0)」——「_0」說明那個對象的 load id 是 0。反編譯確認 RitualObligation 的 ID 預設就是 0，只有帶參數的建構子才分配 ID，無參數建構子是空的。本項在註冊前掃一遍所有 Ideo 的所有儀式義務，把 ID ≤ 0 的補成唯一 ID。後果是「儀式義務列表裡可能有一條被頂掉」，補 ID 不改變任何遊戲邏輯。</GNH_LocalFixes_Toggle_ritualObligationId_Desc>
 </LanguageData>

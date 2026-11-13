@@ -359,6 +359,26 @@ namespace GNH.LocalFixes
                 + "**作者的代码一行没改**，只是把加载时机挪到了它本来就该在的线程上。",
                 "GNH.LocalFixes.SnowRabbitGraphicThreadFix"),
 
+            // 【66】第三轮日志诊断 P1-2：RitualObligation 的 ID 恒为 0，注册时撞车。
+            new Entry("ritualObligationId", GroupCrash,
+                "读档时「仪式义务」的 ID 撞车（【66】）",
+                "读档刷三条 `Cannot register RimWorld.RitualObligation, (id=RitualObligation_0 …)`，"
+                + "其中 `_0` 说明那个对象的 load id 是 **0**。"
+                + "反编译 `RimWorld.RitualObligation` 确认：`public int ID;` 默认就是 0，"
+                + "而**只有带参数的构造函数**才调 `Find.UniqueIDsManager.GetNextRitualObligationID()`；"
+                + "无参构造函数是空的 —— 任何代码只要走它，ID 就恒为 0。"
+                + "于是两个这样的对象同时存在时，`GetUniqueLoadID()` 都返回 `RitualObligation_0`，"
+                + "`CrossRefHandler` 注册第二个时撞 ID、报错、拿不到引用。"
+                + "★ 后果：仪式义务列表里可能有一条被顶掉（玩家看不到某个待办仪式）。"
+                + "★ 本项在 `CrossRefHandler.ResolveAllCrossReferences` 的 Prefix 里扫一遍"
+                + "所有 Ideo 的所有 `Precept_Ritual.activeObligations` / `completedObligations`，"
+                + "把 `ID <= 0` 的补成唯一 ID。"
+                + "★ 这是**注册前**的最后一站：更早拿不到完整的 IdeoManager，更晚报错已经发生。"
+                + "★ `ID` 是唯一标识、本来就不该是 0，补它不改变任何游戏逻辑。"
+                + "★ 另外两条 `Cannot register`（`IdeoBuildingPresenceDemand_197` 与 CE 的 `Verb_…`）"
+                + "成因不同、未定位，本项不动它们（按 §0.2：没定位到根因就不动）。",
+                "GNH.LocalFixes.RitualObligationIdFix"),
+
             // 【60】是一条「int 字段被写成小数」的修正：值本身没变（0.5 早被截断成 0），
             //   只是把同一个值写成引擎认得的写法，警告随之消失。
             new Entry("xmlAncientThreatIntField", GroupXmlPatches,
