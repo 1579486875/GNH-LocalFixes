@@ -191,4 +191,7 @@
 
   <GNH_LocalFixes_Toggle_parsedIntLocator>定位「Parsed X as int」的具体来源文件（【69】，默认关闭）</GNH_LocalFixes_Toggle_parsedIntLocator>
   <GNH_LocalFixes_Toggle_parsedIntLocator_Desc>第三轮诊断还剩约 40 条 Parsed 警告没定位。本项是纯诊断：给 DefFromNodeNew 与 ParseIntPermissive 各挂一个 Prefix，后者在小数时把「当前解析的 XML 文件」一起打出来。不改变任何加载结果；默认关闭，排查时再开。</GNH_LocalFixes_Toggle_parsedIntLocator_Desc>
+
+  <GNH_LocalFixes_Toggle_allDiagnostics>全部诊断一起开（总控，默认关闭）</GNH_LocalFixes_Toggle_allDiagnostics>
+  <GNH_LocalFixes_Toggle_allDiagnostics_Desc>本组三个只读取证工具（详细错误勘探 / 世界生成期死亡取证 / Parsed 定位）排查时常常要同时开两三个，这个总控省那几下。它不替代各自的开关：关掉它那三个回到各看各的，原来的勾选状态不会被改动。</GNH_LocalFixes_Toggle_allDiagnostics_Desc>
 </LanguageData>

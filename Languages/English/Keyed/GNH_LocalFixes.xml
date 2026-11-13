@@ -192,4 +192,7 @@ The fixes are still in effect - the cache holds the post-patch result. Changing 
 
   <GNH_LocalFixes_Toggle_parsedIntLocator>Trace 'Parsed X as int' to its source file (§69, off by default)</GNH_LocalFixes_Toggle_parsedIntLocator>
   <GNH_LocalFixes_Toggle_parsedIntLocator_Desc>About 40 such warnings from the third log-diagnosis round are still untraced. This is a pure diagnostic: it prefixes DefFromNodeNew and ParseIntPermissive, and the latter prints the XML file currently being parsed whenever a decimal shows up. It changes no loading result. Off by default - turn it on when you need to trace, then turn it off.</GNH_LocalFixes_Toggle_parsedIntLocator_Desc>
+
+  <GNH_LocalFixes_Toggle_allDiagnostics>Turn on all diagnostics at once (master switch, off by default)</GNH_LocalFixes_Toggle_allDiagnostics>
+  <GNH_LocalFixes_Toggle_allDiagnostics_Desc>The three read-only probes in this group (transpiler-conflict survey, worldgen death forensics, Parsed-int tracing) are often needed two or three at a time when chasing a hard problem. This master switch saves those clicks. It does not replace the individual toggles: turning it off returns them to their own settings, and their stored values are left untouched.</GNH_LocalFixes_Toggle_allDiagnostics_Desc>
 </LanguageData>

@@ -104,6 +104,21 @@ namespace GNH.LocalFixes
         /// 现象是「界面上显示关着，实际却装上了」，而日志里看不出任何异常。
         /// </para>
         /// </summary>
+        /// <summary>
+        /// 这一项是不是「诊断/取证」类 —— 供 `allDiagnostics` 总控用。
+        ///
+        /// <para>
+        /// **`allDiagnostics` 自己不在这个集合里**，否则它会把自己也算进去，变成自引用。
+        /// </para>
+        /// </summary>
+        internal static bool IsDiagnostic(string id)
+        {
+            return string.Equals(id, "ew2TranspilerProbe", StringComparison.Ordinal)
+                || string.Equals(id, "pawnGenDeathProbe", StringComparison.Ordinal)
+                || string.Equals(id, "parsedIntLocator", StringComparison.Ordinal)
+                || string.Equals(id, "allDiagnostics", StringComparison.Ordinal);
+        }
+
         internal static bool IsDefaultOff(string id)
         {
             return string.Equals(id, "deepProfilerQuiet", StringComparison.Ordinal)
@@ -168,7 +183,19 @@ namespace GNH.LocalFixes
             // 不该打扰任何人；但真要排查疑难时，位置必须一眼能找到 —— 埋在一长串
             // 「我修了什么」的末尾，等于让人翻三次才找到「帮我看看哪里坏了」那个开关。
             //
-            // 同样因为它不是修复，**不占修复清单的编号**（编号只给真正修东西的项）。
+            // 同样因为它不是修复，**不占修复清单的编号**（编号只给真正修东西的项）。            // 【2026-11-13】总控：开了它 = 下面三个诊断一起开。它们各自仍可单控。
+            new Entry("allDiagnostics", GroupDiagnostics,
+                "全部诊断一起开（总控，默认关闭）",
+                "本组下面那三个都是**只读取证**工具："
+                + "「详细错误勘探」（查 transpiler 撞车）、"
+                + "「世界生成期死亡取证」（查领袖生不出来）、"
+                + "「定位 Parsed X as int」（查哪个 XML 把小数值写进整数字段）。"
+                + "排查疑难时常常要同时开两三个，一个个点很麻烦 —— 这个总控就是为了省那几下。"
+                + "★ 它**不替代**那三个各自的开关：关掉它，那三个回到「各看各的」；"
+                + "**它们原来的勾选状态不会被改动**，所以你之前单独开的那个还是开的。"
+                + "★ 它自己也默认关闭 —— 不排查时不该让日志多出任何一行。",
+                null),
+
             new Entry("ew2TranspilerProbe", GroupDiagnostics,
                 "详细错误勘探（默认关闭）",
                 "专门给「游戏一闪就没了、日志里一个字都没有」这类疑难用的只读勘探工具。"

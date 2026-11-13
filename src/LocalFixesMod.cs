@@ -462,6 +462,16 @@ namespace GNH.LocalFixes
                 NotifyNewLinkNoiseFix.Install);
             TryInstall("debugSpamPrefix", "DebugSpamPrefixFix",
                 DebugSpamPrefixFix.Install);
+            // allDiagnostics 是**总控开关**，本身不装任何补丁 ——
+            // 它的作用点在 IsFixEnabled：开着时把三个诊断抬成 true。
+            // 这里留一个接线点，是为了让 verify-toggles 的「声明/接线」对账能过，
+            // 顺便在日志里明确写一句「它是总控」，免得有人以为它漏装了。
+            TryInstall("allDiagnostics", "AllDiagnosticsToggle", () =>
+            {
+                SafeLogMessage("[GNH LocalFixes] allDiagnostics: master switch for the three"
+                    + " read-only probes (transpiler-conflict survey / worldgen death forensics"
+                    + " / Parsed-int tracing). It installs nothing by itself.");
+            });
             TryInstall("parsedIntLocator", "ParsedIntLocatorDiagnostic",
                 ParsedIntLocatorDiagnostic.Install);
 
@@ -921,6 +931,13 @@ namespace GNH.LocalFixes
                     // 一律 true 会让它在「设置没读出来」这条冷门路径上被装上，
                     // 与界面显示相反。
                     return !FixToggles.IsDefaultOff(toggleId);
+                }
+                // 【2026-11-13】总控：`allDiagnostics` 开着时，三个诊断一律视为开。
+                // 三个诊断各自仍可单控 —— 这里只在「总控开」时把它们抬成 true，
+                // 不改动它们自己的存档值，所以关掉总控后各自的状态原样回来。
+                if (FixToggles.IsDiagnostic(toggleId) && settings.IsOn("allDiagnostics"))
+                {
+                    return true;
                 }
                 return settings.IsOn(toggleId);
             }
