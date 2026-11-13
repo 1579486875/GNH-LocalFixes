@@ -189,4 +189,7 @@ The fixes are still in effect - the cache holds the post-patch result. Changing 
 
   <GNH_LocalFixes_Toggle_debugSpamPrefix>Debug spam printed on every load (§68)</GNH_LocalFixes_Toggle_debugSpamPrefix>
   <GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>RatkinGeneExpanded left three Log.Warning calls starting with 'Debug:________' inside CustomSiteComp.PostExposeData, so they print on every load. This fix adds a very narrow prefix filter to Log.Warning: only lines starting with those 13 characters are dropped (that marker cannot appear in real log lines), everything else passes through untouched.</GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>
+
+  <GNH_LocalFixes_Toggle_parsedIntLocator>Trace 'Parsed X as int' to its source file (§69, off by default)</GNH_LocalFixes_Toggle_parsedIntLocator>
+  <GNH_LocalFixes_Toggle_parsedIntLocator_Desc>About 40 such warnings from the third log-diagnosis round are still untraced. This is a pure diagnostic: it prefixes DefFromNodeNew and ParseIntPermissive, and the latter prints the XML file currently being parsed whenever a decimal shows up. It changes no loading result. Off by default - turn it on when you need to trace, then turn it off.</GNH_LocalFixes_Toggle_parsedIntLocator_Desc>
 </LanguageData>

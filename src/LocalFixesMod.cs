@@ -462,6 +462,8 @@ namespace GNH.LocalFixes
                 NotifyNewLinkNoiseFix.Install);
             TryInstall("debugSpamPrefix", "DebugSpamPrefixFix",
                 DebugSpamPrefixFix.Install);
+            TryInstall("parsedIntLocator", "ParsedIntLocatorDiagnostic",
+                ParsedIntLocatorDiagnostic.Install);
 
             TryInstall("factionOfPlayerNoise", "FactionOfPlayerNoiseFix",
                 FactionOfPlayerNoiseFix.Install);

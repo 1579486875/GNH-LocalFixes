@@ -82,6 +82,7 @@
     },
     "ritualObligationId": "它扫的是「所有 Ideo 的所有 Precept_Ritual 的仪式义务」，不针对任何特定模组 —— 触发它的是「某个模组走了 RitualObligation 的无参构造函数」，而那个模组尚未定位（反编译只能证明 ID 默认 0 这个机制，证明不了是谁 new 的）。所以没法写 requiresModById；修法本身是通用的（把 ID<=0 的补成唯一 ID），对任何存档都安全。",
     "notifyNewLinkNoise": "它拦的是游戏自己那条 Log.Error（CompAffectedByFacilities.Notify_NewLink 里的重复检测），不针对任何特定模组 —— 谁在 SpawnSetup 里多调一次就会触发。修法是通用的：重复时由我们返回（与原方法等价），并打一条带 Label 的诊断帮用户定位。",
-    "debugSpamPrefix": "触发它的是 RatkinGeneExpanded（3043354134）留的三条调试 Log.Warning，但修法本身是通用的：给 Log.Warning 挂一个只认「Debug:________」这 13 个字符前缀的过滤器，任何模组同风格的调试输出都会被挡住。所以它不针对那一个模组，不写 requiresModById。"
+    "debugSpamPrefix": "触发它的是 RatkinGeneExpanded（3043354134）留的三条调试 Log.Warning，但修法本身是通用的：给 Log.Warning 挂一个只认「Debug:________」这 13 个字符前缀的过滤器，任何模组同风格的调试输出都会被挡住。所以它不针对那一个模组，不写 requiresModById。",
+    "parsedIntLocator": "纯诊断工具，不针对任何模组：它给两个引擎方法挂 Prefix，把「Parsed X as int」与当前解析的 XML 文件关联起来。默认关闭，只在需要排查那 40 条时打开。"
   }
 }

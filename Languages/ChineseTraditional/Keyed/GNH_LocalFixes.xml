@@ -189,4 +189,7 @@
 
   <GNH_LocalFixes_Toggle_debugSpamPrefix>讀檔刷「Debug:________isCustomSite」等除錯輸出（【68】）</GNH_LocalFixes_Toggle_debugSpamPrefix>
   <GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>鼠族基因擴展（RatkinGeneExpanded）在 CustomSiteComp.PostExposeData 裡留了三條 Log.Warning(「Debug:________…」)，每次讀檔刷一次。本項給 Log.Warning 掛一個極窄的前綴過濾：只丟掉以「Debug:________」開頭的行（那 13 個字元正常日誌裡不可能出現），其餘一律放行。</GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>
+
+  <GNH_LocalFixes_Toggle_parsedIntLocator>定位「Parsed X as int」的具體來源檔案（【69】，預設關閉）</GNH_LocalFixes_Toggle_parsedIntLocator>
+  <GNH_LocalFixes_Toggle_parsedIntLocator_Desc>第三輪診斷還剩約 40 條 Parsed 警告沒定位。本項是純診斷：給 DefFromNodeNew 與 ParseIntPermissive 各掛一個 Prefix，後者在有小數時把「當前解析的 XML 檔」一起打出來。不改變任何載入結果；預設關閉，排查時再開。</GNH_LocalFixes_Toggle_parsedIntLocator_Desc>
 </LanguageData>

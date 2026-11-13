@@ -112,7 +112,10 @@ namespace GNH.LocalFixes
                 // 每局往日志里最多写 24 条 ERROR，而 About 与界面都写着「默认关闭」——
                 // 文档与实现不一致。它与 ew2TranspilerProbe 同属「只读取证」，
                 // 没有排查需求时不该打扰任何人。
-                || string.Equals(id, "pawnGenDeathProbe", StringComparison.Ordinal);
+                || string.Equals(id, "pawnGenDeathProbe", StringComparison.Ordinal)
+                // 【69】与上面几个同属「只读取证」：它给日志加行、
+                // 不改变任何加载结果，没有排查需求时不该打扰任何人。
+                || string.Equals(id, "parsedIntLocator", StringComparison.Ordinal);
         }
 
         internal sealed class Entry
@@ -411,6 +414,21 @@ namespace GNH.LocalFixes
                 + "而且不依赖「哪个方法调用」，作者怎么改都还能拦住。"
                 + "★ 顺带把其它模组同风格的调试输出也挡住。",
                 "GNH.LocalFixes.DebugSpamPrefixFix"),
+
+            // 【69】诊断：把「Parsed X as int」定位到具体 XML 文件。默认关闭。
+            new Entry("parsedIntLocator", GroupAdvanced,
+                "定位「Parsed X as int」的具体来源文件（【69】，默认关闭）",
+                "第三轮日志诊断里那 181 条 `Parsed <小数> as int.`，141 条已由【64】修掉，"
+                + "**还剩约 40 条没定位** —— 堆栈是 `ParseAndSetComplexTypeField_System_Int32`，"
+                + "日志里既没有 defName 也没有文件名，光看日志找不出来；"
+                + "全库搜那些值也没用（0.1 / 1.5 / 14.9 这类在小数字段里太常见）。"
+                + "★ 本项是一条**纯诊断**：给 `DirectXmlToObjectNew.DefFromNodeNew` 与 "
+                + "`ParseHelper.ParseIntPermissive` 各挂一个 Prefix —— 前者记下"
+                + "「现在在解析哪个 XML 文件」（`LoadableXmlAsset.name` / `fullFolderPath`），"
+                + "后者只在小数时把这条信息一起打出来。"
+                + "★ **它不改变任何加载结果**，开着关着都不影响存档。"
+                + "★ **默认关闭**（因为它会给日志加行）：要排查那 40 条时在设置里打开，查完关掉。",
+                "GNH.LocalFixes.ParsedIntLocatorDiagnostic"),
 
             // 【60】是一条「int 字段被写成小数」的修正：值本身没变（0.5 早被截断成 0），
             //   只是把同一个值写成引擎认得的写法，警告随之消失。
