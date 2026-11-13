@@ -169,9 +169,37 @@ namespace GNH.LocalFixes
                     lastMode = mode;
                 }
 
-                // 只在真正读档的两趟里介入；保存（Saving）那一趟完全不动，
-                // 免得把「存档里写几份」这件事改掉。
-                if (mode != LoadSaveMode.LoadingVars && mode != LoadSaveMode.PostLoadInit)
+                // ── 2026-11-13 订正（第三轮日志诊断 P0）────────────────────
+                //
+                // 原来的写法是「只读档两趟介入，保存那一趟完全不动」。
+                // **那是错的**，而且正是第三轮里 16 条
+                //   Could not get load IDs list. We're asking for something
+                //   which was never added during LoadingVars. pathRelToParent=/assignedPawns
+                // 的成因：
+                //
+                //   · 保存：两份组件**都**写 → 存档里有两份 `/assignedPawns`
+                //   · 读档：第一份读、第二份被跳过 → 第二份那个条目**没人取回**
+                //   · Scribe 的 Look 是写/读**对称**调用的，跳过一侧就等于给另一侧留了个空洞
+                //   → 读数时找不到那条登记 → 报 "never added during LoadingVars"
+                //   → assignedPawns / uninstalledAssignedPawns **落空**
+                //   → 那几台动物医疗台的「已分配动物」绑定丢失（玩家能感知的数据丢失）
+                //
+                // 也就是说：上一版把「重复组件的红字」换成了「读档丢绑定」——
+                // 在「噪音」和「数据」之间选错了边。
+                //
+                // 正确的做法是**让两侧都跳过同一份**：
+                //   · 保存：第一份写、第二份跳过 → 存档里只有一份
+                //   · 读档：第一份读、第二份跳过 → 对称
+                // 第二份组件的数据永远是空的，但游戏本来也只用第一份（见上面的根因一节）。
+                //
+                // ⚠ 为什么必须包含 Saving：`LoadSaveMode` 一共五个值
+                //   （Inactive / Saving / LoadingVars / ResolvingCrossRefs / PostLoadInit），
+                //   `Scribe_Collections.Look` 只在 Saving 与 LoadingVars 两趟里被调；
+                //   ResolvingCrossRefs 与 PostLoadInit 是后续阶段。所以「哪一侧被跳过」
+                //   必须在这两趟里保持同一个选择，否则就是不对称。
+                if (mode != LoadSaveMode.Saving
+                    && mode != LoadSaveMode.LoadingVars
+                    && mode != LoadSaveMode.PostLoadInit)
                 {
                     return true;
                 }

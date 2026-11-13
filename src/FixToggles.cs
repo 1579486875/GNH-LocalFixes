@@ -375,6 +375,29 @@ namespace GNH.LocalFixes
                 + "两条都只是把路径补全，用的都是本体自己那份原件，视觉与作者原意一致。",
                 xmlPatchFile: "Patch_NivarianStarfallBeaconTexPath.xml"),
 
+            // 【64】第三轮日志诊断 P1-1：LDR（边缘弹道导弹:【地球科技】）把 141 个
+            //   Int32 字段写成了小数 —— 全被静默截断成 0。
+            //   ★ 第三轮报告把这条标成「写入方未定位（C 级）」，本轮定位到了：
+            //     IRBM 本体那份 XML 是干净的，写小数的是 LDR 的 Buildings_MissileSilo_LDR.xml。
+            new Entry("xmlSiloTubeIntField", GroupXmlPatches,
+                "发射井的管子尺寸与开盖动画被截断成 0（【64】）",
+                "「边缘弹道导弹:【地球科技】」（nekotee.irbmldr）那份 1,157 行的 XML 里，"
+                + "把 141 个值写成了小数：`size` 有 0.1/0.2/0.3 共 70 处，"
+                + "`coverMovementTicks` 有 0.5/0.1 共 71 处 ——"
+                + "而这两个字段在 `IRBM.SiloTube` 里都是 **Int32**"
+                + "（反编译确认：整类里只有这两个不是 float/Vector2/String）。"
+                + "引擎不报错，用 `ParseIntPermissive` 悄悄截断成 0，再各打一条"
+                + "「Parsed 0.5 as int.」—— 于是 141 个值全变成 0，日志里 158 条警告。"
+                + "★ 后果不是噪音：`size` 的默认值是 1，变成 0 后那 10 个 ThingDef 的井盖可能根本不显示；"
+                + "`coverMovementTicks` 的默认值是 60（1 秒），变成 0 后开盖没有过渡动画。"
+                + "★ 修法按「作者想表达的意思」折算：`size` 一律取 1"
+                + "（Int32 的最小有效值，也是它的默认值；作者写 0.1 多半是「想很小」）；"
+                + "`coverMovementTicks` 按秒折算成 tick —— 0.5 秒 → 30、0.1 秒 → 6。"
+                + "★ 每条 xpath 都带值匹配（`[text()=\"0.1\"]`），"
+                + "所以作者哪天自己改成整数，本项自动让路，不需要额外判据。"
+                + "★ 一条 xpath 能改全部（反编译确认 `PatchOperationReplace.ApplyWorker` 会遍历所有匹配节点）。",
+                xmlPatchFile: "SiloTubeIntFieldFix.xml"),
+
             // 【58】是 XML 层的：上游把 8 种寿司合并成 4 种，VOE 那个前哨没跟上。
             //   放在 XML 组，因为它由 Patches\Patch_VoeSushiMigration.xml 执行。
             new Entry("xmlVoeSushiMigration", GroupXmlPatches,
@@ -949,7 +972,9 @@ namespace GNH.LocalFixes
             { "ccoeReflection", "keahuy.rjw.ccoe" },
             { "fixVfeeInstrumentSpace", "OskarPotocki.VFE.Empire" },
             { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },            // Ancient amorphous threat：写错字段的那条补丁由它提供            // Just A Flesh Wound：被守卫的那个 Postfix 在它的 dll 里
-            { "jafwLethalDamageGenGuard", "kittahkhan.justafleshwound" },
+            { "jafwLethalDamageGenGuard", "kittahkhan.justafleshwound" },
+            // 【64】改的是 LDR（边缘弹道导弹:【地球科技】）自己写错的小数
+            { "xmlSiloTubeIntField", "nekotee.irbmldr" },
 
             { "xmlAncientThreatIntField", "XMB.AncientThreat.MO" },
 

@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  【64】「边缘弹道导弹:【地球科技】」把 141 个 Int32 字段写成了小数，全被静默截断成 0
+  ──────────────────────────────────────────────────────────────
+  ⚠ 这个文件的注释遵守规范 §2.6：不出现连续两个减号，分隔线一律用 U+2500。
+
+  ── 症状（2026-11-13 第三轮全局日志诊断 P1-1）──
+
+  日志里 181 条 `Parsed <小数> as int.` 警告，其中约 158 条的堆栈指向
+  `ParseAndSetListField_IRBM_SiloTube → ParseAndSetListField_Verse_DefModExtension`：
+
+      WARN Parsed 0.5 as int.
+      WARN Parsed 0.1 as int.
+      WARN Parsed 0.2 as int.
+      WARN Parsed 0.3 as int.
+
+  ── 根因（反编译 + 全库扫 XML 双重确认）──
+
+  反编译 IRBM.dll（工坊 3682304832）的 `IRBM.SiloTube`：
+
+      public int size = 1;                    ← Int32
+      public Vector2 offset = Vector2.zero;
+      public string coverTexPath;
+      public float coverZoom = 1f;
+      public Vector2 coverOffset = Vector2.zero;
+      public int coverMovementTicks = 60;     ← Int32
+      ...
+
+  整类里只有 `size` 与 `coverMovementTicks` 是 Int32，其余全是 float / Vector2 / String。
+
+  而写入方是 **`nekotee.irbmldr`（边缘弹道导弹:【地球科技】，工坊 3695591404）** 的
+  `1.6/Defs/ThingDefs_Buildings/Buildings_MissileSilo_LDR.xml`（1,157 行）：
+
+      <size>0.1</size>                        × 40
+      <size>0.2</size>                        × 20
+      <size>0.3</size>                        × 10
+      <coverMovementTicks>0.1</coverMovementTicks>  × 2
+      <coverMovementTicks>0.5</coverMovementTicks>  × 69
+
+  ⚠ **注意**：第三轮报告里写「IRBM 自己的 XML 里 coverMovementTicks 一次都没出现」
+  —— 那句话只对 IRBM 本体成立，但**写入方根本就是另一个模组（LDR）**。
+  本轮把写入方定位到了，所以这条从「未定位（C 级）」升到「已定位」。
+
+  `Verse.ParseHelper.ParseIntPermissive` 的行为（本项目【60】的注释里已验过）：
+
+      if (!int.TryParse(str, out result))
+      {
+          result = (int)float.Parse(str);      // 0.5 → 0，0.1 → 0
+          Log.Warning("Parsed " + str + " as int.");
+      }
+
+  也就是说这 141 个值**全部变成了 0**。
+
+  ── 后果 ──
+
+    · `size = 0`（默认值是 1）→ 发射井的「管子」尺寸归零 → 那 10 个 ThingDef 的井盖可能根本不显示
+    · `coverMovementTicks = 0`（默认值是 60）→ 开盖动画耗时 0 tick → 瞬间完成，没有任何过渡
+
+  这**不是噪音，是一个被静默抹平的数值**。
+
+  ── 修法：按「作者想表达的意思」折算成整数 ──
+
+    · `size` 的 0.1 / 0.2 / 0.3 → **1**
+      `size` 是 Int32，最小有效值就是 1（也就是它的默认值）。
+      作者写小数多半是「想让管子很小」，1 格是最接近这个意图的合法取值。
+      ⚠ 改成 0 是现状（坏），改成 2 会明显变大，1 是唯一合理的选择。
+
+    · `coverMovementTicks` 的 0.5 → **30**、0.1 → **6**
+      这个字段的单位是 tick，游戏 60 tick = 1 秒。
+      作者写 0.5 / 0.1 显然是**按秒写的**，折算成 tick 就是 30 / 6。
+      ⚠ 直接写 0 等于保留现状（无动画），那不是「修」。
+
+  ── 为什么这样写 xpath ──
+
+  每条 xpath 都带 **值匹配**（`[text()="0.1"]`）。这样做有两个好处：
+
+    ① `PatchOperationReplace.ApplyWorker` 会**遍历所有匹配节点**逐个替换
+       （反编译确认：`foreach (XmlNode xmlNode in array)`），
+       所以一条 xpath 能一次改掉全部 40 处，不必写 141 条；
+    ② **作者哪天自己改对了，xpath 就不再命中，这条补丁自动让路** ——
+       不需要额外的「自动让路」判据，比无条件替换安全得多。
+
+  ── 作用域与边界 ──
+
+  只影响 `modExtensions/li[@Class="IRBM.SiloExtension"]` 下的 `silos/li/size`
+  与 `silos/li/coverMovementTicks` 这两个字段，**不碰任何其它数值**。
+  没装 LDR 时整条 xpath 不命中，不会报错。
+
+  ⚠ 订正记录：暂无。
+-->
+<Patch>
+
+  <!-- size：0.1 → 1（默认值，也是 Int32 的最小有效值） -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>/Defs/ThingDef/modExtensions/li[@Class="IRBM.SiloExtension"]/silos/li/size[text()="0.1"]</xpath>
+    <value>
+      <size>1</size>
+    </value>
+  </Operation>
+
+  <!-- size：0.2 → 1 -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>/Defs/ThingDef/modExtensions/li[@Class="IRBM.SiloExtension"]/silos/li/size[text()="0.2"]</xpath>
+    <value>
+      <size>1</size>
+    </value>
+  </Operation>
+
+  <!-- size：0.3 → 1 -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>/Defs/ThingDef/modExtensions/li[@Class="IRBM.SiloExtension"]/silos/li/size[text()="0.3"]</xpath>
+    <value>
+      <size>1</size>
+    </value>
+  </Operation>
+
+  <!-- coverMovementTicks：0.5 秒 → 30 tick -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>/Defs/ThingDef/modExtensions/li[@Class="IRBM.SiloExtension"]/silos/li/coverMovementTicks[text()="0.5"]</xpath>
+    <value>
+      <coverMovementTicks>30</coverMovementTicks>
+    </value>
+  </Operation>
+
+  <!-- coverMovementTicks：0.1 秒 → 6 tick -->
+  <Operation Class="PatchOperationReplace">
+    <xpath>/Defs/ThingDef/modExtensions/li[@Class="IRBM.SiloExtension"]/silos/li/coverMovementTicks[text()="0.1"]</xpath>
+    <value>
+      <coverMovementTicks>6</coverMovementTicks>
+    </value>
+  </Operation>
+
+</Patch>

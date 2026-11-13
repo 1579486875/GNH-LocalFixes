@@ -174,4 +174,7 @@
 
   <GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard>世界生成期被「Just A Flesh Wound」判死（【61】）</GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard>
   <GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard_Desc>「[Kit] Just A Flesh Wound」把每條 MissingBodyPart 按部位最大生命值折算成傷害、四肢還有倍率，從一份「韌性」裡扣、扣光就判死。而裝義體本身就會產生一批 MissingBodyPart —— 於是 UFC 那種全身義體化打手在世界生成時一次裝 4 件義體，36 個部位變缺失，韌性扣光、當場判死，領袖連生 120 次全敗。本項只在「小人正在被生成」時跳過它那一次重算；遊戲內真實受傷與斷肢時邏輯一點不改。</GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard_Desc>
+
+  <GNH_LocalFixes_Toggle_xmlSiloTubeIntField>發射井的管子尺寸與開蓋動畫被截斷成 0（【64】）</GNH_LocalFixes_Toggle_xmlSiloTubeIntField>
+  <GNH_LocalFixes_Toggle_xmlSiloTubeIntField_Desc>「邊緣彈道導彈:【地球科技】」把 141 個值寫成了小數，而它們在 IRBM.SiloTube 裡都是整數：size 有 0.1/0.2/0.3 共 70 處，coverMovementTicks 有 0.5/0.1 共 71 處。引擎不報錯，悄悄截斷成 0 再各打一條「Parsed 0.5 as int.」。後果不是噪音：size 的預設是 1，變 0 後井蓋可能不顯示；coverMovementTicks 的預設是 60（1 秒），變 0 後開蓋沒動畫。本項按作者意圖折算成整數：size 取 1，coverMovementTicks 0.5 秒→30、0.1 秒→6。</GNH_LocalFixes_Toggle_xmlSiloTubeIntField_Desc>
 </LanguageData>
