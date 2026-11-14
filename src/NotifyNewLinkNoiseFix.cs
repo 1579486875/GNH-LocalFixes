@@ -91,6 +91,18 @@ namespace GNH.LocalFixes
         private static FieldInfo linkedFacilitiesField;
         private static AccessTools.FieldRef<CompAffectedByFacilities, List<Thing>> linkedRef;
 
+        // ── 2026-11-14 补漏：同一条 Error 还有第二个出处 ──────────────────
+        //   反编译 1.7.5005（search_string_literals）查到两条同文 Error：
+        //     · RimWorld.CompAffectedByFacilities.Notify_NewLink  ← 本项原本只 patch 了这个
+        //     · RimWorld.CompFacility.Notify_NewLink              ← 漏了
+        //   两个方法的实现逐字同构（发现重复 → Log.Error + return，不添加），
+        //   所以同样可以静音、同样等价。
+        //   ⚠ 实测证据：2026-11-14 10:33:23 载入旧存档时日志里 12 条这条 Error，
+        //     而【67】的 suppressed 计数是 0 —— 说明那 12 条全来自 CompFacility 这一侧。
+        private static FieldInfo linkedBuildingsField;
+        private static AccessTools.FieldRef<CompFacility, List<Thing>> linkedBuildingRef;
+        private static bool installedCompFacility;
+
         internal static void Install()
         {
             if (installed)
@@ -140,10 +152,121 @@ namespace GNH.LocalFixes
                     + " so the mod that calls it twice can be identified."
                     + " Note: the link list itself was always correct — that vanilla error is"
                     + " pure noise, not a broken workbench bonus.");
+
+                InstallCompFacility();
             }
             catch (Exception ex)
             {
                 Log.Error("[GNH LocalFixes] 【67】failed to install: " + ex);
+            }
+        }
+
+        /// <summary>
+        /// 同一条 Error 的第二个出处：<see cref="CompFacility.Notify_NewLink"/>。
+        /// 与主项完全独立 —— 它失败不影响主项，反之亦然。
+        /// </summary>
+        private static void InstallCompFacility()
+        {
+            if (installedCompFacility)
+            {
+                return;
+            }
+            try
+            {
+                MethodInfo target = AccessTools.Method(
+                    typeof(CompFacility), "Notify_NewLink",
+                    new[] { typeof(Thing) }, null);
+                if (target == null)
+                {
+                    Log.Warning("[GNH LocalFixes] 【67b】CompFacility.Notify_NewLink(Thing)"
+                        + " was not found (its API probably changed); this half is skipped,"
+                        + " the CompAffectedByFacilities half is unaffected.");
+                    return;
+                }
+
+                linkedBuildingsField = AccessTools.Field(typeof(CompFacility), "linkedBuildings");
+                if (linkedBuildingsField == null)
+                {
+                    Log.Warning("[GNH LocalFixes] 【67b】field linkedBuildings was not found;"
+                        + " this half is skipped, the other half is unaffected.");
+                    return;
+                }
+                linkedBuildingRef = AccessTools.FieldRefAccess<CompFacility, List<Thing>>(
+                    linkedBuildingsField);
+
+                MethodInfo pre = AccessTools.Method(
+                    typeof(NotifyNewLinkNoiseFix), nameof(PrefixCompFacility));
+                if (pre == null)
+                {
+                    Log.Error("[GNH LocalFixes] 【67b】internal error: Prefix not found.");
+                    return;
+                }
+
+                LocalFixesMod.HarmonyInstance.Patch(
+                    target, new HarmonyMethod(pre), null, null, null);
+                installedCompFacility = true;
+
+                Log.Message("[GNH LocalFixes] 【67b】patched CompFacility.Notify_NewLink"
+                    + " (prefix only). This is the *second* place that prints the same"
+                    + " \"Notify_NewLink was called but the link is already here.\" error —"
+                    + " the first one (CompAffectedByFacilities) was already handled above."
+                    + " 实测依据：2026-11-14 10:33 载入旧存档时 12 条该错误全部来自这一侧。");
+            }
+            catch (Exception ex)
+            {
+                Log.Error("[GNH LocalFixes] 【67b】failed to install: " + ex);
+            }
+        }
+
+        /// <summary>
+        /// <see cref="CompFacility.Notify_NewLink"/> 的同构守卫。
+        /// 原方法发现重复时同样是「Log.Error + return，不 Add」，
+        /// 所以这里 return false 与它完全等价，只是少一条红字。
+        /// </summary>
+        private static bool PrefixCompFacility(CompFacility __instance, Thing thing)
+        {
+            try
+            {
+                if (__instance == null || thing == null || linkedBuildingRef == null)
+                {
+                    return true;
+                }
+
+                List<Thing> list = linkedBuildingRef(__instance);
+                if (list == null || list.Count == 0)
+                {
+                    return true;
+                }
+
+                for (int i = 0; i < list.Count; i++)
+                {
+                    if (list[i] == thing)
+                    {
+                        totalSuppressed++;
+                        if (detailLogged < MaxDetailLogs)
+                        {
+                            detailLogged++;
+                            ThingWithComps parent = __instance.parent;
+                            Log.Warning("[GNH LocalFixes] 【67b】suppressed a duplicate"
+                                + " CompFacility.Notify_NewLink: parent=\""
+                                + (parent != null ? parent.LabelShort : "(null)")
+                                + "\" (def=" + (parent != null && parent.def != null
+                                    ? parent.def.defName : "?") + ")"
+                                + ", facility=\"" + thing.LabelShort + "\""
+                                + " (def=" + (thing.def != null ? thing.def.defName : "?") + ")."
+                                + " The link list is already correct, so this is noise."
+                                + " (" + detailLogged + "/" + MaxDetailLogs + ")");
+                        }
+                        return false;
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.ErrorOnce("[GNH LocalFixes] 【67b】guard threw, allowing the original call: "
+                    + ex.Message, ErrorOnceKey + 1);
+                return true;
             }
         }
 
