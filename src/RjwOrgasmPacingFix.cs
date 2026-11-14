@@ -137,8 +137,16 @@ namespace GNH.LocalFixes
         /// <summary>null = 还没查过；true/false = 已判定 Organic Sexuality 是否接管。</summary>
         private static bool? organicPresent;
 
+                // 一次性安装守卫（模板 §四要求）：Harmony 补丁是叠加的，
+        // 同一方法上重复 Patch 会套多层 prefix，表现为「越操作越卡」。
+        // 正常情况下 TryInstall 只被 LocalFixesMod 的静态构造调用一次，
+        // 但本守卫保证「哪怕将来多一条调用路径也不会叠加」。
+        private static bool s_pacingInstalled;
         internal static void Install()
         {
+
+            if (s_pacingInstalled) return;
+            s_pacingInstalled = true;
             Type jobSex = AccessTools.TypeByName("rjw.JobDriver_Sex");
             Type xxx = AccessTools.TypeByName("rjw.xxx");
             if (jobSex == null)

@@ -113,8 +113,16 @@ namespace GNH.LocalFixes
             }
         }
 
+                // 一次性安装守卫（模板 §四要求）：Harmony 补丁是叠加的，
+        // 同一方法上重复 Patch 会套多层 prefix，表现为「越操作越卡」。
+        // 正常情况下 TryInstall 只被 LocalFixesMod 的静态构造调用一次，
+        // 但本守卫保证「哪怕将来多一条调用路径也不会叠加」。
+        private static bool s_probeInstalled;
         internal static void Install()
         {
+
+            if (s_probeInstalled) return;
+            s_probeInstalled = true;
             Type sexUtil = AccessTools.TypeByName("rjw.SexUtility");
             Type needSex = AccessTools.TypeByName("rjw.Need_Sex");
             Type jobSex = AccessTools.TypeByName("rjw.JobDriver_Sex");
