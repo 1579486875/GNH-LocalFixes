@@ -189,6 +189,8 @@
   <GNH_LocalFixes_Toggle_debugSpamPrefix>读档刷「Debug:________isCustomSite」等调试输出（【68】）</GNH_LocalFixes_Toggle_debugSpamPrefix>
   <GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>鼠族基因扩展（RatkinGeneExpanded）在 CustomSiteComp.PostExposeData 里留了三条 Log.Warning(「Debug:________…」)，每次读档刷一次。本项给 Log.Warning 挂一个极窄的前缀过滤：只丢掉以「Debug:________」开头的行（那 13 个字符正常日志里不可能出现），其余一律放行。</GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>
 
+  <GNH_LocalFixes_Toggle_rjwOrgasmPacing>修复 RJW 高潮节奏被弄乱（【18】）</GNH_LocalFixes_Toggle_rjwOrgasmPacing>
+  <GNH_LocalFixes_Toggle_rjwOrgasmPacing_Desc>性行为时高潮值要么一直锁 0、要么几秒内ྷ到 100 无限循环。根因是「更自然的性欲」接管了 RJW 的高潮计算，而它在「性交次数 = 0」时会给一个永远达不到的阈值、次数刷高后又只剩 12 tick 一轮。本项在它之后重算这两个数：它在场就按它的公式算、只修两个 bug（下限 0→1、上限 100→10），它的精液系统完全不动；没检测到就按 RJW 原文重算。两种情况都保证一轮不短于 4 秒。关掉后完全恢复原行为。</GNH_LocalFixes_Toggle_rjwOrgasmPacing_Desc>
   <GNH_LocalFixes_Toggle_rjwOrgasmProbe>RJW 高潮取证（默认关闭）</GNH_LocalFixes_Toggle_rjwOrgasmProbe>
   <GNH_LocalFixes_Toggle_rjwOrgasmProbe_Desc>纯只读取证：在高潮链路三处各挂一个取样点，把当时算出的值原样打进日志 —— 不 return false、不改任何字段。取样点：SetupOrgasmTicks 前（need_some_sex 的真实返回值与当时 CurLevel）、SatisfyPersonal 后（加给了谁、加到多少）、Need_Sex.NeedInterval 后（衰减值）。每种只打前 15~40 条。默认关闭，只在排查高潮节奏时打开。它与【18】RJW 高潮节奏是两回事：那个是修复（会改写 sex_ticks），这个是取证（只读）。</GNH_LocalFixes_Toggle_rjwOrgasmProbe_Desc>
   <GNH_LocalFixes_Toggle_parsedIntLocator>定位「Parsed X as int」的具体来源文件（默认关闭）</GNH_LocalFixes_Toggle_parsedIntLocator>

@@ -190,6 +190,8 @@
   <GNH_LocalFixes_Toggle_debugSpamPrefix>讀檔刷「Debug:________isCustomSite」等除錯輸出（【68】）</GNH_LocalFixes_Toggle_debugSpamPrefix>
   <GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>鼠族基因擴展（RatkinGeneExpanded）在 CustomSiteComp.PostExposeData 裡留了三條 Log.Warning(「Debug:________…」)，每次讀檔刷一次。本項給 Log.Warning 掛一個極窄的前綴過濾：只丟掉以「Debug:________」開頭的行（那 13 個字元正常日誌裡不可能出現），其餘一律放行。</GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>
 
+  <GNH_LocalFixes_Toggle_rjwOrgasmPacing>修復 RJW 高潮節奏被弄亂（【18】）</GNH_LocalFixes_Toggle_rjwOrgasmPacing>
+  <GNH_LocalFixes_Toggle_rjwOrgasmPacing_Desc>性行為時高潮值要麼一直鎖 0、要麼幾秒內ྷ到 100 無限迴圈。根因是「更自然的性欲」接管了 RJW 的高潮計算，而它在「性交次數 = 0」時會給一個永遠達不到的闀值、次數刷高後又只剩 12 tick 一輪。本項在它之後重算這兩個數：它在場就按它的公式算、只修兩個 bug（下限 0→1、上限 100→10），它的精液系統完全不動；沒偵測到就按 RJW 原文重算。兩種情況都保證一輪不短於 4 秒。關掉後完全恢復原行為。</GNH_LocalFixes_Toggle_rjwOrgasmPacing_Desc>
   <GNH_LocalFixes_Toggle_rjwOrgasmProbe>RJW 高潮取證（預設關閉）</GNH_LocalFixes_Toggle_rjwOrgasmProbe>
   <GNH_LocalFixes_Toggle_rjwOrgasmProbe_Desc>純唯讀取證：在高潮鏈路三處各掛一個取樣點，把當時算出的值原樣打進日誌 —— 不 return false、不改任何欄位。取樣點：SetupOrgasmTicks 前（need_some_sex 的真實回傳值與當時 CurLevel）、SatisfyPersonal 後（加給了誰、加到多少）、Need_Sex.NeedInterval 後（衰減值）。每種只打前 15~40 條。預設關閉，只在排查高潮節奏時打開。它與【18】RJW 高潮節奏是兩回事：那個是修復（會改寫 sex_ticks），這個是取證（唯讀）。</GNH_LocalFixes_Toggle_rjwOrgasmProbe_Desc>
   <GNH_LocalFixes_Toggle_parsedIntLocator>定位「Parsed X as int」的具體來源檔案（預設關閉）</GNH_LocalFixes_Toggle_parsedIntLocator>

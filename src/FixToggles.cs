@@ -702,6 +702,23 @@ new Entry("allDiagnostics", GroupDiagnostics,
             //    真正的风险在被调的 ThingWithComps.Notify_KilledPawn：它读 pawn.Ideo、
             //    再遍历这武器身上所有 comp，第三方 comp 一抛就中断整条 postfix 链。
             //    文案已按事实改写；护栏本身仍然成立，只是理由换了。
+            new Entry("rjwOrgasmPacing", GroupBehaviour,
+                "修复 RJW 高潮节奏被弄乱（【18】）",
+                "症状：性行为时高潮值要么一直锁 0，"
+                + "要么几秒内ྷ到 100 无限循环。"
+                + "根因：「更自然的性欲（Organic Sexuality）」"
+                + "用 Prefix + return false 把 RJW 的 SetupOrgasmTicks 整个接管，"
+                + "换成它自己的公式 sex_ticks = 180 + duration ÷ (性交次数 × 0.1)，"
+                + "而次数为 0 时直接给 int.MaxValue（永远不高潮）、"
+                + "次数刷高后又只剩 12 tick 一轮（疯狂轮转）。"
+                + "本项在它之后重算这两个数："
+                + "检测到它在场就按它的公式算、只修两个 bug"
+                + "（次数下限从 0 改为 1、上限从 100 降到 10），"
+                + "它的精液系统完全不动；"
+                + "没检测到就按 RJW 原文重算。"
+                + "两种情况都把一轮钳进 [门槛+240, 门槛+总时长]，"
+                + "即不短于 4 秒。关掉后完全恢复原行为。"),
+
             new Entry("keepLeaderTitle", GroupBehaviour,
                 "保护自定义的领袖头衔",
                 "开启时：你已经定好的领袖头衔（主席、教宗……这类）不会再被游戏重新随机，"
@@ -1091,6 +1108,9 @@ new Entry("xmlVoeSushiMigration", GroupXmlPatches,
             // RJW 高潮取证探针：三个取样点全挂在 rjw.SexUtility / rjw.Need_Sex /
             // rjw.JobDriver_Sex 上，没有 RimJobWorld 就什么都挂不上。
             { "rjwOrgasmProbe", "rim.job.world" },
+            // 【18】高潮节奏修复：目标方法全在 rjw.JobDriver_Sex 上，
+            // 没有 RimJobWorld 就既没有目标也没有意义。
+            { "rjwOrgasmPacing", "rim.job.world" },
             // 边缘仙路本体（工坊 3296476341）；被守卫的 Postfix 在这个模组的 MOD.dll 里
             { "xiuxianCopyBookGuard", "RI.RimImmortal.Core" },
             // 米莉拉种族；被去重的 individualPaths 在它的 alienRace 定义里

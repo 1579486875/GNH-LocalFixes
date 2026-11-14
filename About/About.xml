@@ -1,17 +1,17 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
   <name>多模组红字修复补丁</name>
   <author>大赢经直插白皮赢道</author>
   <packageId>gnh.cn.cys.localfixes</packageId>
   <url>https://github.com/1579486875/GNH-LocalFixes</url>
-  <modVersion>1.4.51</modVersion>
+  <modVersion>1.4.52</modVersion>
   <supportedVersions>
     <li>1.6</li>
     <li>1.7</li>
   </supportedVersions>
   <description>RimWorld 装了几百上千个模组之后，总会遇到这类毛病：某个模组自己写错一行，或者和另一个模组撞上。游戏不崩，只是日志被刷满屏、某个功能悄悄失效、玩着玩着莫名卡顿。
 
-报给作者要等，自己又改不动。这个补丁把它们一条条揪出来修掉 —— 现在 66 条，条条独立。
+报给作者要等，自己又改不动。这个补丁把它们一条条揪出来修掉 —— 现在 67 条，条条独立。
 本模组原名「多模组兼容修复补丁」，2026-11-11 改名为「多模组红字修复补丁」，功能与开关一个没变，只是名字更直白。
 
 修复速览
