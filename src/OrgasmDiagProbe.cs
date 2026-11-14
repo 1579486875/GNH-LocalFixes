@@ -60,6 +60,35 @@ namespace GNH.LocalFixes
 
     internal static class RjwOrgasmDiagProbe
     {
+
+        // ---- 异常留痕（模板 §3：不许空 catch 吞掉线索）------------------
+        // 这两个文件都在游戏热路径上（每次高潮 / 每 150 tick），
+        // 所以不能「每次都打」——限前 3 次，之后静默，只保留计数。
+        private static readonly System.Collections.Generic.Dictionary<string, int> s_errSeen
+            = new System.Collections.Generic.Dictionary<string, int>();
+        private const int MaxLogPerSite = 3;
+
+        private static void NoteError(string site, Exception ex)
+        {
+            try
+            {
+                int n;
+                s_errSeen.TryGetValue(site, out n);
+                s_errSeen[site] = n + 1;
+                if (n < MaxLogPerSite)
+                {
+                    Log.Warning("[GNH " + "高潮取证" + "] " + site + " 出错（第 " + (n + 1)
+                        + " 次，之后同类静默）：" + ex.GetType().Name + ": " + ex.Message);
+                }
+            }
+            catch (Exception)
+            {
+                // 留痕本身失败 —— 这是最后一道防线，只能真静默。
+                // ⚠ 这里【绝对不能】再调 NoteError：那会自己调自己，
+                //   一旦留痕持续失败就是无限递归 → 栈溢出崩溃。
+                //   这是 2026-11-15 批量替换空 catch 时误伤的，已修。
+            }
+        }
         private const int MaxSetupLogs = 40;
         private const int MaxSatisfyLogs = 10;
         private const int MaxNeedLogs = 40;
@@ -192,8 +221,9 @@ namespace GNH.LocalFixes
                     pawn.LabelShort, needVal, needSrc, cur, duration, sexTicksBefore,
                     needVal >= 0f ? 1f + needVal : -1f));
             }
-            catch (Exception)
+            catch (Exception __ex2)
             {
+                NoteError("site2", __ex2);
             }
         }
 
@@ -213,8 +243,9 @@ namespace GNH.LocalFixes
                         ? " → CurLevel=" + need.CurLevel.ToString("F4")
                         : " **没有 Need_Sex**"));
             }
-            catch (Exception)
+            catch (Exception __ex3)
             {
+                NoteError("site3", __ex3);
             }
         }
 
@@ -231,8 +262,9 @@ namespace GNH.LocalFixes
                 Log.Message(string.Format("[GNH 高潮取证·需求衰减] {0} CurLevel={1:F4}（{2:P1}）",
                     p.LabelShort, need.CurLevel, need.CurLevelPercentage));
             }
-            catch (Exception)
+            catch (Exception __ex4)
             {
+                NoteError("site4", __ex4);
             }
         }
 
@@ -254,7 +286,11 @@ namespace GNH.LocalFixes
                 }
                 return null;
             }
-            catch (Exception) { return null; }
+            catch (Exception __exNull)
+            {
+                NoteError("site-null", __exNull);
+                return null;
+            }
         }
 
         private static Pawn NeedPawn(Need need)
@@ -268,14 +304,22 @@ namespace GNH.LocalFixes
                 }
                 return s_needPawnField?.GetValue(need) as Pawn;
             }
-            catch (Exception) { return null; }
+            catch (Exception __exNull)
+            {
+                NoteError("site-null", __exNull);
+                return null;
+            }
         }
 
         private static Pawn FieldAsPawn(object obj, FieldInfo field)
         {
             if (obj == null || field == null) return null;
             try { return field.GetValue(obj) as Pawn; }
-            catch (Exception) { return null; }
+            catch (Exception __exNull)
+            {
+                NoteError("site-null", __exNull);
+                return null;
+            }
         }
 
         private static int ReadInt(Type t, object inst, string field)
@@ -287,7 +331,11 @@ namespace GNH.LocalFixes
                 object v = f.GetValue(inst);
                 return v == null ? -999 : Convert.ToInt32(v);
             }
-            catch (Exception) { return -999; }
+            catch (Exception __exRead)
+            {
+                NoteError("site-read", __exRead);
+                return -999;
+            }
         }
     }
 }

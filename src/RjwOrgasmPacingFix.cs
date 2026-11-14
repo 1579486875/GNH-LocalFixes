@@ -88,6 +88,35 @@ namespace GNH.LocalFixes
 
     internal static class RjwOrgasmPacingFix
     {
+
+        // ---- 异常留痕（模板 §3：不许空 catch 吞掉线索）------------------
+        // 这两个文件都在游戏热路径上（每次高潮 / 每 150 tick），
+        // 所以不能「每次都打」——限前 3 次，之后静默，只保留计数。
+        private static readonly System.Collections.Generic.Dictionary<string, int> s_errSeen
+            = new System.Collections.Generic.Dictionary<string, int>();
+        private const int MaxLogPerSite = 3;
+
+        private static void NoteError(string site, Exception ex)
+        {
+            try
+            {
+                int n;
+                s_errSeen.TryGetValue(site, out n);
+                s_errSeen[site] = n + 1;
+                if (n < MaxLogPerSite)
+                {
+                    Log.Warning("[GNH " + "节奏" + "] " + site + " 出错（第 " + (n + 1)
+                        + " 次，之后同类静默）：" + ex.GetType().Name + ": " + ex.Message);
+                }
+            }
+            catch (Exception)
+            {
+                // 留痕本身失败 —— 这是最后一道防线，只能真静默。
+                // ⚠ 这里【绝对不能】再调 NoteError：那会自己调自己，
+                //   一旦留痕持续失败就是无限递归 → 栈溢出崩溃。
+                //   这是 2026-11-15 批量替换空 catch 时误伤的，已修。
+            }
+        }
         private const int MaxLogs = 15;
 
         private static int logs;
@@ -100,6 +129,10 @@ namespace GNH.LocalFixes
         private static MethodInfo mNeedSomeSex;
         private static MethodInfo mIsHuman;
         private static FieldInfo fCountOfSex;
+        // §1.3：JobDriver.pawn 的 FieldInfo 缓存。
+        //   本类的 Postfix 每次高潮都跑，而 AccessTools.Field 要遍历继承链 + 加锁，
+        //   属于「完全可以缓存」的开销 —— 缓存一次，之后只做 GetValue。
+        private static FieldInfo s_pawnField;
 
         /// <summary>null = 还没查过；true/false = 已判定 Organic Sexuality 是否接管。</summary>
         private static bool? organicPresent;
@@ -124,6 +157,8 @@ namespace GNH.LocalFixes
                 Log.Warning("[GNH LocalFixes] 高潮节奏：RJW 字段找不到（可能改版），本项跳过。");
                 return;
             }
+
+            s_pawnField = AccessTools.Field(typeof(Verse.AI.JobDriver), "pawn");
 
             if (xxx != null)
             {
@@ -211,8 +246,9 @@ namespace GNH.LocalFixes
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception __ex2)
             {
+                NoteError("site2", __ex2);
             }
 
             organicPresent = found;
@@ -236,7 +272,10 @@ namespace GNH.LocalFixes
                 fDuration.SetValue(__instance, correct);
 
                 FieldInfo tl = AccessTools.Field(typeof(Verse.AI.JobDriver), "ticksLeft");
-                if (tl != null) { try { tl.SetValue(__instance, correct); } catch (Exception) { } }
+                if (tl != null) { try { tl.SetValue(__instance, correct); } catch (Exception __ex3)
+            {
+                NoteError("site3", __ex3);
+            } }
 
                 if (logs < MaxLogs)
                 {
@@ -244,8 +283,9 @@ namespace GNH.LocalFixes
                     Log.Message("[GNH 节奏] duration " + old + " → " + correct + "（越界，按 RJW 原文重算）");
                 }
             }
-            catch (Exception)
+            catch (Exception __ex4)
             {
+                NoteError("site4", __ex4);
             }
         }
 
@@ -256,7 +296,7 @@ namespace GNH.LocalFixes
             {
                 if (__instance == null) return;
 
-                Pawn pawn = AccessTools.Field(typeof(Verse.AI.JobDriver), "pawn")?.GetValue(__instance) as Pawn;
+                Pawn pawn = s_pawnField?.GetValue(__instance) as Pawn;
                 int duration = ReadInt(fDuration, __instance);
                 if (duration < 1000 || duration > 1800)
                 {
@@ -268,7 +308,10 @@ namespace GNH.LocalFixes
                 }
 
                 int stick = 180;
-                try { fOrgasmStick.SetValue(__instance, stick); } catch (Exception) { }
+                try { fOrgasmStick.SetValue(__instance, stick); } catch (Exception __ex5)
+            {
+                NoteError("site5", __ex5);
+            }
 
                 int old = ReadInt(fSexTicks, __instance);
                 int correct;
@@ -295,9 +338,12 @@ namespace GNH.LocalFixes
                         }
                         exp = Math.Min(count * 0.1f, 10f);
                     }
-                    catch (Exception)
+                    catch (Exception __exExp)
                     {
+                        // 取不到 CountOfSex（RJW 未装 / records 异常）时退回 exp=1，
+                        // 等价于「新手最慢」，而不是让异常穿出去打断性行为。
                         exp = 1f;
+                        NoteError("site-exp", __exExp);
                     }
                     if (exp <= 0f) exp = 1f;      // ← 修 bug ①：不再给 int.MaxValue
 
@@ -319,7 +365,10 @@ namespace GNH.LocalFixes
                                 num = 1f + (need == null ? 0f : Convert.ToSingle(need));
                             }
                         }
-                        catch (Exception) { }
+                        catch (Exception __ex6)
+            {
+                NoteError("site6", __ex6);
+            }
                     }
                     if (num < 1f) num = 1f;
                     if (num > 4f) num = 4f;
@@ -334,7 +383,10 @@ namespace GNH.LocalFixes
                 if (correct > maxAllowed) correct = maxAllowed;
 
                 fSexTicks.SetValue(__instance, correct);
-                try { fOrgasmStartTick.SetValue(__instance, correct); } catch (Exception) { }
+                try { fOrgasmStartTick.SetValue(__instance, correct); } catch (Exception __ex7)
+            {
+                NoteError("site7", __ex7);
+            }
 
                 if (logs < MaxLogs)
                 {
@@ -345,8 +397,9 @@ namespace GNH.LocalFixes
                         mode, duration, old, correct, (correct - stick) / 60f));
                 }
             }
-            catch (Exception)
+            catch (Exception __ex8)
             {
+                NoteError("site8", __ex8);
             }
         }
 
@@ -364,7 +417,11 @@ namespace GNH.LocalFixes
                 object v = f.GetValue(inst);
                 return v == null ? -999 : Convert.ToInt32(v);
             }
-            catch (Exception) { return -999; }
+            catch (Exception __exRead)
+            {
+                NoteError("site-read", __exRead);
+                return -999;
+            }
         }
     }
 }
