@@ -541,6 +541,18 @@ namespace GNH.LocalFixes
             // 玩家看到「共 42 项」，可已装载/已关闭/未启用加起来不够 39，像是丢了东西。
             // 总控关掉 = 所有 XML 补丁都在执行，所以这里按「已装载」补记。
             MarkXmlTogglesWhenGateOff();
+
+            // ── 正式修复：RJW 高潮节奏（2026-11-14 实机取证）──
+            //   Verse.Rand 在运行时被换成超范围的值（duration 算出 3320、sex_ticks 算出
+            //   int.MaxValue / 196），而 RJW 的公式完全没做边界保护。
+            //   本项用 System.Random 绕开被污染的 Rand 重算这两个数，公式照抄原文。
+            TryInstall("rjwOrgasmPacing", "RjwOrgasmPacingFix", RjwOrgasmPacingFix.Install);
+
+            // ── RJW 高潮取证探针（纯只读，默认关闭）──
+            //   刻意不用 [StaticConstructorOnStartup]：实测在同一台机器上，
+            //   那种写法在本工程里没被触发（日志里一条都没有），
+            //   改成从构造函数显式调用才当场生效。
+            TryInstall("rjwOrgasmProbe", "RjwOrgasmDiagProbe", RjwOrgasmDiagProbe.Install);
         }
 
         /// <summary>

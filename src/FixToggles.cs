@@ -200,6 +200,17 @@ new Entry("allDiagnostics", GroupDiagnostics,
                 + "★ 它自己也默认关闭 —— 不排查时不该让日志多出任何一行。",
                 null),
 
+            new Entry("rjwOrgasmProbe", GroupDiagnostics,
+                "RJW 高潮取证（默认关闭）",
+                "**纯只读**的取证探针：在高潮链路的三处各挂一个取样点，"
+                + "把「当时到底算出了什么」原样打进日志 —— 不 return false、不改任何字段。"
+                + "三个取样点：SetupOrgasmTicks 前（记录 need_some_sex 的真实返回值与当时的 CurLevel）、"
+                + "SatisfyPersonal 后（记录加给了谁、加到了多少）、Need_Sex.NeedInterval 后（记录衰减值）。"
+                + "每种只打前 15~40 条，不会刷屏。"
+                + "★ 默认关闭 —— 只在排查「高潮节奏不对劲」时打开。"
+                + "★ 它与「【18】RJW 高潮节奏」是两回事：那个是修复（会改写 sex_ticks），这个是取证（只读）。",
+                "RjwOrgasmDiagProbe.Install"),
+
             new Entry("parsedIntLocator", GroupDiagnostics,
                 "定位「Parsed X as int」的具体来源文件（默认关闭）",
                 "第三轮日志诊断里那 181 条 `Parsed <小数> as int.`，141 条已由【64】修掉，"
@@ -880,7 +891,8 @@ new Entry("allDiagnostics", GroupDiagnostics,
                 + "本项只在「真的重复了」的时候动手：先删掉该键的全部条目，再加回恰好一条。"
                 + "★ 正常只有一条时 xpath 不命中，整段不执行，一个字节都不改 —— 所以上游修好后本项自动让路。"
                 + "★ 本模组必须排在外星人SA纹理适配（adk.sar.alien）之后才有意义，About 里已写 loadAfter。",
-                xmlPatchFile: "MiliraApparelPathsDedupe.xml"),new Entry("xmlVoeSushiMigration", GroupXmlPatches,
+                xmlPatchFile: "MiliraApparelPathsDedupe.xml"),
+new Entry("xmlVoeSushiMigration", GroupXmlPatches,
                 "餐厅前哨还在产已被合并掉的 8 种寿司（【58】）",
                 "Vanilla Cooking Expanded - Sushi 在 1.6/1.7 把原来的 8 种寿司合并成 4 种，"
                 + "旧 defName 全部删掉，并提供了官方的迁移定义。"
@@ -1076,6 +1088,9 @@ new Entry("allDiagnostics", GroupDiagnostics,
             { "nmmIdeoTrackerNull", "dord.nuditymattersmore" },
             // RimJobWorld 本体；它挂的 Postfix 就在 rim.job.world 里
             { "rjwPawnGenPostfixNull", "rim.job.world" },
+            // RJW 高潮取证探针：三个取样点全挂在 rjw.SexUtility / rjw.Need_Sex /
+            // rjw.JobDriver_Sex 上，没有 RimJobWorld 就什么都挂不上。
+            { "rjwOrgasmProbe", "rim.job.world" },
             // 边缘仙路本体（工坊 3296476341）；被守卫的 Postfix 在这个模组的 MOD.dll 里
             { "xiuxianCopyBookGuard", "RI.RimImmortal.Core" },
             // 米莉拉种族；被去重的 individualPaths 在它的 alienRace 定义里
@@ -1090,7 +1105,9 @@ new Entry("allDiagnostics", GroupDiagnostics,
             { "gfmIdleCombatDeepCopy", "arandomkiwi.guardsforme" },
             { "ccoeReflection", "keahuy.rjw.ccoe" },
             { "fixVfeeInstrumentSpace", "OskarPotocki.VFE.Empire" },
-            { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },            // Ancient amorphous threat：写错字段的那条补丁由它提供            // Just A Flesh Wound：被守卫的那个 Postfix 在它的 dll 里
+            { "vehicleFrameworkDebug", "SmashPhil.VehicleFramework" },
+            // Ancient amorphous threat：写错字段的那条补丁由它提供
+            // Just A Flesh Wound：被守卫的那个 Postfix 在它的 dll 里
             { "jafwLethalDamageGenGuard", "kittahkhan.justafleshwound" },
             // 【64】改的是 LDR（边缘弹道导弹:【地球科技】）自己写错的小数
             { "xmlSiloTubeIntField", "nekotee.irbmldr" },
