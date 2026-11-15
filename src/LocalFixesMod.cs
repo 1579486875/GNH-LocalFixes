@@ -1037,6 +1037,10 @@ namespace GNH.LocalFixes
             }
         }
 
+        /// <summary>
+        /// 「选项 → 模组设置」列表里显示的那个名字。走翻译键，取不到才回退到中文常量，
+        /// 这样英文客户端也不会看到一个中文分类名。
+        /// </summary>
         public override string SettingsCategory()
         {
             // 这个名字会直接显示在「选项 → 模组设置」的列表里。

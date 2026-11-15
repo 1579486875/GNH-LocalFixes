@@ -123,6 +123,10 @@ namespace GNH.LocalFixes
             }
         }
 
+        /// <summary>
+        /// 存档读写：只存玩家在这一页改过的开关状态。读的时候缺字段按默认值补，
+        /// 所以老存档升级上来不会丢设置，新增开关也不会让旧存档报错。
+        /// </summary>
         public override void ExposeData()
         {
             base.ExposeData();

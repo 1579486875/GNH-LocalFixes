@@ -55,6 +55,12 @@ namespace GNH.LocalFixes
         private static bool patched;
         private static bool restored;
 
+        /// <summary>
+        /// 静态构造函数：CLR 保证只执行一次。
+        /// 做的事是「等所有延迟动作跑完之后，让 Cumpilation 自己重新读一次盘」——
+        /// 那个模组每次启动都会把 9 个开关强行写成 false（源码里 11 行赋值），
+        /// 玩家在设置里打开也没用。本类只在玩家没关掉本项、且 Cumpilation 真的在时安装。
+        /// </summary>
         static CumpilationSettingsRestoreFix()
         {
             // 玩家在设置界面里把这一项关掉时整段跳过（理由同 CcoeReflectionFix）。

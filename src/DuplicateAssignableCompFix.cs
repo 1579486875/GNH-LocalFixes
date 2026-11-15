@@ -248,6 +248,11 @@ namespace GNH.LocalFixes
                 return ReferenceEquals(x, y);
             }
 
+            /// <summary>
+            /// 按「对象引用」取哈希 —— 这些组件是按 Thing 实例比较的，
+            /// 不能按 def 或运行时 id 算（那样两个不同的小人会撞成同一个 key，
+            /// 于是第二个人的组件会被误判成重复而被丢掉）。
+            /// </summary>
             public int GetHashCode(ThingWithComps obj)
             {
                 return RuntimeHelpers.GetHashCode(obj);

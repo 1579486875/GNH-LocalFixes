@@ -37,6 +37,11 @@ namespace GNH.LocalFixes
     {
         private const string OurPackageId = "gnh.cn.cys.localfixes";
 
+        /// <summary>
+        /// 静态构造函数：把「文档里写的数字」与「仓库里的实际文件」对一次账。
+        /// 只打日志、不改任何东西 —— 用它的原因是 About.xml / README 里的数字
+        /// 曾经多次与实物脱节，手抄很容易漏。
+        /// </summary>
         static DocStatsSelfCheck()
         {
             try

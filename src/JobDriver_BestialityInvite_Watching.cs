@@ -54,6 +54,11 @@ namespace ElToro_BAddon
             return true;
         }
 
+        /// <summary>
+        /// 任务流程：邀请 → 等对方过来 → 旁观。
+        /// 四条「做到一半就放弃」的条件在方法体内逐条判断，任一成立就正常结束
+        /// （不报错、不把小人卡在原地）。
+        /// </summary>
         protected override IEnumerable<Toil> MakeNewToils()
         {
             // 四条「做到一半就放弃」的条件，任一成立即中止任务：

@@ -73,6 +73,12 @@ namespace GNH.LocalFixes
         private const string PatchDebugTypeName = "Vehicles.Patch_Debug";
         private const string TargetMethodName = "DebugHideVehiclesFromPawnSpawner";
 
+        /// <summary>
+        /// 静态构造函数：CLR 保证只执行一次。
+        /// Vehicles 的 `Patch_Debug` 会把「这辆车被刷出来了」打成 Debug 消息，
+        /// 装了载具框架又开着调试日志的玩家会看到满屏刷。这里只把那个方法静音，
+        /// 载具本身的生成逻辑一点不动。
+        /// </summary>
         static VehicleFrameworkDebugFix()
         {
             // 玩家在设置界面里把这一项关掉时整段跳过（理由同 CcoeReflectionFix）。
