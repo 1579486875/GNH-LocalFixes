@@ -89,6 +89,8 @@ namespace GNH.LocalFixes
 
         private static bool installed;
 
+        // 安装本项补丁（默认关闭，见 FixToggles.IsDefaultOff）。
+        // 关闭时游戏自带的性能剖析功能完全不受影响。
         internal static void Install()
         {
             if (installed)

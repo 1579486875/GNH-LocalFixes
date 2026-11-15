@@ -113,6 +113,8 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 查这一项这次是「装上了」还是「装失败了」。
+        // 设置界面读它来决定要不要给这一项打红标。
         internal static bool IsFailed(string id)
         {
             if (id.NullOrEmpty())

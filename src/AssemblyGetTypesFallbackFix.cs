@@ -454,6 +454,9 @@ namespace GNH.LocalFixes
                 + "这不会修好那个模组本身，但不会再连累别的模组扫不到类型。原因：" + reason);
         }
 
+        // 把 ReflectionTypeLoadException 里那一串 LoaderExceptions 压成一行短句。
+        // 原始 ToString() 会打几十行堆栈，把真正要看的那句埋掉；
+        // 这里只取第一条的类型名 + 消息，够定位就行。
         private static string DescribeFirstError(ReflectionTypeLoadException ex)
         {
             try

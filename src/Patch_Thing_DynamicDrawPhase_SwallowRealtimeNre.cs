@@ -121,6 +121,9 @@ namespace GNH.LocalFixes
         }
 
         [HarmonyFinalizer]
+        // Harmony Finalizer：异常已经从原方法里出来了，这里决定「吞还是放」。
+        // 只吞特定那一种 NRE（判据见文件头），其它异常原样返回 ——
+        // 返回 null 等于吞掉，返回原异常等于继续抛。
         public static Exception Finalizer(Exception __exception, Thing __instance)
         {
             // 没有异常：原方法正常走完，本补丁等于不存在。

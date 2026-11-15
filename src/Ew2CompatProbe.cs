@@ -98,6 +98,9 @@ namespace GNH.LocalFixes
                 AccessTools.Method(typeof(Pawn_EquipmentTracker), "Notify_KilledPawn", new[] { typeof(Pawn) }, null));
         }
 
+        // 把「标签 + 方法」配成一对，方便后面统一打印或筛选。
+        // 标签是给人读的名字，MethodBase 可能为 null（目标不存在），
+        // 所以配对时不校验非空 —— 由使用方判 null。
         private static KeyValuePair<string, MethodBase> Pair(string label, MethodBase m)
         {
             return new KeyValuePair<string, MethodBase>(label, m);
@@ -252,6 +255,8 @@ namespace GNH.LocalFixes
             Log.Message(head + "\n" + string.Join("\n", lines.ToArray()));
         }
 
+        // 从目标类型上收集本探针要观察的那批方法。
+        // 收不到（ExtraWeapon2 未装 / 改版）时留空，不抛异常。
         private static void Collect(
             System.Collections.Generic.IList<Patch> patches,
             string kind,

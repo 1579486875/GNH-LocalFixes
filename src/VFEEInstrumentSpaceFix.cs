@@ -185,6 +185,7 @@ namespace GNH.LocalFixes
             return safe;
         }
 
+        // 安装本项补丁。由 FixToggles 的开关控制；具体修什么见文件头。
         internal static void Install()
         {
             if (installed)

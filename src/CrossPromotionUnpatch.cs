@@ -479,6 +479,8 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 卸掉「重试 UI 注入」那个 Harmony 补丁。
+        // 注入成功后就没必要每帧再试，留着只是白耗 CPU，所以主动摘掉。
         private static void UninstallUiRetryHook()
         {
             if (!uiHookInstalled)

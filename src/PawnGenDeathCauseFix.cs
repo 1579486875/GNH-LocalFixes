@@ -484,6 +484,8 @@ namespace GNH.LocalFixes
             return sb.ToString();
         }
 
+        // 生成一句话描述「这个 PawnKind 需要什么科技」，用于诊断日志。
+        // 只在诊断开关打开时才被调用。
         private static string DescrTechRequired(PawnKindDef kind)
         {
             if (kind.techHediffsRequired == null || kind.techHediffsRequired.Count == 0)

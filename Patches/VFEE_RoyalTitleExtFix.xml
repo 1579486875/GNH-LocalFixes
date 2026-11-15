@@ -55,6 +55,68 @@
     实测包括原版 Yeoman~Count、被 VFE 改成模板的原版 Duke/Consul/Stellarch、
     以及 VFE 自己新增的 Archcount/Marquess/Archduke/Magister/Despot/HighStellarch。
 
+    ── 字段通则（下面 14 个块共用，逐条不再重复）──────────────────────────
+
+      每个块补的是同一个东西：一个 `VFEEmpire.RoyalTitleDefExtension`，
+      里面只有 3 个字段。逐字段说明：
+
+      `li` 元素的 Class 属性（写 VFEEmpire.RoyalTitleDefExtension）
+          必须写全名。VFE 拿到扩展的方式是
+              title.GetModExtension&lt;RoyalTitleDefExtension&gt;()
+          （泛型按**类型**匹配，不按名字），所以 Class 写错一个字，
+          取到的就是 null —— 而调用方 MakePawnFor 没做 null 检查，
+          立刻 NRE。**这是本文件三个字段里最容易写错、后果最狠的一个。**
+
+      `iconPath`
+          爵位图标的贴图路径（**彩色版**，用于「已获得」的爵位）。
+          相对 Textures/ 目录，不带扩展名。
+          填错 → 界面渲染不出图标，显示紫红方块（Unity 的 missing texture）。
+          本文件统一用 UI/NobleRanks/RoyalTitleIcon_爵位名。
+
+      `greyIconPath`
+          同一个图标的**灰色版**（用于「尚未获得」的爵位）。
+          填错 → 同上，只是出错时机在「没拿到这个爵位」的界面上。
+          本文件统一用 UI/GreyTitleIcons/RoyalTitleIcon_爵位名。
+
+      `kindForHierarchy`
+          这个爵位对应的 **PawnKindDef**，VFE 用它来生成
+          「层级体系里的代表人物」（WorldComponent_Hierarchy.MakePawnFor）。
+          填错 → KindDef 查不到，生成人物时抛异常；
+          留空 → 就是本文件要修的那个 NRE。
+          取值必须是真实存在的 PawnKindDef，本文件用 Empire_Royal_爵位名。
+
+      ── 块内注释只写「这条与通则不同在哪」 ──
+
+      14 个块彼此唯一的差别就是**爵位名**（Yeoman / Acolyte / Knight / Praetor /
+      Baron / Count / Duke / Consul / Stellarch / Archcount / Marquess / Archduke /
+      Magister / Despot / HighStellarch），三个字段里的爵位名同步替换即可。
+      所以每个块的注释只需写一句「恢复 XXX」（现在文件里就是这么写的）。
+
+      ── xpath 的三个谓词，逐段讲 ──
+
+          Defs/RoyalTitleDef[defName="Yeoman"][not(modExtensions/li[@Class="VFEEmpire.RoyalTitleDefExtension"])]
+
+      段 1  Defs/RoyalTitleDef
+            从文档根开始（游戏合并后的整个 Defs），按类型定位。**不用双斜杠** ——
+            全库扫在 1184 个模组的合并文档上是纯粹浪费。
+
+      段 2  [defName="Yeoman"]
+            精确定位到那一个爵位。**必须用 defName 而不是 label** ——
+            label 会被汉化改掉，defName 不会。
+
+      段 3  [not(modExtensions/li[@Class="..."])]
+            **只在「还没有这个扩展」时才命中。**
+            这是「自动让路」的关键：如果 VFE 自己更新后补回了扩展，
+            或者别的补丁已经修过，这个条件就不成立、整条不执行，
+            不会把已经正确的结果再覆盖一遍。
+            ⚠ 不要删掉它 —— 删了就会无条件覆盖，等于把别人的修复踩着走。
+
+      success 写 Always 吞掉了什么
+            它只影响「xpath 没命中时要不要报一条补丁失败」，**不改变执行结果**。
+            没有它的话，上面那个 not(...) 一旦成立不了（也就是目标已经合规），
+            日志里就会刷一条 Patch operation failed —— 那是**预期行为被当成错误**。
+            所以这里的 Always 是「我知道可能不命中，别报错」的意思。
+
     ── 旧版补丁为什么没修好 ──
 
     旧版三条 xpath 写的是 Defs/RoyalTitleDef[defName="Consul"] 这种。

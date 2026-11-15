@@ -195,6 +195,7 @@
     <success>Always</success>
     <xpath>Defs/rjw.bondage_gear_def[defName="TwilightChastityTechnology_TTChastityBelt"]/statBases[not(DeteriorationRate)]</xpath>
     <value>
+      <!-- DeteriorationRate = 露天劣化速率，0 = 永不劣化（金属装置的原版惯例） -->
       <DeteriorationRate>0</DeteriorationRate>
     </value>
   </Operation>
@@ -203,6 +204,7 @@
     <success>Always</success>
     <xpath>Defs/rjw.bondage_gear_def[defName="TwilightChastityTechnology_TTChastityBelt"]/statBases[not(Flammability)]</xpath>
     <value>
+      <!-- Flammability = 可燃性，0 = 不会着火（注意：必须写 statBases 下的这个字段，不是顶层 flammable） -->
       <Flammability>0</Flammability>
     </value>
   </Operation>
@@ -211,6 +213,7 @@
     <success>Always</success>
     <xpath>Defs/rjw.bondage_gear_def[defName="TwilightChastityTechnology_TTChastityBra"]/statBases[not(DeteriorationRate)]</xpath>
     <value>
+      <!-- DeteriorationRate = 露天劣化速率，0 = 永不劣化（金属装置的原版惯例） -->
       <DeteriorationRate>0</DeteriorationRate>
     </value>
   </Operation>
@@ -219,6 +222,7 @@
     <success>Always</success>
     <xpath>Defs/rjw.bondage_gear_def[defName="TwilightChastityTechnology_TTChastityBra"]/statBases[not(Flammability)]</xpath>
     <value>
+      <!-- Flammability = 可燃性，0 = 不会着火（注意：必须写 statBases 下的这个字段，不是顶层 flammable） -->
       <Flammability>0</Flammability>
     </value>
   </Operation>

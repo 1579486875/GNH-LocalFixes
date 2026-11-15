@@ -174,6 +174,9 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 解析 Twilight 的 GameComponent 类型。
+        // 该模组在不同版本里换过命名空间，所以按候选名列表逐个试，
+        // 全试不到就返回 null（本项自动让路）。
         private static Type ResolveTargetType()
         {
             if (typeResolved)

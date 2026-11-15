@@ -53,6 +53,28 @@
         <nomatch Class="PatchOperationAdd">
           <xpath>Defs/PawnKindDef[@Name="OASFC_BasePawn"]</xpath>
           <value>
+
+      <!--
+        ── xenotypeSet 三个层次各是什么（一次讲清，下面三个字段共用）──
+
+        xenotypeSet
+            PawnKindDef 上决定「这个人生成时属于哪个异种人」的字段。
+            原版 Baseliner、鼠族 Ratkin_OA 等等都在这一层选。
+            Inherit="False" 是**必须**的：不写的话会把父模板（OASFC_BasePawn 的
+            ParentName 那一层）已有的 xenotypeSet 内容合并进来，
+            结果变成一个混合概率表，而不是我们要的「确定为某一个」。
+
+        xenotypeChances
+            一个概率表，形如「异种人 defName → 权重」。
+            写单个键、值 1，就是 100% 确定为这个异种人。
+            沙皇是特定历史人物，所以用确定值而不是概率分布。
+
+        Ratkin_OA
+            OA 鼠族框架提供的基础异种人 DefName。
+            **必须与 OA 框架自己给 OA_RK_BasePawn 用的保持一致** ——
+            同一个种族的两个模板如果用了不同异种人，外观就会分叉
+            （一个长鼠耳有尾巴，一个没有），这正是本补丁要修的症状。
+      -->
             <xenotypeSet Inherit="False">
               <xenotypeChances>
                 <Ratkin_OA>1</Ratkin_OA>

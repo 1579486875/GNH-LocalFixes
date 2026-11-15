@@ -124,6 +124,8 @@ namespace GNH.LocalFixes
         };
 
         [HarmonyPostfix]
+        // Harmony Postfix：在 LoadModXML 返回之后，把清单里那批「会导致红字」的
+        // xml 剔除掉。用 Postfix 而不是 Prefix，是因为要基于完整结果做筛选。
         public static void Postfix(ref List<LoadableXmlAsset> __result)
         {
             if (__result == null || __result.Count == 0)

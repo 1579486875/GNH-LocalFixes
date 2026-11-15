@@ -67,6 +67,7 @@ namespace GNH.LocalFixes
             Install();
         }
 
+        // 安装本项补丁。由 FixToggles 的开关控制；具体修什么见文件头。
         private static void Install()
         {
             if (patched) return;
@@ -129,6 +130,9 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 把被别的模组无条件改掉的那批设置，按用户自己存过的值写回。
+        // 关键在「按用户存过的值」——不是写死一组默认值，
+        // 否则等于用我们的偏好覆盖玩家的偏好。
         private static void Restore()
         {
             ModContentPack mod = LoadedModManager.RunningModsListForReading

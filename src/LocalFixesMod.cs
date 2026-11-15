@@ -131,6 +131,8 @@ namespace GNH.LocalFixes
             catch (Exception) { /* 日志失败只能算了，绝不能因此影响补丁安装 */ }
         }
 
+        // 打一条 Warning，但自身绝不抛异常。
+        // 用在「已经在异常处理路径里」的地方 —— 那里再抛一次就没救了。
         internal static void SafeLogWarning(string message)
         {
             try { Log.Warning(message); }
@@ -1213,6 +1215,8 @@ namespace GNH.LocalFixes
         private static float[] cacheDescHeight;
         private static float cacheTotalHeight;
 
+        // 设置界面的文字换行缓存。
+        // 只在宽度变化时重建 —— 每帧重算换行会让设置页明显卡顿。
         private static void BuildUiCacheIfNeeded(float width)
         {
             string langFolder = (LanguageDatabase.activeLanguage != null)

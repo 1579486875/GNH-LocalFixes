@@ -93,6 +93,41 @@
 	    `Patch operation … failed` 红字，等于用红字治红字。
 	    `PatchOperationConditional` 不命中时**安静返回 true**，这才是对的形态。
 	-->
+
+	<!--
+	  ── 本文件的固定套路：Remove 旧的 + Add 新的 = 去重 ──
+
+	  下面每一组都是「同一件衣服、同一个 key，出现了两条 individualPaths」，
+	  而 AlienRace 的外观表是**按 key 查**的，同 key 两条会让后一条覆盖前一条 ——
+	  于是「改哪一条都不生效」，因为生效的永远是你没改的那条。
+
+	  所以每组都拆成两步：
+
+	    PatchOperationRemove
+	        先删掉 apperal/individualPaths 下 key 匹配的那一条。
+	        ⚠ 删的是 `li[key="X"]` 整体，不是它里面的 value ——
+	          只删 value 会留下一个 key 还在的空壳，外观反而变成缺失贴图。
+
+	    PatchOperationAdd
+	        再往 individualPaths 追加一条完整的（key + value）。
+	        顺序无关紧要（按 key 查），但**必须先删后加**：
+	        先加后删会把刚加的那条也删掉。
+
+	  ── key 与 value 分别是什么 ──
+
+	    key    = 身体类型名（body type）。鼠族用的是 Apparel_BodyStrap /
+	             Apparel_TribalA 这类自定义 bodyType，与人类的 BodyTypeDef 不同名；
+	             写成人类的名字会匹配不到任何 pawn，等于白配。
+	    value  = 贴图路径，相对 Textures/ 目录、不带扩展名。
+
+	  ── xpath 末尾那个 [2] 是干什么的 ──
+
+	    `li[key="Apparel_TribalA"][2]` = 「第 2 个满足条件的节点」。
+	    外层用 PatchOperationConditional 判它存不存在：
+	    存在 → 说明确实有两条第重复的，进 match 分支去重；
+	    不存在 → 说明上游已经自己清过了，整段跳过。
+	    这是「自动让路」的具体写法，**不要删掉 [2]**。
+	-->
 	<Operation Class="PatchOperationConditional">
 		<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths/li[key="Apparel_BodyStrap"][2]</xpath>
 		<match Class="PatchOperationSequence">
@@ -123,6 +158,7 @@
 			<operations>
 				<li Class="PatchOperationRemove">
 					<success>Always</success>
+					<!-- 删掉同 key 的旧条目（只删 value 会留下空壳，外观反而变缺失贴图） -->
 					<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths/li[key="Apparel_TribalA"]</xpath>
 				</li>
 				<li Class="PatchOperationAdd">
@@ -130,6 +166,7 @@
 					<xpath>Defs/AlienRace.ThingDef_AlienRace[defName="Milira_Race"]/alienRace/graphicPaths/apparel/individualPaths</xpath>
 					<value>
 						<li>
+							<!-- key = 身体类型名（鼠族自定义 bodyType，与人类的同名不同物） -->
 							<key>Apparel_TribalA</key>
 							<value>Things/Pawn/Milira/Apparel/TribalA/TribalA</value>
 						</li>

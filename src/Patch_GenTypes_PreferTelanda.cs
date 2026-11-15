@@ -81,6 +81,9 @@ namespace GNH.LocalFixes
         private const string TelandaPackageId = "telanda.rjw.animalgeneinheritance";
 
         [HarmonyPrefix]
+        // Harmony Prefix：在 GenTypes.GetTypeInAnyAssembly 真正查找之前先答一次。
+        // 返回 true = 没命中，让原方法继续跑；返回 false = 我们已经给了结果。
+        // 这样对不相关的类型零影响，只在我们关心的那几个名字上短路。
         public static bool Prefix(string typeName, ref Type __result)
         {
             if (typeName == null)

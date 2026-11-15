@@ -82,6 +82,7 @@
       </li>
       <li Class="PatchOperationRemove">
         <success>Always</success>
+        <!-- 逐个删掉已被合并的 8 种旧寿司；第 3 个：Uramaki 并入了 Sushi_Fine -->
         <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Uramaki"]</xpath>
       </li>
       <li Class="PatchOperationRemove">
@@ -105,6 +106,36 @@
         <xpath>Defs/WorldObjectDef[defName="Outpost_Restaurant"]/modExtensions/li[@Class="VOEAdditionalOutposts.OutpostExtension_ChooseFloat"]/ResultOptions/li[Thing="VCE_Oshizushi"]</xpath>
       </li>
 
+      <!--
+        第二步的 4 条品质档：字段通则（下面 4 条共用，逐条不再重复）
+
+        每个 li 描述「某一档寿司」在餐厅前哨里的产出规则：
+
+        Thing
+            产出的寿司 ThingDef。4 档分别是
+            VCE_Sushi_Simple / Fine / Lavish / Gourmet，
+            对应「简单 / 精细 / 奢华 / 珍馐」四个品质档。
+
+        MinSkills 里的 Cooking
+            触发这一档所需的**最低烹饪技能**。低于这个值，该档不会被选中。
+            Simple 档没有这个节点，等于无门槛。
+            ⚠ 这是「技能要求」，不是「产出量」，别跟下面那个搞混。
+
+        AmountsPerSkills 里的 Cooking
+            **每 1 点烹饪技能对应的产出量**（不是绝对产量）。技能越高产得越多。
+
+        这 4 组数值的来历
+            **照抄上游合并后的结果，不要自己算。**
+            数值规律（16 到 32 到 64 翻倍，7 到 3.2 到 1.6 减半）看着很整齐，
+            但它是上游把 8 种寿司合并成 4 档时定的，我们只是把合并结果补回本地 def。
+            自己按规律推一个新档位，等于改动游戏平衡，超出打补丁的范围。
+
+        第一步删掉的 8 种是什么
+            VCE_Chirashizushi / Norimaki / Uramaki / Nigiri / Temaki / Futomaki /
+            Gunkanmaki / Oshizushi —— 这 8 种在上游版本里已经被合并进上面 4 档。
+            本地旧版 def 里还留着，于是同一个东西出现两次（旧 8 种 + 新 4 档）。
+            删掉的是旧的 8 条，不是新加的东西。
+      -->
       <!-- ── 第二步：按上游合并结果补回 4 条（数值照抄原文件） ── -->
       <li Class="PatchOperationAdd">
         <success>Always</success>

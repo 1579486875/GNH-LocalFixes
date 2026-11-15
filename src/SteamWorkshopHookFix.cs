@@ -394,6 +394,9 @@ namespace GNH.LocalFixes
             return cachedSteamId;
         }
 
+        // 安全地取 ModMetaData 的 WorkshopItemHook。
+        // 原属性在「非工坊来源的模组」上会抛，这里包一层：
+        // 取不到就返回 false 并置 null，调用方据此跳过，而不是让整个列表刷红字。
         private static bool SafeGetWorkshopItemHook(ModMetaData __instance, ref WorkshopItemHook __result)
         {
             try

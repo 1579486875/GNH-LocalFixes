@@ -101,7 +101,10 @@ namespace GNH.LocalFixes
         private static FieldInfo sexPropsPartnerField;
         private static MethodInfo needSomeSexMethod;
 
-        internal static void Entry()
+                // 探针的入口（被 FixToggles 的开关名引用）。
+        // 单独抽一层是为了让「安装失败」只影响探针本身，不影响游戏 ——
+        // 探针是诊断工具，装不上最多没有诊断数据，绝不能让启动崩掉。
+internal static void Entry()
         {
             try
             {
@@ -301,7 +304,10 @@ namespace GNH.LocalFixes
             }
         }
 
-        private static Pawn NeedPawn(Need need)
+                // 从一个 Need 对象反查它的宿主 Pawn。
+        // 反编译 Verse.Need：它有个 private Pawn pawn 字段（不是属性），
+        // 所以只能反射取。取不到就返回 null，由调用方决定怎么记。
+private static Pawn NeedPawn(Need need)
         {
             if (need == null) return null;
             try
@@ -319,7 +325,9 @@ namespace GNH.LocalFixes
             }
         }
 
-        private static Pawn FieldAsPawn(object obj, FieldInfo field)
+                // 从任意对象的某个字段上取 Pawn（用于 SexProps.pawn / .partner 这类）。
+        // 字段可能为 null、类型可能不是 Pawn，两种情况都返回 null 而不是抛。
+private static Pawn FieldAsPawn(object obj, FieldInfo field)
         {
             if (obj == null || field == null) return null;
             try { return field.GetValue(obj) as Pawn; }
@@ -330,7 +338,10 @@ namespace GNH.LocalFixes
             }
         }
 
-        private static int ReadInt(Type t, object inst, string field)
+                // 按字段名从实例上读一个 int。
+        // RJW 的字段名在不同版本间改过（sex_ticks / orgasmStick 等），
+        // 找不到或类型不符时返回哨兵值 -999，让调用方跳过而不是用 0 冒充真值。
+private static int ReadInt(Type t, object inst, string field)
         {
             try
             {
