@@ -14,7 +14,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【56】「Real Faction Guest」的背景校验器在遍历集合时改了集合 —— 帝国头衔那一批全废
+    // 【55】「Real Faction Guest」的背景校验器在遍历集合时改了集合 —— 帝国头衔那一批全废
     // ==========================================================================
     //
     // 【症状（本机日志原文）】
@@ -105,7 +105,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【56】把「Real Faction Guest」背景校验器里那一种「遍历时改集合」的异常单独摘掉。
+    /// 【55】把「Real Faction Guest」背景校验器里那一种「遍历时改集合」的异常单独摘掉。
     /// </summary>
     internal static class RqpFactionLeaderValidatorGuardFix
     {
@@ -136,7 +136,7 @@ namespace GNH.LocalFixes
                 {
                     // 没装 Real Faction Guest —— 正常情况，不是错误。
                     installed = true;
-                    Log.Message("[GNH LocalFixes] 【56】Real Faction Guest is not present; its"
+                    Log.Message("[GNH LocalFixes] 【55】Real Faction Guest is not present; its"
                         + " background-validator guard was skipped (nothing to do).");
                     return;
                 }
@@ -171,7 +171,7 @@ namespace GNH.LocalFixes
 
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【56】" + TargetTypeName + "." + TargetMethodName
+                    Log.Error("[GNH LocalFixes] 【55】" + TargetTypeName + "." + TargetMethodName
                         + "(…, Pawn) was not found (its API probably changed); the guard is"
                         + " deferred and will retry on the next start.");
                     return;
@@ -181,7 +181,7 @@ namespace GNH.LocalFixes
                     typeof(RqpFactionLeaderValidatorGuardFix), nameof(Finalizer));
                 if (finalizer == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【56】internal error: Finalizer not found.");
+                    Log.Error("[GNH LocalFixes] 【55】internal error: Finalizer not found.");
                     return;
                 }
 
@@ -189,14 +189,14 @@ namespace GNH.LocalFixes
                     target, null, null, null, new HarmonyMethod(finalizer));
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 【56】patched " + TargetTypeName + "."
+                Log.Message("[GNH LocalFixes] 【55】patched " + TargetTypeName + "."
                     + TargetMethodName + " (finalizer only). A 'Collection was modified' from the"
                     + " backstory shuffler is now reported once instead of dumping a full stack"
                     + " every worldgen.");
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【56】failed to install the Real Faction Guest guard: " + ex);
+                Log.Error("[GNH LocalFixes] 【55】failed to install the Real Faction Guest guard: " + ex);
             }
         }
 
@@ -223,7 +223,7 @@ namespace GNH.LocalFixes
             }
 
             Log.WarningOnce(
-                "[GNH LocalFixes] 【56】Real Faction Guest 的背景故事校验器在遍历集合时改了集合，"
+                "[GNH LocalFixes] 【55】Real Faction Guest 的背景故事校验器在遍历集合时改了集合，"
                 + "这一次背景修正被跳过（上层本来也会 catch 掉它，故功能结果不变，只是不再把整段堆栈刷进日志）。"
                 + " 根因未修：需要改那个模组的遍历写法，风险远高于收益。"
                 + " (reported once per session)",

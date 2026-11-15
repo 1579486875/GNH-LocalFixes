@@ -248,13 +248,13 @@ namespace GNH.LocalFixes
             TryInstall("assemblyGetTypesFallback", "AssemblyGetTypesFallbackFix", AssemblyGetTypesFallbackFix.Install);
 
             TryInstall("fixVfeeInstrumentSpace", "VFEEInstrumentSpaceFix", VFEEInstrumentSpaceFix.Install);
-            // 2026-11-12 新增【50】：RJW 生成失败时没判空，把「某个派系领袖生不出来」
+            // 2026-11-12 新增【49】：RJW 生成失败时没判空，把「某个派系领袖生不出来」
             // 放大成「世界生成步骤失败」。这是**开新档**级别的故障，所以排在崩溃组最前面。
             // 装的是 transpiler（在该后处理最前面插「结果为空就返回」）+ finalizer（兜底吞那一条空引用）。
             // 目标类 rjw.Patch_PawnGenerator_GenerateNewPawnInternal 是 internal static，只能反射找；
             // RJW 没装时只打一条 Message 就跳过。
             TryInstall("rjwPawnGenPostfixNull", "RjwPawnGenPostfixNullFix", RjwPawnGenPostfixNullFix.Install);
-            // 2026-11-12 新增【53】：边缘仙路的配方 postfix 在 DefOf 就绪前必崩（finally 里没判空）。
+            // 2026-11-12 新增【52】：边缘仙路的配方 postfix 在 DefOf 就绪前必崩（finally 里没判空）。
             // 它挂在 RecipeDefGenerator.ImpliedRecipeDefs 上，异常逃出去会让整局 play data 加载失败，
             // 进而让游戏把 ModsConfig 重写成只剩官方 DLC。
             TryInstall("xiuxianCopyBookGuard", "XiuXianCopyBookPostfixGuardFix", XiuXianCopyBookPostfixGuardFix.Install);
@@ -343,7 +343,7 @@ namespace GNH.LocalFixes
             //     症状是「点开火瞬间退出且无日志」）。
             //    挂点延迟到 UIRootUpdate（界面第一帧），因为此刻才拿得到最终补丁面。
             //
-            // 【43】是护栏：EW2 在 Notify_KilledPawn 的 postfix 里遍历额外武器时既不判空、
+            // 【42】是护栏：EW2 在 Notify_KilledPawn 的 postfix 里遍历额外武器时既不判空、
             //    也可能撞上集合被改动；它一抛异常，排在其后的死亡处理会全部跳过。
             //    这里给它那层 postfix 加 Finalizer，捕获、留证、吞掉。
             //
@@ -434,7 +434,7 @@ namespace GNH.LocalFixes
             // 对第三方 dll 零编译期依赖（类型名与字符串全部走反射 / 常量），
             // 模组没装时只打一条 Message 就直接跳过。
             // 本步幂等：Install() 内部有自己的静态守卫，重复调用只会立刻返回。
-            // 2026-11-12 新增【51】：机械师带宽面板的排版循环会除零，选中机械师时每帧报一条错。
+            // 2026-11-12 新增【50】：机械师带宽面板的排版循环会除零，选中机械师时每帧报一条错。
             // 危害不是红字本身，而是 Verse.Log 累计 10,000 条之后会把自己整个关掉 ——
             // 之后所有模组的报错都写不进日志。实测一次会话被这一条刷了 57,137 条。
             // 装的是 transpiler：给「要摆几个格子」夹一个上限（循环必然收敛），
@@ -443,7 +443,7 @@ namespace GNH.LocalFixes
 
             TryInstall("rjwGenesSpamQuiet", "RjwGenesSpamQuietFix", RjwGenesSpamQuietFix.Install);
 
-            // 【54】/【55】2026-11-12 第二轮全局日志诊断新增。
+            // 【53】/【54】2026-11-12 第二轮全局日志诊断新增。
             //   诊断项排在最前：它默认关闭，但真要看死因时是第一顺位。
             TryInstall("pawnGenDeathProbe", "PawnGenDeathCauseFix (diagnostics)",
                 PawnGenDeathCauseFix.InstallDiagnostics);
@@ -755,7 +755,7 @@ namespace GNH.LocalFixes
             // 漏登记它不会在正常路径上出问题（GetTypes 成功时按特性扫得到），
             // 但在「GetTypes() 整体失败」的退化路径上，【38】会被静默漏装 —— 所以必须登记。
             "GNH.LocalFixes.Patch_Thing_DynamicDrawPhase_SwallowRealtimeNre",
-            // 【45】Harmony 补丁类安装隔离：给 PatchClassProcessor.Patch() 挂 Finalizer。
+            // 【44】Harmony 补丁类安装隔离：给 PatchClassProcessor.Patch() 挂 Finalizer。
             // 它自己也必须登记 —— 否则在「GetTypes() 整体失败」的退化路径上会漏装，
             // 而那恰恰是最需要它的时候（枚举类型都失败了，说明环境已经很脏）。
             "GNH.LocalFixes.Patch_PatchClassProcessor_Isolate",

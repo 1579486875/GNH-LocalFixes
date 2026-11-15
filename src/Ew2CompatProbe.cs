@@ -293,7 +293,7 @@ namespace GNH.LocalFixes
     }
 
     // ==========================================================================
-    // 【43】ExtraWeapon2 的「额外武器击杀回调」补一道异常护栏
+    // 【42】ExtraWeapon2 的「额外武器击杀回调」补一道异常护栏
     //
     // 症状来源：
     //   ExtraWeapon2 的 `Patch_PawnEquipment_ExtraWeaponsKilledPawn` 是一个
@@ -355,7 +355,7 @@ namespace GNH.LocalFixes
                 if (patchType == null)
                 {
                     installed = true;
-                    Log.Message("[GNH LocalFixes] 【43】未检测到 ExtraWeapon2 的 "
+                    Log.Message("[GNH LocalFixes] 【42】未检测到 ExtraWeapon2 的 "
                         + "Patch_PawnEquipment_ExtraWeaponsKilledPawn，本项跳过。");
                     return;
                 }
@@ -380,7 +380,7 @@ namespace GNH.LocalFixes
                 if (postfix == null)
                 {
                     installed = true;
-                    Log.Message("[GNH LocalFixes] 【43】ExtraWeapon2 的 Patch_PawnEquipment_ExtraWeaponsKilledPawn "
+                    Log.Message("[GNH LocalFixes] 【42】ExtraWeapon2 的 Patch_PawnEquipment_ExtraWeaponsKilledPawn "
                         + "里没有任何名为 Postfix 的静态方法，本项跳过（可能作者改了实现方式）。");
                     return;
                 }
@@ -392,7 +392,7 @@ namespace GNH.LocalFixes
                     new HarmonyMethod(finalizer));
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 已安装【43】ExtraWeapon2 死亡路径护栏："
+                Log.Message("[GNH LocalFixes] 已安装【42】ExtraWeapon2 死亡路径护栏："
                     + "给它的 Notify_KilledPawn postfix 加了 Finalizer。"
                     + "该 postfix 自己那段遍历是安全的（索引遍历 + 逐项判空）；真正的风险在被调的 ThingWithComps.Notify_KilledPawn："
                     + "它读 pawn.Ideo、再遍历这武器的所有 comp，第三方 comp 一抛就会中断整条 postfix 链，让排在后面的死亡处理（掉装备、尸体生成、记录）全部跳过。"
@@ -400,7 +400,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 安装【43】ExtraWeapon2 死亡路径护栏失败（下次会重试）：" + ex);
+                Log.Error("[GNH LocalFixes] 安装【42】ExtraWeapon2 死亡路径护栏失败（下次会重试）：" + ex);
             }
         }
 
@@ -415,13 +415,13 @@ namespace GNH.LocalFixes
             caught++;
             if (caught <= 3)
             {
-                Log.Warning("[GNH LocalFixes] 【43】ExtraWeapon2 的额外武器击杀回调抛异常，"
+                Log.Warning("[GNH LocalFixes] 【42】ExtraWeapon2 的额外武器击杀回调抛异常，"
                     + "已拦下（第 " + caught + " 次；后续同类只计数不再刷堆栈）。原始异常："
                     + __exception);
             }
             else if (caught == 4)
             {
-                Log.Warning("[GNH LocalFixes] 【43】同类异常已达 4 次，之后不再打印堆栈。");
+                Log.Warning("[GNH LocalFixes] 【42】同类异常已达 4 次，之后不再打印堆栈。");
             }
 
             return null;

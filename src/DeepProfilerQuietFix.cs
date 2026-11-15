@@ -13,7 +13,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【40】DeepProfiler 全程在跑，把日志和内存一起拖垮
+    // DeepProfiler 全程在跑，把日志和内存一起拖垮
     //
     // 症状（同一局 14.5 小时实测）：
     //   "--- Main thread ---"   7,105 次
@@ -106,7 +106,7 @@ namespace GNH.LocalFixes
                     // 类型都没有 = 原版改结构了。重试没意义，置位跳过。
                     installed = true;
                     Log.Message("[GNH LocalFixes] 未找到 " + ProfilerTypeName
-                        + "；【40】DeepProfiler 关闭本次跳过（原版可能已移除或改名）。");
+                        + "；DeepProfiler 关闭本次跳过（原版可能已移除或改名）。");
                     return;
                 }
 
@@ -133,13 +133,13 @@ namespace GNH.LocalFixes
 
                 if (patched == 0)
                 {
-                    Log.Error("[GNH LocalFixes] 【40】在 " + ProfilerTypeName
+                    Log.Error("[GNH LocalFixes] 在 " + ProfilerTypeName
                         + " 上没能给 Start/End 挂上前缀；本次未安装，下次会重试。");
                     return;
                 }
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 已安装【40】DeepProfiler 关闭（" + stateNote
+                Log.Message("[GNH LocalFixes] 已安装DeepProfiler 关闭（" + stateNote
                     + "，Start/End 前缀 " + patched + "/2）。"
                     + "它跟着 Prefs.logVerbose 一起跑，每次 LongEvent 都打印整棵调用树并累积对象 ——"
                     + "实测一局 14.5 小时涨了 6.5 GB 内存。"
@@ -150,7 +150,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 安装【40】DeepProfiler 关闭失败（下次会重试）：" + ex);
+                Log.Error("[GNH LocalFixes] 安装DeepProfiler 关闭失败（下次会重试）：" + ex);
             }
         }
 

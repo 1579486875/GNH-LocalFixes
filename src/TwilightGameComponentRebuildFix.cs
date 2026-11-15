@@ -13,7 +13,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【55】「缇瓦莱特贞操科技」的 GameComponent 从来没被创建过 —— 整套挑战系统是死的
+    // 【54】「缇瓦莱特贞操科技」的 GameComponent 从来没被创建过 —— 整套挑战系统是死的
     // ==========================================================================
     //
     // 【症状】
@@ -103,7 +103,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【55】给「缇瓦莱特贞操科技」补上那个永远创建不出来的 GameComponent。
+    /// 【54】给「缇瓦莱特贞操科技」补上那个永远创建不出来的 GameComponent。
     /// </summary>
     internal static class TwilightGameComponentRebuildFix
     {
@@ -138,7 +138,7 @@ namespace GNH.LocalFixes
                 if (found == null)
                 {
                     installed = true;
-                    Log.Message("[GNH LocalFixes] 【55】the Twilight chastity-tech mod is not present;"
+                    Log.Message("[GNH LocalFixes] 【54】the Twilight chastity-tech mod is not present;"
                         + " its GameComponent rebuild was skipped (nothing to do).");
                     return;
                 }
@@ -147,7 +147,7 @@ namespace GNH.LocalFixes
                 MethodInfo fill = AccessTools.Method(typeof(Game), "FillComponents");
                 if (fill == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【55】Verse.Game.FillComponents was not found"
+                    Log.Error("[GNH LocalFixes] 【54】Verse.Game.FillComponents was not found"
                         + " (its name probably changed); the rebuild is deferred and will retry.");
                     return;
                 }
@@ -156,7 +156,7 @@ namespace GNH.LocalFixes
                     typeof(TwilightGameComponentRebuildFix), nameof(Postfix));
                 if (postfix == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【55】internal error: Postfix not found.");
+                    Log.Error("[GNH LocalFixes] 【54】internal error: Postfix not found.");
                     return;
                 }
 
@@ -164,12 +164,12 @@ namespace GNH.LocalFixes
                     .Patch(fill, postfix: new HarmonyMethod(postfix));
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 【55】Twilight GameComponent rebuild installed"
+                Log.Message("[GNH LocalFixes] 【54】Twilight GameComponent rebuild installed"
                     + " (target: " + TargetTypeName + ").");
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【55】failed to install the Twilight GameComponent"
+                Log.Error("[GNH LocalFixes] 【54】failed to install the Twilight GameComponent"
                     + " rebuild: " + ex);
             }
         }
@@ -191,7 +191,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Warning("[GNH LocalFixes] 【55】looking up " + TargetTypeName + " threw: "
+                Log.Warning("[GNH LocalFixes] 【54】looking up " + TargetTypeName + " threw: "
                     + ex.Message);
                 targetType = null;
             }
@@ -237,20 +237,20 @@ namespace GNH.LocalFixes
                 GameComponent comp = raw as GameComponent;
                 if (comp == null)
                 {
-                    Log.ErrorOnce("[GNH LocalFixes] 【55】" + TargetTypeName
+                    Log.ErrorOnce("[GNH LocalFixes] 【54】" + TargetTypeName
                         + " is not a Verse.GameComponent — skipped.", ErrorOnceKey);
                     return;
                 }
 
                 __instance.components.Add(comp);
-                Log.Message("[GNH LocalFixes] 【55】added the missing GameComponent "
+                Log.Message("[GNH LocalFixes] 【54】added the missing GameComponent "
                     + TargetTypeName + " (its constructor takes no arguments, so the engine"
                     + " could never create it; the orgasm-permission challenge system can now run).");
             }
             catch (Exception ex)
             {
                 // 补不上也不能让 FillComponents 的调用方（Game 构造函数）受影响。
-                Log.ErrorOnce("[GNH LocalFixes] 【55】rebuilding the Twilight GameComponent"
+                Log.ErrorOnce("[GNH LocalFixes] 【54】rebuilding the Twilight GameComponent"
                     + " failed: " + ex, ErrorOnceKey);
             }
         }

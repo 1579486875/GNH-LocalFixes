@@ -13,7 +13,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【61】「Just A Flesh Wound」把「装义体造成的 MissingBodyPart」当成致命伤，
+    // 【60】「Just A Flesh Wound」把「装义体造成的 MissingBodyPart」当成致命伤，
     //       导致 UFC 派系的领袖每次世界生成都必死 —— 720 条红字的**真正最后一环**
     // ==========================================================================
     //
@@ -26,7 +26,7 @@ namespace GNH.LocalFixes
     //
     // 【取证过程（1.7 实机，2026-11-13，日志 Player.log.probe-v2-numbers）】
     //
-    //   本项目自带的只读取证探头（【54】）在世界生成期抓到 UFC_BOSS 死亡瞬间的完整状态：
+    //   本项目自带的只读取证探头（【53】）在世界生成期抓到 UFC_BOSS 死亡瞬间的完整状态：
     //
     //       hediffs (40):
     //         BionicArm ×2（左肩/右肩）、BionicLeg ×2（左腿/右腿）—— Hediff_AddedPart
@@ -85,9 +85,9 @@ namespace GNH.LocalFixes
     //     · 世界生成期：义体照装，`__result` 保持原版算法的 false → 领袖能生出来；
     //     · 游戏内真实受伤/断肢：JustAFleshWound 的逻辑**原样生效**，一个字节都不改。
     //
-    // 【为什么不能改我们自己的【54】守卫】
+    // 【为什么不能改我们自己的【53】守卫】
     //
-    //   【54】的守卫打在 `Pawn_HealthTracker.RestorePart` 上，只覆盖「恢复部位」那条路径；
+    //   【53】的守卫打在 `Pawn_HealthTracker.RestorePart` 上，只覆盖「恢复部位」那条路径；
     //   而这次死亡发生在 `ApplyOnPawn` 里 `AddHediff` 之后的 `CheckForStateChange`，
     //   与 RestorePart 无关。两条守卫各管一段，互不替代 —— 都留着。
     //
@@ -100,7 +100,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【61】世界生成期跳过 Just A Flesh Wound 的致命伤害重算。
+    /// 【60】世界生成期跳过 Just A Flesh Wound 的致命伤害重算。
     /// </summary>
     internal static class JafwLethalDamageGenerationGuardFix
     {
@@ -127,7 +127,7 @@ namespace GNH.LocalFixes
                 if (tp == null)
                 {
                     installed = true;
-                    Log.Message("[GNH LocalFixes] 【61】Just A Flesh Wound is not present;"
+                    Log.Message("[GNH LocalFixes] 【60】Just A Flesh Wound is not present;"
                         + " its lethal-damage generation guard was skipped (nothing to do).");
                     return;
                 }
@@ -156,7 +156,7 @@ namespace GNH.LocalFixes
 
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【61】" + TargetTypeName + "." + TargetMethodName
+                    Log.Error("[GNH LocalFixes] 【60】" + TargetTypeName + "." + TargetMethodName
                         + "(…, Pawn_HealthTracker) was not found (its API probably changed);"
                         + " the guard is deferred and will retry on the next start.");
                     return;
@@ -166,7 +166,7 @@ namespace GNH.LocalFixes
                     typeof(JafwLethalDamageGenerationGuardFix), nameof(Prefix));
                 if (prefix == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【61】internal error: Prefix not found.");
+                    Log.Error("[GNH LocalFixes] 【60】internal error: Prefix not found.");
                     return;
                 }
 
@@ -174,14 +174,14 @@ namespace GNH.LocalFixes
                     target, new HarmonyMethod(prefix), null, null, null);
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 【61】patched " + TargetTypeName + "." + TargetMethodName
+                Log.Message("[GNH LocalFixes] 【60】patched " + TargetTypeName + "." + TargetMethodName
                     + " (prefix only). Just A Flesh Wound's lethal-damage recount is skipped"
                     + " while a pawn is being generated — prosthetics still install, and in-game"
                     + " injuries behave exactly as the author designed.");
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【61】failed to install the Just A Flesh Wound guard: " + ex);
+                Log.Error("[GNH LocalFixes] 【60】failed to install the Just A Flesh Wound guard: " + ex);
             }
         }
 
@@ -213,7 +213,7 @@ namespace GNH.LocalFixes
             catch (Exception ex)
             {
                 // 守卫自己出错时放行，绝不因为「修」而改变游戏行为
-                Log.ErrorOnce("[GNH LocalFixes] 【61】guard threw, allowing the original postfix: "
+                Log.ErrorOnce("[GNH LocalFixes] 【60】guard threw, allowing the original postfix: "
                     + ex.Message, ErrorOnceKey);
                 return true;
             }

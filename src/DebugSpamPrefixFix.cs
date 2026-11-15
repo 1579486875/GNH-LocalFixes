@@ -13,7 +13,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【68】鼠族基因扩展把三条调试输出留在了 PostExposeData 里
+    // 【65】鼠族基因扩展把三条调试输出留在了 PostExposeData 里
     // ==========================================================================
     //
     // ── 症状（2026-11-13 第三轮全局日志诊断 P3-5）──
@@ -71,7 +71,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【68】过滤以 `Debug:________` 开头的调试输出。
+    /// 【65】过滤以 `Debug:________` 开头的调试输出。
     /// </summary>
     internal static class DebugSpamPrefixFix
     {
@@ -97,7 +97,7 @@ namespace GNH.LocalFixes
                     typeof(Log), "Warning", new[] { typeof(string) }, null);
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【68】Log.Warning(string) was not found"
+                    Log.Error("[GNH LocalFixes] 【65】Log.Warning(string) was not found"
                         + " (its API probably changed); the fix is deferred and will retry.");
                     return;
                 }
@@ -106,7 +106,7 @@ namespace GNH.LocalFixes
                     typeof(DebugSpamPrefixFix), nameof(Prefix));
                 if (pre == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【68】internal error: Prefix not found.");
+                    Log.Error("[GNH LocalFixes] 【65】internal error: Prefix not found.");
                     return;
                 }
 
@@ -114,7 +114,7 @@ namespace GNH.LocalFixes
                     target, new HarmonyMethod(pre), null, null, null);
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 【68】patched Log.Warning(string) with a narrow"
+                Log.Message("[GNH LocalFixes] 【65】patched Log.Warning(string) with a narrow"
                     + " prefix filter. Lines starting with \"" + DebugPrefix + "\" are dropped —"
                     + " that marker comes from RatkinGeneExpanded.CustomSiteComp.PostExposeData(),"
                     + " where three debug Log.Warning calls were left in by the author."
@@ -122,7 +122,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【68】failed to install: " + ex);
+                Log.Error("[GNH LocalFixes] 【65】failed to install: " + ex);
             }
         }
 
@@ -147,7 +147,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.ErrorOnce("[GNH LocalFixes] 【68】guard threw, allowing the warning: "
+                Log.ErrorOnce("[GNH LocalFixes] 【65】guard threw, allowing the warning: "
                     + ex.Message, ErrorOnceKey);
                 return true;
             }

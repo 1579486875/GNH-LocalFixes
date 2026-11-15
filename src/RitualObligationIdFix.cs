@@ -15,7 +15,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【66】RitualObligation 的 ID 为 0 → 读档刷「Cannot register ... Id already used」
+    // 【63】RitualObligation 的 ID 为 0 → 读档刷「Cannot register ... Id already used」
     // ==========================================================================
     //
     // ── 症状（2026-11-13 第三轮全局日志诊断 P1-2）──
@@ -89,7 +89,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【66】读档前把 ID ≤ 0 的 RitualObligation 补成唯一 ID。
+    /// 【63】读档前把 ID ≤ 0 的 RitualObligation 补成唯一 ID。
     /// </summary>
     internal static class RitualObligationIdFix
     {
@@ -116,7 +116,7 @@ namespace GNH.LocalFixes
                     typeof(CrossRefHandler), "ResolveAllCrossReferences", Type.EmptyTypes, null);
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【66】CrossRefHandler.ResolveAllCrossReferences"
+                    Log.Error("[GNH LocalFixes] 【63】CrossRefHandler.ResolveAllCrossReferences"
                         + " was not found (its API probably changed);"
                         + " the fix is deferred and will retry on the next start.");
                     return;
@@ -126,7 +126,7 @@ namespace GNH.LocalFixes
                     typeof(RitualObligationIdFix), nameof(Prefix));
                 if (pre == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【66】internal error: Prefix not found.");
+                    Log.Error("[GNH LocalFixes] 【63】internal error: Prefix not found.");
                     return;
                 }
 
@@ -134,14 +134,14 @@ namespace GNH.LocalFixes
                     target, new HarmonyMethod(pre), null, null, null);
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 【66】patched CrossRefHandler.ResolveAllCrossReferences"
+                Log.Message("[GNH LocalFixes] 【63】patched CrossRefHandler.ResolveAllCrossReferences"
                     + " (prefix only). RitualObligations whose ID is 0 now get a real unique ID"
                     + " before cross-reference registration, instead of colliding on"
                     + " \"RitualObligation_0\".");
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【66】failed to install: " + ex);
+                Log.Error("[GNH LocalFixes] 【63】failed to install: " + ex);
             }
         }
 
@@ -220,7 +220,7 @@ namespace GNH.LocalFixes
 
                 if (fixedCount > 0)
                 {
-                    Log.Warning("[GNH LocalFixes] 【66】reassigned " + fixedCount
+                    Log.Warning("[GNH LocalFixes] 【63】reassigned " + fixedCount
                         + " RitualObligation(s) whose ID was <= 0."
                         + " They all shared the load id \"RitualObligation_0\", which made"
                         + " CrossRefHandler report \"Id already used\" and drop their references."
@@ -230,7 +230,7 @@ namespace GNH.LocalFixes
             catch (Exception ex)
             {
                 // 守卫绝不能影响读档：出错就放行，让原逻辑照常跑。
-                Log.ErrorOnce("[GNH LocalFixes] 【66】guard threw, continuing with the original flow: "
+                Log.ErrorOnce("[GNH LocalFixes] 【63】guard threw, continuing with the original flow: "
                     + ex.Message, ErrorOnceKey);
             }
         }

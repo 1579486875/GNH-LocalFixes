@@ -15,7 +15,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【41】读档刷 138 条 `/fixPawn` 的 loadID 报错
+    // 【40】读档刷 138 条 `/fixPawn` 的 loadID 报错
     //
     // ── 症状（用户 2026-11-01 实机复现，v1.4.19 没拦住）──
     //
@@ -109,7 +109,7 @@ namespace GNH.LocalFixes
                 {
                     installed = true;
                     Log.Message("[GNH LocalFixes] 未找到 " + FixationTypeName
-                        + "（裸体评价未安装或已改版）；【41】/fixPawn 过滤已跳过。");
+                        + "（裸体评价未安装或已改版）；【40】/fixPawn 过滤已跳过。");
                     return;
                 }
 
@@ -133,13 +133,13 @@ namespace GNH.LocalFixes
                 //   Harmony 对「未在本类实现的抽象/虚基方法」会直接抛：
                 //       ArgumentException: You can only patch implemented methods/constructors.
                 //       Patch the declared method virtual System.Void Verse.ThingComp::PostExposeData() instead.
-                //   结果就是日志里一条「安装【41】…失败（下次会重试）」，每局重试、每局失败。
+                //   结果就是日志里一条「安装【40】…失败（下次会重试）」，每局重试、每局失败。
                 //
                 //   而 1.6 既然没有这个方法，就说明**那个版本根本不写 fixPawn 到存档**，
                 //   本项在 1.6 下本来就不需要 —— 正确行为是「静默跳过」，不是「失败重试」。
                 if (target != null && target.DeclaringType != fixationType)
                 {
-                    Log.Message("[GNH LocalFixes] 【41】不是本项适用版本：" + FixationTypeName
+                    Log.Message("[GNH LocalFixes] 【40】不是本项适用版本：" + FixationTypeName
                         + " 自身没有声明 " + usedName + "()（找到的是基类 "
                         + (target.DeclaringType?.Name ?? "?") + " 的实现）；该版本不写 fixPawn 字段，"
                         + "本项跳过。这不是故障。");
@@ -155,7 +155,7 @@ namespace GNH.LocalFixes
                     //      那一整局里这条 ERROR 混在 10,879 条里，反而增加了排错噪音）。
                     //   ② 不设 installed：留着下次重试。成本只是一次反射，换来的是
                     //      「玩家换回旧版 / 作者改回旧名」时能自动自愈。
-                    Log.Message("[GNH LocalFixes] 【41】目标不适用：" + FixationTypeName
+                    Log.Message("[GNH LocalFixes] 【40】目标不适用：" + FixationTypeName
                         + " 上既没有 " + ExposeMethodName + "() 也没有 " + ExposeMethodName17
                         + "()（该模组改了实现）；本项本局不生效，不影响其它修复。");
                     return;
@@ -172,13 +172,13 @@ namespace GNH.LocalFixes
 
                 if (replacedCalls == 0)
                 {
-                    Log.Warning("[GNH LocalFixes] 【41】没能在 " + FixationTypeName + "." + usedName
+                    Log.Warning("[GNH LocalFixes] 【40】没能在 " + FixationTypeName + "." + usedName
                         + " 里找到 Scribe_References.Look 调用（作者可能改了写法）；本项本局不生效，下次会重试。");
                     return;
                 }
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 已安装【41】/fixPawn 脏数据过滤"
+                Log.Message("[GNH LocalFixes] 已安装【40】/fixPawn 脏数据过滤"
                     + "（Transpiler 改 " + FixationTypeName + "." + usedName
                     + " 里的 Scribe_References.Look 调用，替换 " + replacedCalls + " 处）。"
                     + "只在「label = " + TargetLabel + " 且引用本身是 null」时跳过，"
@@ -191,7 +191,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 安装【41】/fixPawn 脏数据过滤失败（下次会重试）：" + ex);
+                Log.Error("[GNH LocalFixes] 安装【40】/fixPawn 脏数据过滤失败（下次会重试）：" + ex);
             }
         }
 
@@ -208,7 +208,7 @@ namespace GNH.LocalFixes
 
             if (replacement == null)
             {
-                Log.Error("[GNH LocalFixes] 【41】连自己的 SafeLook 都找不到，无法替换。");
+                Log.Error("[GNH LocalFixes] 【40】连自己的 SafeLook 都找不到，无法替换。");
                 foreach (CodeInstruction ci in instructions)
                 {
                     yield return ci;
@@ -254,7 +254,7 @@ namespace GNH.LocalFixes
                 if (!announced)
                 {
                     announced = true;
-                    Log.Message("[GNH LocalFixes] 【41】已开始跳过 /fixPawn 的空引用登记"
+                    Log.Message("[GNH LocalFixes] 【40】已开始跳过 /fixPawn 的空引用登记"
                         + "（成因：1.6→1.7 迁移后这些引用解析不出来，模组又无条件交给了 Scribe）。"
                         + "跳过的是「登记一个 null」，有效引用不受影响。之后不再重复打印。");
                 }

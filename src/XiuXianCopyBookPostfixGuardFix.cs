@@ -13,7 +13,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【53】边缘仙路（RimImmortal-Core）的配方 postfix 在 DefOf 还没初始化时必崩
+    // 【52】边缘仙路（RimImmortal-Core）的配方 postfix 在 DefOf 还没初始化时必崩
     // ==========================================================================
     //
     // 【症状（1.6 侧日志原文，2026-11-12 02:5x）】
@@ -65,7 +65,7 @@ namespace GNH.LocalFixes
     //
     // 【为什么用 Prefix 守卫，而不是 finalizer】
     //
-    //   ⚠ 看起来 finalizer 更省事（像【50】那样），但**这里不行**：
+    //   ⚠ 看起来 finalizer 更省事（像【49】那样），但**这里不行**：
     //     Postfix 返回 `IEnumerable<RecipeDef>`，finalizer 吞掉异常后 Harmony 只能让方法
     //     返回 **default = null**，而 `GenerateImpliedDefs_PreResolve` 拿到 null 之后
     //     照样会在 foreach 上 NRE —— 等于把一个 NRE 换成另一个。

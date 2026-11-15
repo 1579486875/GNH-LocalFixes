@@ -14,13 +14,13 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【69】诊断工具：把「Parsed X as int.」定位到具体的 XML 文件
+    // 诊断工具：把「Parsed X as int.」定位到具体的 XML 文件
     // ==========================================================================
     //
     // ── 为什么要做这个 ──
     //
     //   第三轮日志诊断 §5 里那 181 条 `Parsed <小数> as int.`：
-    //     · 141 条已由【64】修掉（定位到 LDR 的 Buildings_MissileSilo_LDR.xml）
+    //     · 141 条已由【61】修掉（定位到 LDR 的 Buildings_MissileSilo_LDR.xml）
     //     · **还剩约 40 条没定位** —— 堆栈是 `ParseAndSetComplexTypeField_System_Int32`，
     //       不是 SiloTuple 那条路径，日志里也没有 defName，**光看日志找不出来**
     //
@@ -45,7 +45,7 @@ namespace GNH.LocalFixes
     //     ② Prefix `ParseIntPermissive` → 只在小数（含 `.`）时，把这两个字段一起打出来。
     //
     //   这样每条 `Parsed X as int.` 后面就会多一行：
-    //       [GNH LocalFixes] 【69】Parsed 14.9 as int — from Defs/AbilityDefs/Archon.xml
+    //       [GNH LocalFixes] Parsed 14.9 as int — from Defs/AbilityDefs/Archon.xml
     //                        (…\workshop\content\294100\2842502659\1.7)
     //
     // ── 为什么默认关闭 ──
@@ -65,7 +65,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【69】诊断：把「Parsed X as int」定位到具体 XML 文件。**默认关闭**。
+    /// 诊断：把「Parsed X as int」定位到具体 XML 文件。**默认关闭**。
     /// </summary>
     internal static class ParsedIntLocatorDiagnostic
     {
@@ -100,7 +100,7 @@ namespace GNH.LocalFixes
 
                 if (defFromNode == null || parseInt == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【69】target method not found"
+                    Log.Error("[GNH LocalFixes] target method not found"
                         + " (DefFromNodeNew / ParseIntPermissive); the diagnostic is skipped.");
                     return;
                 }
@@ -112,7 +112,7 @@ namespace GNH.LocalFixes
 
                 if (preDef == null || preInt == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【69】internal error: prefixes not found.");
+                    Log.Error("[GNH LocalFixes] internal error: prefixes not found.");
                     return;
                 }
 
@@ -122,7 +122,7 @@ namespace GNH.LocalFixes
                     parseInt, new HarmonyMethod(preInt), null, null, null);
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 【69】diagnostic armed (default OFF in settings)."
+                Log.Message("[GNH LocalFixes] diagnostic armed (default OFF in settings)."
                     + " When enabled it prints one extra line for each \"Parsed X as int.\","
                     + " naming the XML file and folder that produced it —"
                     + " so the remaining ~40 decimal-in-int-field warnings from the third"
@@ -131,7 +131,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【69】failed to install: " + ex);
+                Log.Error("[GNH LocalFixes] failed to install: " + ex);
             }
         }
 
@@ -175,7 +175,7 @@ namespace GNH.LocalFixes
                 }
                 logged++;
 
-                string line = "[GNH LocalFixes] 【69】Parsed " + str + " as int — from "
+                string line = "[GNH LocalFixes] Parsed " + str + " as int — from "
                     + currentName;
                 if (!string.IsNullOrEmpty(currentFolder))
                 {
@@ -189,7 +189,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.ErrorOnce("[GNH LocalFixes] 【69】diagnostic threw: " + ex.Message, ErrorOnceKey);
+                Log.ErrorOnce("[GNH LocalFixes] diagnostic threw: " + ex.Message, ErrorOnceKey);
             }
         }
     }

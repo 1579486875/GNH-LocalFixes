@@ -15,7 +15,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【54】世界生成期「装义体 → 被判死亡 → 领袖连生 120 次全败」
+    // 【53】世界生成期「装义体 → 被判死亡 → 领袖连生 120 次全败」
     // ==========================================================================
     //
     // 【症状（本机日志原文，2026-11-12 第二轮诊断）】
@@ -101,7 +101,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【54】世界生成期装配义体被误判死亡 —— 诊断 + 守卫。
+    /// 【53】世界生成期装配义体被误判死亡 —— 诊断 + 守卫。
     /// </summary>
     internal static class PawnGenDeathCauseFix
     {
@@ -161,7 +161,7 @@ namespace GNH.LocalFixes
                     new[] { typeof(DamageInfo?), typeof(Hediff) });
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【54】Pawn_HealthTracker.CheckForStateChange"
+                    Log.Error("[GNH LocalFixes] 【53】Pawn_HealthTracker.CheckForStateChange"
                         + "(DamageInfo?, Hediff) was not found; the pawn-generation death-cause probe"
                         + " stays off (nothing else is affected).");
                     return;
@@ -171,19 +171,19 @@ namespace GNH.LocalFixes
                     typeof(PawnGenDeathCauseFix), nameof(DiagPrefix));
                 if (prefix == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【54】internal error: DiagPrefix not found.");
+                    Log.Error("[GNH LocalFixes] 【53】internal error: DiagPrefix not found.");
                     return;
                 }
 
                 new Harmony("GNH.LocalFixes.PawnGenDeathCause.Diag")
                     .Patch(target, prefix: new HarmonyMethod(prefix));
                 diagInstalled = true;
-                Log.Message("[GNH LocalFixes] 【54】pawn-generation death-cause probe installed"
+                Log.Message("[GNH LocalFixes] 【53】pawn-generation death-cause probe installed"
                     + " (read-only; it never changes behaviour).");
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【54】failed to install the death-cause probe: " + ex);
+                Log.Error("[GNH LocalFixes] 【53】failed to install the death-cause probe: " + ex);
             }
         }
 
@@ -219,13 +219,13 @@ namespace GNH.LocalFixes
                 }
 
                 diagCount++;
-                Log.Error("[GNH LocalFixes] 【54】pawn-gen death probe #" + diagCount + ":\n"
+                Log.Error("[GNH LocalFixes] 【53】pawn-gen death probe #" + diagCount + ":\n"
                     + BuildDiagnosis(pawn, __instance));
             }
             catch (Exception ex)
             {
                 // 诊断自己出错绝不能影响游戏流程。
-                Log.ErrorOnce("[GNH LocalFixes] 【54】death probe itself threw: " + ex.Message,
+                Log.ErrorOnce("[GNH LocalFixes] 【53】death probe itself threw: " + ex.Message,
                     DiagErrorKey);
             }
         }
@@ -528,7 +528,7 @@ namespace GNH.LocalFixes
                     new[] { typeof(BodyPartRecord), typeof(Hediff), typeof(bool) });
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【54】Pawn_HealthTracker.RestorePart"
+                    Log.Error("[GNH LocalFixes] 【53】Pawn_HealthTracker.RestorePart"
                         + "(BodyPartRecord, Hediff, bool) was not found; the guard is deferred"
                         + " and will retry on the next start.");
                     return;
@@ -538,19 +538,19 @@ namespace GNH.LocalFixes
                     typeof(PawnGenDeathCauseFix), nameof(RestorePartPrefix));
                 if (prefix == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【54】internal error: RestorePartPrefix not found.");
+                    Log.Error("[GNH LocalFixes] 【53】internal error: RestorePartPrefix not found.");
                     return;
                 }
 
                 new Harmony("GNH.LocalFixes.PawnGenDeathCause.Guard")
                     .Patch(target, prefix: new HarmonyMethod(prefix));
                 guardInstalled = true;
-                Log.Message("[GNH LocalFixes] 【54】RestorePart no-death-check-during-generation"
+                Log.Message("[GNH LocalFixes] 【53】RestorePart no-death-check-during-generation"
                     + " guard installed.");
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【54】failed to install the RestorePart guard: " + ex);
+                Log.Error("[GNH LocalFixes] 【53】failed to install the RestorePart guard: " + ex);
             }
         }
 

@@ -14,7 +14,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【45】单个 HarmonyPatch 类解析失败时，不再连累同一批的其它补丁。
+    // 【44】单个 HarmonyPatch 类解析失败时，不再连累同一批的其它补丁。
     // ==========================================================================
     //
     // 【问题出在哪】
@@ -173,7 +173,7 @@ namespace GNH.LocalFixes
                     inner = inner.InnerException;
                 }
 
-                Log.Warning("[GNH LocalFixes] 【45】有一个 Harmony 补丁类解析失败，已隔离。"
+                Log.Warning("[GNH LocalFixes] 【44】有一个 Harmony 补丁类解析失败，已隔离。"
                     + "同一批次的其它补丁会继续安装，不受影响。\n"
                     + "  补丁类：" + className + "\n"
                     + "  原因：" + inner.GetType().Name + ": " + inner.Message + "\n"

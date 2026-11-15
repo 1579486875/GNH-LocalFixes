@@ -14,7 +14,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【57】720 条「Could not find player faction.」—— 源头不在模组，在引擎自己的属性 getter
+    // 【56】720 条「Could not find player faction.」—— 源头不在模组，在引擎自己的属性 getter
     // ==========================================================================
     //
     // 【症状】
@@ -77,10 +77,10 @@ namespace GNH.LocalFixes
     //
     // 【它不做什么（必须写明，免得下次又误会）】
     //
-    //   这**不是**「修好了 UFC 派系生不出领袖」。那件事的根在【54】，
-    //   本项只是把那 720 条**噪音**关掉；【54】修的是「为什么会有 pawn 在生成期被判定死亡」。
+    //   这**不是**「修好了 UFC 派系生不出领袖」。那件事的根在【53】，
+    //   本项只是把那 720 条**噪音**关掉；【53】修的是「为什么会有 pawn 在生成期被判定死亡」。
     //   两件事分开做、分开开关，是因为它们的影响面完全不同：
-    //   【54】改动游戏行为（虽然只是补一个漏传的参数），【57】只改日志。
+    //   【53】改动游戏行为（虽然只是补一个漏传的参数），【56】只改日志。
     //
     // 【自动让路】
     //
@@ -90,7 +90,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【57】世界生成期把 `Faction.OfPlayer` 的那句红字换成引擎自带的静默路径。
+    /// 【56】世界生成期把 `Faction.OfPlayer` 的那句红字换成引擎自带的静默路径。
     /// </summary>
     internal static class FactionOfPlayerNoiseFix
     {
@@ -114,7 +114,7 @@ namespace GNH.LocalFixes
                 PropertyInfo prop = AccessTools.Property(typeof(Faction), "OfPlayer");
                 if (prop == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【57】RimWorld.Faction.OfPlayer was not found;"
+                    Log.Error("[GNH LocalFixes] 【56】RimWorld.Faction.OfPlayer was not found;"
                         + " the worldgen noise filter is deferred and will retry.");
                     return;
                 }
@@ -122,7 +122,7 @@ namespace GNH.LocalFixes
                 MethodInfo getter = prop.GetGetMethod(true);
                 if (getter == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【57】Faction.OfPlayer has no getter?!"
+                    Log.Error("[GNH LocalFixes] 【56】Faction.OfPlayer has no getter?!"
                         + " The noise filter is NOT active this session.");
                     return;
                 }
@@ -132,7 +132,7 @@ namespace GNH.LocalFixes
                 PropertyInfo silent = AccessTools.Property(typeof(Faction), "OfPlayerSilentFail");
                 if (silent == null || silent.GetGetMethod(true) == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【57】RimWorld.Faction.OfPlayerSilentFail was not found;"
+                    Log.Error("[GNH LocalFixes] 【56】RimWorld.Faction.OfPlayerSilentFail was not found;"
                         + " the noise filter is NOT active (we will not hand-roll a silent getter"
                         + " because that could drift from the vanilla semantics).");
                     return;
@@ -142,7 +142,7 @@ namespace GNH.LocalFixes
                     typeof(FactionOfPlayerNoiseFix), nameof(Prefix));
                 if (prefix == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【57】internal error: Prefix not found.");
+                    Log.Error("[GNH LocalFixes] 【56】internal error: Prefix not found.");
                     return;
                 }
 
@@ -150,14 +150,14 @@ namespace GNH.LocalFixes
                     getter, new HarmonyMethod(prefix), null, null, null);
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 【57】installed: Faction.OfPlayer no longer logs"
+                Log.Message("[GNH LocalFixes] 【56】installed: Faction.OfPlayer no longer logs"
                     + " 'Could not find player faction.' while the game is still in ProgramState.Entry"
                     + " (i.e. before a colony map exists). The returned value is byte-for-byte"
                     + " the same as vanilla (null).");
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【57】failed to install the worldgen noise filter: " + ex);
+                Log.Error("[GNH LocalFixes] 【56】failed to install the worldgen noise filter: " + ex);
             }
         }
 
@@ -185,7 +185,7 @@ namespace GNH.LocalFixes
                 suppressed++;
                 if (suppressed == 1)
                 {
-                    Log.Message("[GNH LocalFixes] 【57】世界生成期起不再刷「Could not find player faction.」"
+                    Log.Message("[GNH LocalFixes] 【56】世界生成期起不再刷「Could not find player faction.」"
                         + "（返回值与原先完全一致：null）。本项只提示这一次。");
                 }
                 return false; // 跳过原方法体，只省掉那句 Log.Error。

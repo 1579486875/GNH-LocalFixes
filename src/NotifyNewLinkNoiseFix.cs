@@ -15,7 +15,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【67】「Notify_NewLink was called but the link is already here.」—— 纯噪音，静音
+    // 【64】「Notify_NewLink was called but the link is already here.」—— 纯噪音，静音
     // ==========================================================================
     //
     // ── 症状（2026-11-13 第三轮全局日志诊断 P2-1）──
@@ -75,7 +75,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【67】把「Notify_NewLink ... already here」的重复告警换成一条带 Label 的诊断。
+    /// 【64】把「Notify_NewLink ... already here」的重复告警换成一条带 Label 的诊断。
     /// </summary>
     internal static class NotifyNewLinkNoiseFix
     {
@@ -98,7 +98,7 @@ namespace GNH.LocalFixes
         //   两个方法的实现逐字同构（发现重复 → Log.Error + return，不添加），
         //   所以同样可以静音、同样等价。
         //   ⚠ 实测证据：2026-11-14 10:33:23 载入旧存档时日志里 12 条这条 Error，
-        //     而【67】的 suppressed 计数是 0 —— 说明那 12 条全来自 CompFacility 这一侧。
+        //     而【64】的 suppressed 计数是 0 —— 说明那 12 条全来自 CompFacility 这一侧。
         private static FieldInfo linkedBuildingsField;
         private static AccessTools.FieldRef<CompFacility, List<Thing>> linkedBuildingRef;
         private static bool installedCompFacility;
@@ -117,7 +117,7 @@ namespace GNH.LocalFixes
                     new[] { typeof(Thing) }, null);
                 if (target == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【67】CompAffectedByFacilities.Notify_NewLink(Thing)"
+                    Log.Error("[GNH LocalFixes] 【64】CompAffectedByFacilities.Notify_NewLink(Thing)"
                         + " was not found (its API probably changed);"
                         + " the fix is deferred and will retry on the next start.");
                     return;
@@ -127,7 +127,7 @@ namespace GNH.LocalFixes
                     typeof(CompAffectedByFacilities), "linkedFacilities");
                 if (linkedFacilitiesField == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【67】field linkedFacilities was not found;"
+                    Log.Error("[GNH LocalFixes] 【64】field linkedFacilities was not found;"
                         + " the fix is deferred and will retry.");
                     return;
                 }
@@ -138,7 +138,7 @@ namespace GNH.LocalFixes
                     typeof(NotifyNewLinkNoiseFix), nameof(Prefix));
                 if (pre == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【67】internal error: Prefix not found.");
+                    Log.Error("[GNH LocalFixes] 【64】internal error: Prefix not found.");
                     return;
                 }
 
@@ -146,7 +146,7 @@ namespace GNH.LocalFixes
                     target, new HarmonyMethod(pre), null, null, null);
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 【67】patched CompAffectedByFacilities.Notify_NewLink"
+                Log.Message("[GNH LocalFixes] 【64】patched CompAffectedByFacilities.Notify_NewLink"
                     + " (prefix only). A duplicate link no longer logs the vanilla error line;"
                     + " instead we log one informative warning naming the parent and the facility,"
                     + " so the mod that calls it twice can be identified."
@@ -157,7 +157,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【67】failed to install: " + ex);
+                Log.Error("[GNH LocalFixes] 【64】failed to install: " + ex);
             }
         }
 
@@ -178,7 +178,7 @@ namespace GNH.LocalFixes
                     new[] { typeof(Thing) }, null);
                 if (target == null)
                 {
-                    Log.Warning("[GNH LocalFixes] 【67b】CompFacility.Notify_NewLink(Thing)"
+                    Log.Warning("[GNH LocalFixes] 【64b】CompFacility.Notify_NewLink(Thing)"
                         + " was not found (its API probably changed); this half is skipped,"
                         + " the CompAffectedByFacilities half is unaffected.");
                     return;
@@ -187,7 +187,7 @@ namespace GNH.LocalFixes
                 linkedBuildingsField = AccessTools.Field(typeof(CompFacility), "linkedBuildings");
                 if (linkedBuildingsField == null)
                 {
-                    Log.Warning("[GNH LocalFixes] 【67b】field linkedBuildings was not found;"
+                    Log.Warning("[GNH LocalFixes] 【64b】field linkedBuildings was not found;"
                         + " this half is skipped, the other half is unaffected.");
                     return;
                 }
@@ -198,7 +198,7 @@ namespace GNH.LocalFixes
                     typeof(NotifyNewLinkNoiseFix), nameof(PrefixCompFacility));
                 if (pre == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【67b】internal error: Prefix not found.");
+                    Log.Error("[GNH LocalFixes] 【64b】internal error: Prefix not found.");
                     return;
                 }
 
@@ -206,7 +206,7 @@ namespace GNH.LocalFixes
                     target, new HarmonyMethod(pre), null, null, null);
                 installedCompFacility = true;
 
-                Log.Message("[GNH LocalFixes] 【67b】patched CompFacility.Notify_NewLink"
+                Log.Message("[GNH LocalFixes] 【64b】patched CompFacility.Notify_NewLink"
                     + " (prefix only). This is the *second* place that prints the same"
                     + " \"Notify_NewLink was called but the link is already here.\" error —"
                     + " the first one (CompAffectedByFacilities) was already handled above."
@@ -214,7 +214,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【67b】failed to install: " + ex);
+                Log.Error("[GNH LocalFixes] 【64b】failed to install: " + ex);
             }
         }
 
@@ -247,7 +247,7 @@ namespace GNH.LocalFixes
                         {
                             detailLogged++;
                             ThingWithComps parent = __instance.parent;
-                            Log.Warning("[GNH LocalFixes] 【67b】suppressed a duplicate"
+                            Log.Warning("[GNH LocalFixes] 【64b】suppressed a duplicate"
                                 + " CompFacility.Notify_NewLink: parent=\""
                                 + (parent != null ? parent.LabelShort : "(null)")
                                 + "\" (def=" + (parent != null && parent.def != null
@@ -264,7 +264,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.ErrorOnce("[GNH LocalFixes] 【67b】guard threw, allowing the original call: "
+                Log.ErrorOnce("[GNH LocalFixes] 【64b】guard threw, allowing the original call: "
                     + ex.Message, ErrorOnceKey + 1);
                 return true;
             }
@@ -309,7 +309,7 @@ namespace GNH.LocalFixes
                 {
                     detailLogged++;
                     ThingWithComps parent = __instance.parent;
-                    Log.Warning("[GNH LocalFixes] 【67】suppressed a duplicate Notify_NewLink:"
+                    Log.Warning("[GNH LocalFixes] 【64】suppressed a duplicate Notify_NewLink:"
                         + " parent=\"" + (parent != null ? parent.LabelShort : "(null)")
                         + "\" (def=" + (parent != null && parent.def != null ? parent.def.defName : "?") + ")"
                         + ", facility=\"" + facility.LabelShort + "\""
@@ -322,7 +322,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.ErrorOnce("[GNH LocalFixes] 【67】guard threw, allowing the original call: "
+                Log.ErrorOnce("[GNH LocalFixes] 【64】guard threw, allowing the original call: "
                     + ex.Message, ErrorOnceKey);
                 return true;
             }

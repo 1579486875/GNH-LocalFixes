@@ -14,7 +14,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【65】雪兔的「分层建筑渲染」在非主线程加载贴图 → 建筑显示成紫块
+    // 【62】雪兔的「分层建筑渲染」在非主线程加载贴图 → 建筑显示成紫块
     // ==========================================================================
     //
     // ── 症状（2026-11-13 第三轮全局日志诊断 P2-2）──
@@ -91,7 +91,7 @@ namespace GNH.LocalFixes
     // ==========================================================================
 
     /// <summary>
-    /// 【65】雪兔分层建筑渲染的贴图懒加载。
+    /// 【62】雪兔分层建筑渲染的贴图懒加载。
     /// </summary>
     internal static class SnowRabbitGraphicThreadFix
     {
@@ -123,7 +123,7 @@ namespace GNH.LocalFixes
                 if (tp == null)
                 {
                     installed = true;
-                    Log.Message("[GNH LocalFixes] 【65】SnowRabbit is not present;"
+                    Log.Message("[GNH LocalFixes] 【62】SnowRabbit is not present;"
                         + " its graphic-thread fix was skipped (nothing to do).");
                     return;
                 }
@@ -131,7 +131,7 @@ namespace GNH.LocalFixes
                 loadGraphicsMethod = AccessTools.Method(tp, LoadGraphicsName, Type.EmptyTypes, null);
                 if (loadGraphicsMethod == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【65】" + TargetTypeName + "." + LoadGraphicsName
+                    Log.Error("[GNH LocalFixes] 【62】" + TargetTypeName + "." + LoadGraphicsName
                         + "() was not found (its API probably changed);"
                         + " the fix is deferred and will retry on the next start.");
                     return;
@@ -140,7 +140,7 @@ namespace GNH.LocalFixes
                 MethodInfo postDraw = AccessTools.Method(tp, PostDrawName, Type.EmptyTypes, null);
                 if (postDraw == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【65】" + TargetTypeName + "." + PostDrawName
+                    Log.Error("[GNH LocalFixes] 【62】" + TargetTypeName + "." + PostDrawName
                         + "() was not found; the fix is deferred and will retry.");
                     return;
                 }
@@ -149,7 +149,7 @@ namespace GNH.LocalFixes
                 FieldInfo fi = AccessTools.Field(tp, UpperGraphicField);
                 if (fi == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【65】field " + UpperGraphicField
+                    Log.Error("[GNH LocalFixes] 【62】field " + UpperGraphicField
                         + " was not found; the fix is deferred and will retry.");
                     return;
                 }
@@ -162,7 +162,7 @@ namespace GNH.LocalFixes
 
                 if (pre == null || post == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【65】internal error: prefix/postfix not found.");
+                    Log.Error("[GNH LocalFixes] 【62】internal error: prefix/postfix not found.");
                     return;
                 }
 
@@ -172,7 +172,7 @@ namespace GNH.LocalFixes
                     postDraw, null, new HarmonyMethod(post), null, null);
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 【65】patched " + TargetTypeName
+                Log.Message("[GNH LocalFixes] 【62】patched " + TargetTypeName
                     + " (LoadGraphics prefix + PostDraw postfix)."
                     + " Its upper-layer graphic is now loaded on the main thread at first draw,"
                     + " instead of off-thread during ExposeData — which used to fail and leave"
@@ -180,7 +180,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 【65】failed to install: " + ex);
+                Log.Error("[GNH LocalFixes] 【62】failed to install: " + ex);
             }
         }
 
@@ -226,7 +226,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.ErrorOnce("[GNH LocalFixes] 【65】PostDraw 补加载失败（这条只打一次）："
+                Log.ErrorOnce("[GNH LocalFixes] 【62】PostDraw 补加载失败（这条只打一次）："
                     + ex.Message, ErrorOnceKey);
             }
         }

@@ -393,7 +393,7 @@ namespace GNH.LocalFixes
             {
                 return SraeLibHasTargetField();
             }
-            // ── 【44】NMM 旧架构守卫（2026-11-11 用户追问后补）──
+            // ── 【43】NMM 旧架构守卫（2026-11-11 用户追问后补）──
             //
             // 这条删的是 10 个 `li Class="NudityMattersMore.CompProperties_XXX"`。
             // 判定前提是「那 10 个类型已经不存在」。但玩家可能仍在用**旧版 NMM**：
@@ -418,7 +418,7 @@ namespace GNH.LocalFixes
             // 并连带整个 Def 文件加载失败。
             //
             // 但**旧版 VFE Security 是有这个类型的**：那种玩家装上我们这条，
-            // 等于把炮塔的远程炮击能力删掉。所以和【44】一样按类型存在性分流。
+            // 等于把炮塔的远程炮击能力删掉。所以和【43】一样按类型存在性分流。
             if (string.Equals(fileName, "FixTY2ValleyLongRangeArtillery.xml",
                     StringComparison.OrdinalIgnoreCase))
             {
@@ -444,7 +444,7 @@ namespace GNH.LocalFixes
             if (string.Equals(fileName, "RJW_SkillSexOrderFix.xml",
                     StringComparison.OrdinalIgnoreCase))
             {
-                // 【48】往 RJW 的 Sex 技能里塞 CharacterEditorSkillFix.SkillOrderExtension。
+                // 【47】往 RJW 的 Sex 技能里塞 CharacterEditorSkillFix.SkillOrderExtension。
                 // FindMod 只能证明「那个模组开着」，证明不了「那个模组有这个类型」。
                 return !TypeExists("CharacterEditorSkillFix.SkillOrderExtension");
             }
@@ -454,13 +454,13 @@ namespace GNH.LocalFixes
             //   该文件 12 条操作里没有一条真的碰它。按注释加守卫 = 让整份文件白白让路，
             //   属于会误伤其它 11 条修复的多余判据。
             //
-            // ── 【50】无限精液工坊的两个储液桶（2026-11-11）──
+            // ── 【49】无限精液工坊的两个储液桶（2026-11-11）──
             // 删的是 `li Class="RJW_Menstruation_Fluids.CompProperties_CumGatherer"`。
             // 实测 ELT 那个模组的三个 dll（57,856 / 25,088 / 24,576 B）**都没有这个类型**，
             // 而 `MayRequire="eltoro.rjw.menstruation.fluids"` 只查模组启用、不查类型存在，
             // 所以这两行会一路走到解析阶段才炸（comps 整表失败 ⇒ 两个储液桶 def 一起消失）。
             //
-            // 守卫逻辑与【44】/TY2Valley 同款：**类型还在就让路**。
+            // 守卫逻辑与【43】/TY2Valley 同款：**类型还在就让路**。
             // 万一作者把 CumGatherer 加回来，那两行就是真功能，删了等于砍掉精液收集。
             if (string.Equals(fileName, "CumworksBadCompRefFix.xml",
                     StringComparison.OrdinalIgnoreCase))

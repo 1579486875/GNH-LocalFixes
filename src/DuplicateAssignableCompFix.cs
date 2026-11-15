@@ -16,7 +16,7 @@ using Verse;
 namespace GNH.LocalFixes
 {
     // ==========================================================================
-    // 【42】同一台「可分配」建筑上挂了两个 CompAssignableToPawn → 读档刷 32 条红字
+    // 【41】同一台「可分配」建筑上挂了两个 CompAssignableToPawn → 读档刷 32 条红字
     //
     // ── 症状（2026-11-03 06:19 实机日志）──
     //
@@ -121,7 +121,7 @@ namespace GNH.LocalFixes
                 if (target == null)
                 {
                     Log.Error("[GNH LocalFixes] 找不到 CompAssignableToPawn.PostExposeData()；"
-                        + "【42】本次未安装，下次会重试。");
+                        + "【41】本次未安装，下次会重试。");
                     return;
                 }
 
@@ -129,7 +129,7 @@ namespace GNH.LocalFixes
                     typeof(DuplicateAssignableCompFix), nameof(Prefix), null, null);
                 if (prefix == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【42】连自己的 Prefix 都找不到，放弃安装。");
+                    Log.Error("[GNH LocalFixes] 【41】连自己的 Prefix 都找不到，放弃安装。");
                     return;
                 }
 
@@ -141,7 +141,7 @@ namespace GNH.LocalFixes
                     null);
 
                 installed = true;
-                Log.Message("[GNH LocalFixes] 已安装【42】重复「可分配」组件去重"
+                Log.Message("[GNH LocalFixes] 已安装【41】重复「可分配」组件去重"
                     + "（CompAssignableToPawn.PostExposeData 加一次性放行）。"
                     + "只在同一台建筑挂了两个以上可分配组件时生效 —— "
                     + "游戏自己遇到这种存档也是「用第一个、丢第二个」，"
@@ -149,7 +149,7 @@ namespace GNH.LocalFixes
             }
             catch (Exception ex)
             {
-                Log.Error("[GNH LocalFixes] 安装【42】重复「可分配」组件去重失败（下次会重试）：" + ex);
+                Log.Error("[GNH LocalFixes] 安装【41】重复「可分配」组件去重失败（下次会重试）：" + ex);
             }
         }
 
@@ -219,7 +219,7 @@ namespace GNH.LocalFixes
                 if (!announced)
                 {
                     announced = true;
-                    Log.Message("[GNH LocalFixes] 【42】已开始跳过重复的可分配组件"
+                    Log.Message("[GNH LocalFixes] 【41】已开始跳过重复的可分配组件"
                         + "（成因：某台建筑身上挂了两个 CompAssignableToPawn，"
                         + "两者用同一个父对象登记 /assignedPawns，键冲突）。"
                         + "跳过的是重复那一份，游戏本来也只用第一份；之后不再重复打印。");
@@ -230,7 +230,7 @@ namespace GNH.LocalFixes
             catch (Exception ex)
             {
                 // 守卫本身绝不能影响读档：出错就放行，让原逻辑照常跑。
-                Log.Warning("[GNH LocalFixes] 【42】去重守卫异常，本次放行：" + ex.Message);
+                Log.Warning("[GNH LocalFixes] 【41】去重守卫异常，本次放行：" + ex.Message);
                 return true;
             }
         }
