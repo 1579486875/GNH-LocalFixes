@@ -68,6 +68,8 @@ namespace GNH.LocalFixes
             = new System.Collections.Generic.Dictionary<string, int>();
         private const int MaxLogPerSite = 3;
 
+        // 按取样点计数并限流（每个点最多 `MaxLogPerSite` 条）。
+        // 探针自己的异常**绝不能外抛** —— 抛出去就污染了它要测的那个场景，比不测还糟。
         private static void NoteError(string site, Exception ex)
         {
             try
@@ -282,6 +284,8 @@ internal static void Entry()
         // ================= helpers =================
         private static FieldInfo s_needPawnField;
 
+        // 取 RJW 的 `Need_Sex`。以下任一情况返回 **null**（而不是抛）：pawn 为空、`needs` 为空、
+        // RJW 没装（`rjw.Need_Sex` 类型解析不到）、`AllNeeds` 里没有这一条。
         private static Need TryGetSexNeed(Pawn pawn)
         {
             try

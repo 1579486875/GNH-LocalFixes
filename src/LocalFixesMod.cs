@@ -146,6 +146,9 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 安装路径上的日志出口：`Log.Error` 自身抛异常时**静默吞掉**。
+        // 理由见下面 `catch` 里的说明 —— 这个函数被用在 catch 块里，再抛一次就会穿进模组构造函数，
+        // 而构造函数一抛异常整个模组就废了。
         internal static void SafeLogError(string message)
         {
             try { Log.Error(message); }
@@ -765,6 +768,8 @@ namespace GNH.LocalFixes
             "GNH.LocalFixes.Patch_PatchOperation_Complete",
         };
 
+        // 按 `KnownPatchClassNames` 白名单逐个 `GetType`；**单个类取不到就跳过，不连累整批**。
+        // 返回能用的那些类（可能为空数组，调用方必须能处理）。
         private static Type[] LoadKnownPatchClassesTolerantly(Assembly assembly)
         {
             List<Type> usable = new List<Type>();
@@ -1067,6 +1072,8 @@ namespace GNH.LocalFixes
             return Translated("GNH_LocalFixes_SettingsCategory", "多模组兼容修复补丁");
         }
 
+        // 模组设置窗口的入口，**每帧调用**：只画、不写盘（写盘由窗口关闭时游戏自己调 `WriteSettings()`）。
+        // 取不到设置对象时给一句提示文字，不留一片空白。
         public override void DoSettingsWindowContents(Rect inRect)
         {
             GNHLocalFixesSettings settings = Settings;
@@ -1323,6 +1330,8 @@ namespace GNH.LocalFixes
             return true;
         }
 
+        // 把 `FixToggles.All` 按顺序画成一条条开关。文本与行高全部取自 `BuildUiCacheIfNeeded` 的缓存 ——
+        // 与 `MeasureListHeight` 用的是同一份，所以「测出来的高度」与「画出来的高度」不可能对不上。
         private static void DrawToggleList(Listing_Standard listing, GNHLocalFixesSettings settings, float width)
         {
             // 文本与高度都取自缓存 —— 与 MeasureListHeight 用的是同一份，

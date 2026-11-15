@@ -273,6 +273,9 @@ namespace GNH.LocalFixes
         // 打一条 Message 的成本是「一局一次」，换来的是实机可验证 —— 非常划算。
         private static bool swallowLogged;
 
+        // 只接一种异常：`TargetException`（角色身上没有那个 Comp）。接住时把 `__result` 置为 true
+        // （没有 Comp ⇒ 视为未封闭 ⇒ 放行），并返回 null 把异常吞掉。
+        // **其它异常原样返回**，一个都不替别人兜 —— 这一条是有意的：吞错异常比不修更难查。
         public static Exception Finalizer(Exception __exception, ref bool __result)
         {
             if (__exception is TargetException)

@@ -63,7 +63,14 @@ ids = re.findall(r'new Entry\("([^"]+)"', block)
 # ⚠ 「诊断工具」不是修复项：它不占修复编号、也不列进修复清单。
 #   DocStatsSelfCheck（C# 侧运行时自检）从 v1.4.24 起就是按这个口径数的，
 #   这里必须跟它一致，否则每跑一次都会报「About 写 43、实际 44」的假警报。
+#
+# 【2026-11-16 订正】工具口径 = **诊断工具整组 + 性能剖析那一项（GroupAdvanced）**。
+#   原先只减 GroupDiagnostics → 72 − 5 = 67，而 About / README / 编号体系一直是 **66**。
+#   差的正是 deepProfilerQuiet：它关掉的是**游戏自带的 DeepProfiler**，
+#   不修任何模组缺陷，与诊断工具同属「占一个开关、不算一条修复」。
+#   同步改了 src/DocStatsSelfCheck.cs，两处必须一起动。
 diag = len(re.findall(r'new Entry\("[^"]+",\s*GroupDiagnostics', block))
+diag += len(re.findall(r'new Entry\("[^"]+",\s*GroupAdvanced', block))
 fix_count = total - diag
 
 xml_refs = re.findall(r'xmlPatchFile:\s*"([^"]+)"', tg)
@@ -115,9 +122,16 @@ print(f"README「N 个 XML 补丁」        : {rm_xml.group(1) if rm_xml else '�
 # About：正文里还有两处数字（2026-11-07 补：此前没有任何环节核对它们，
 # 实测漏成「Patches 目录下是 12 个 XML 补丁」（实际 13）、「那 43 条修复」（实际 44））。
 ab_xml = re.search(r"Patches 目录下是 (\d+) 个 XML 补丁", about)
-ab_fix = re.search(r"也不算在上面那 (\d+) 条修复", about)
+# 【2026-11-16 修】原先只认「也不算在上面那 N 条修复」这一种措辞。
+#   About 改写成「■ 修复速览（66 条…）」之后，这条正则再也匹配不到，
+#   而下面 `if ab_fix and …` 在 None 时**静默跳过** —— 等于这个数字从此失去守护，
+#   `--check` 照样 exit 0。现在：
+#     ① 正则放宽到几种常见写法；
+#     ② 没匹配到时打印的是「未出现（该措辞已不使用）」而不是含糊的「未找到」，
+#        并且不再把它当成一次成功的核对 —— 读报告的人一眼能看出「这一项没在核」。
+ab_fix = re.search(r"(?:也不算在上面那|上面那|那)\s*(\d+)\s*条修复", about)
 print(f"About「Patches 下 N 个 XML」  : {ab_xml.group(1) if ab_xml else '未找到'}")
-print(f"About「那 N 条修复」          : {ab_fix.group(1) if ab_fix else '未找到'}")
+print(f"About「那 N 条修复」          : {ab_fix.group(1) if ab_fix else '未出现（该措辞已不使用）'}")
 if ab_xml and int(ab_xml.group(1)) != len(xml_files):
     problems.append(f"About 写「{ab_xml.group(1)} 个 XML 补丁」，实际 {len(xml_files)} 个")
 if ab_fix and int(ab_fix.group(1)) != fix_count:

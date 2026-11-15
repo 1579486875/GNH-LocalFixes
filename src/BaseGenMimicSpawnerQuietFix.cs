@@ -199,6 +199,7 @@ namespace GNH.LocalFixes
         private static FieldInfo resolveParamsField;
         private static FieldInfo rectField;
 
+        // 由开关 `baseGenMimicSpawnerQuiet` 控制（`installed` 守卫）。具体修什么见文件头。
         internal static void Install()
         {
             if (installed)

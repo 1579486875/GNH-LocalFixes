@@ -103,6 +103,7 @@ namespace GNH.LocalFixes
         private static readonly HashSet<ThingWithComps> seen =
             new HashSet<ThingWithComps>(ReferenceComparer.Instance);
 
+        // 由开关 `assignableCompDupeGuard` 控制（`installed` 守卫）。具体修什么见文件头。
         internal static void Install()
         {
             if (installed)
@@ -243,6 +244,8 @@ namespace GNH.LocalFixes
         {
             internal static readonly ReferenceComparer Instance = new ReferenceComparer();
 
+            // 按**对象引用**比较（`ReferenceEquals`）。这两个组件是按 Thing 实例绑定的，
+            // 按 def 或运行时 id 比会让两个不同的小人撞成同一个 key，那样「去重」就变成「误删」。
             public bool Equals(ThingWithComps x, ThingWithComps y)
             {
                 return ReferenceEquals(x, y);

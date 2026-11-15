@@ -30,61 +30,61 @@
   <GNH_LocalFixes_OnlyCrashes_Tip>把「日誌刷屏」「相容與判定」「XML 補丁」三類關掉，只留下不修就會崩的那些。
 「行為與設定」兩項不動 —— 那是你自己的偏好，不是故障修復。</GNH_LocalFixes_OnlyCrashes_Tip>
   <GNH_LocalFixes_RestartHint>★ 改動要重啟遊戲才生效 —— 補丁一旦掛上就沒法中途摘掉，這裡決定的是「下次啟動裝哪幾項」。</GNH_LocalFixes_RestartHint>
-  <GNH_LocalFixes_Toggle_assemblyGetTypesFallback>壞組件不再拖垮整批補丁</GNH_LocalFixes_Toggle_assemblyGetTypesFallback>
+  <GNH_LocalFixes_Toggle_assemblyGetTypesFallback>壞組件不再拖垮整批補丁（【1】）</GNH_LocalFixes_Toggle_assemblyGetTypesFallback>
   <GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>某個模組的 dll 引用了根本不存在的組件時，遊戲列舉「所有類」會整體失敗，排在後面的模組就全部掃不到。本項把「整份清單作廢」降級成「少幾個類，但清單還能用」。</GNH_LocalFixes_Toggle_assemblyGetTypesFallback_Desc>
-  <GNH_LocalFixes_Toggle_techHediffsZeroBudget>植入體預算為 0 時的空引用崩潰</GNH_LocalFixes_Toggle_techHediffsZeroBudget>
+  <GNH_LocalFixes_Toggle_techHediffsZeroBudget>植入體預算為 0 時的空引用崩潰（【10】）</GNH_LocalFixes_Toggle_techHediffsZeroBudget>
   <GNH_LocalFixes_Toggle_techHediffsZeroBudget_Desc>原版在「植入體預算恰好為 0」時會以 0 權重抽到 null 然後解引用崩潰。本項補上空值保護。</GNH_LocalFixes_Toggle_techHediffsZeroBudget_Desc>
-  <GNH_LocalFixes_Toggle_musicManagerFadeout>音樂淡出每幀報錯</GNH_LocalFixes_Toggle_musicManagerFadeout>
+  <GNH_LocalFixes_Toggle_musicManagerFadeout>音樂淡出每幀報錯（【12】）</GNH_LocalFixes_Toggle_musicManagerFadeout>
   <GNH_LocalFixes_Toggle_musicManagerFadeout_Desc>「樂器」分組裡混進真實型別不是樂器的物件時，音樂淡出會每幀拋 InvalidCastException。本項在源頭攔截並附帶一層兜底。</GNH_LocalFixes_Toggle_musicManagerFadeout_Desc>
-  <GNH_LocalFixes_Toggle_nmmIdeoTrackerNull>開新局卡死在生成階段</GNH_LocalFixes_Toggle_nmmIdeoTrackerNull>
+  <GNH_LocalFixes_Toggle_nmmIdeoTrackerNull>開新局卡死在生成階段（【16】）</GNH_LocalFixes_Toggle_nmmIdeoTrackerNull>
   <GNH_LocalFixes_Toggle_nmmIdeoTrackerNull_Desc>NudityMattersMore 的 CoverBody.UpdateIdeo 會在「靜態表裡殘留同號記錄」時解引用空引用，把整條角色生成流程掀翻——表現就是同一次執行中連續開新局會卡死。本項在它之前清掉殘留。</GNH_LocalFixes_Toggle_nmmIdeoTrackerNull_Desc>
-  <GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull>Allies are Helpful 的角色空引用</GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull>
+  <GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull>Allies are Helpful 的角色空引用（【20】）</GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull>
   <GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull_Desc>該模組在「角色當前沒有工作」這個常見情形下沒有攔住，會讀空物件並中斷 TickRare。本項把那幾處讀 Job 欄位的地方改成 null 安全寫法。</GNH_LocalFixes_Toggle_alliesAreHelpfulCurJobNull_Desc>
-  <GNH_LocalFixes_Toggle_srceLibConcurrency>雪兔公共庫的並行崩潰</GNH_LocalFixes_Toggle_srceLibConcurrency>
+  <GNH_LocalFixes_Toggle_srceLibConcurrency>雪兔公共庫的並行崩潰（【25】）</GNH_LocalFixes_Toggle_srceLibConcurrency>
   <GNH_LocalFixes_Toggle_srceLibConcurrency_Desc>SRCELib 的兩個靜態快取全程沒有鎖，並行渲染下會同時擴容、寫壞集合，導致部分角色每次繪製都拋異常、乾脆不顯示。本項給它套一把鎖。</GNH_LocalFixes_Toggle_srceLibConcurrency_Desc>
-  <GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy>Guards For Me 的行為樹殘缺</GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy>
+  <GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy>Guards For Me 的行為樹殘缺（【26】）</GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy>
   <GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy_Desc>該模組的 DeepCopy 是從原版複製來的，忘了把強制轉型的目標型別一起改，必然拋 InvalidCastException，導致三棵行為樹沒被複制、用到它們的種族 AI 行為缺失。本項只改那兩條 IL 指令。</GNH_LocalFixes_Toggle_gfmIdleCombatDeepCopy_Desc>
-  <GNH_LocalFixes_Toggle_ccoeReflection>CCOE 的反射異常紅字</GNH_LocalFixes_Toggle_ccoeReflection>
+  <GNH_LocalFixes_Toggle_ccoeReflection>CCOE 的反射異常紅字（【9】）</GNH_LocalFixes_Toggle_ccoeReflection>
   <GNH_LocalFixes_Toggle_ccoeReflection_Desc>CCOE 有三個前綴方法在「角色沒有對應元件」時會拋 System.Reflection.TargetException，讓月經結算流程失敗並刷紅字。本項把三處都改成安全寫法。</GNH_LocalFixes_Toggle_ccoeReflection_Desc>
-  <GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace>修復 VFE Empire「樂器空間」的空引用崩潰</GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace>
+  <GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace>修復 VFE Empire「樂器空間」的空引用崩潰（【5】）</GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace>
   <GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace_Desc>給 VFE Empire 那句會崩的判斷補上空值保護：不補的話，九個用到「樂器空間」的爵位（Archcount / Marquess / Archduke 等）的房間需求無法正常工作。★ 多數情況下不必手動關：本項自帶探測，一旦發現原版那句判斷已經安全（多半是作者自己修好了），會自動讓路、什麼都不做。</GNH_LocalFixes_Toggle_fixVfeeInstrumentSpace_Desc>
-  <GNH_LocalFixes_Toggle_crossPromotionUnpatch>開啟「模組」頁面崩潰</GNH_LocalFixes_Toggle_crossPromotionUnpatch>
+  <GNH_LocalFixes_Toggle_crossPromotionUnpatch>開啟「模組」頁面崩潰（【6】）</GNH_LocalFixes_Toggle_crossPromotionUnpatch>
   <GNH_LocalFixes_Toggle_crossPromotionUnpatch_Desc>CrossPromotion 在模組頁面裡去取 Steam 資訊，會呼叫 Steam 官方早已廢棄的介面，導致一開啟「模組」頁面就崩。本項把它那段前置處理摘掉。</GNH_LocalFixes_Toggle_crossPromotionUnpatch_Desc>
-  <GNH_LocalFixes_Toggle_steamWorkshopHook>Steam 工坊資訊崩潰（第二道保險）</GNH_LocalFixes_Toggle_steamWorkshopHook>
+  <GNH_LocalFixes_Toggle_steamWorkshopHook>Steam 工坊資訊崩潰（第二道保險【22】）</GNH_LocalFixes_Toggle_steamWorkshopHook>
   <GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>與上一項是同一場崩潰的另一條路：把「取工坊資訊」這條鏈路上的空值與異常接住。兩項都開著最穩。</GNH_LocalFixes_Toggle_steamWorkshopHook_Desc>
-  <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>古代神殿警告刷屏</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>
+  <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>古代神殿警告刷屏（【17】）</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet>
   <GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>生成古代神殿時，每個小格子都會刷一條「找不到 mimicSpawner 規則」的警告（實測一次開局 34 條）。原版那條路徑本來就是「拒絕 + 什麼都不做」，所以本項只是不再刷警告，行為完全等價。</GNH_LocalFixes_Toggle_baseGenMimicSpawnerQuiet_Desc>
   <GNH_LocalFixes_Toggle_realtimeDrawNreSwallow>即時繪製空引用刷屏（【38】）</GNH_LocalFixes_Toggle_realtimeDrawNreSwallow>
   <GNH_LocalFixes_Toggle_realtimeDrawNreSwallow_Desc>需要逐幀繪製的建築（如 Dubs Rimatomics 的反應爐控制台）會走進這條繪製路徑，而 RavenRace 的史萊姆覆蓋層在這裡讀一個沒有判空的靜態設定，取不到就每幀拋空引用。實測 8.5 小時刷出 66 萬條 ERROR、2.07 GB 日誌、記憶體漲到 28 GB。本項只吞空引用並按 500 次一條記錄，其它例外照常拋出。</GNH_LocalFixes_Toggle_realtimeDrawNreSwallow_Desc>
-  <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>RJW-Genes 除錯刷屏</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>
+  <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>RJW-Genes 除錯刷屏（【21】）</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet>
   <GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>開發者模式下每幀都寫一行 [RJW-Genes] multipreg checks（實測一局 3 萬條、佔整份日誌 65%），把真正要看的問題全埋掉。本項只攔這一句，該模組的報錯與警告照常輸出。</GNH_LocalFixes_Toggle_rjwGenesSpamQuiet_Desc>
-  <GNH_LocalFixes_Toggle_vehicleFrameworkDebug>Vehicle Framework 除錯選單報錯</GNH_LocalFixes_Toggle_vehicleFrameworkDebug>
+  <GNH_LocalFixes_Toggle_vehicleFrameworkDebug>Vehicle Framework 除錯選單報錯（【23】）</GNH_LocalFixes_Toggle_vehicleFrameworkDebug>
   <GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>開啟開發者生成選單後，該模組找不到對應的 PawnKind 會報錯。本項把「找不到就報錯」改成「查不到就靜默跳過」。</GNH_LocalFixes_Toggle_vehicleFrameworkDebug_Desc>
-  <GNH_LocalFixes_Toggle_filterRjwpeStaleDefs>PE 模組的殘留 def 報錯</GNH_LocalFixes_Toggle_filterRjwpeStaleDefs>
+  <GNH_LocalFixes_Toggle_filterRjwpeStaleDefs>PE 模組的殘留 def 報錯（【28】）</GNH_LocalFixes_Toggle_filterRjwpeStaleDefs>
   <GNH_LocalFixes_Toggle_filterRjwpeStaleDefs_Desc>RJW PE 的 SoundDef_Replacement.xml 用的是已被作者改名的舊型別 rjwpe.SoundReplacementDef（2025-09-04 起改叫 rjwpe.VoiceReplacementDef，新檔案 ReplacementDef_Voice.xml 已完整實作該功能），啟動時必報「Type ... is not a Def type」。那批定義從來沒生效過，本項把它摘掉 —— 行為與實際完全等價，只是不再刷紅字。★ 作者若把型別加回來，本項自動失效、什麼都不做。</GNH_LocalFixes_Toggle_filterRjwpeStaleDefs_Desc>
-  <GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet>RI-Furniture 皇權自檢刷屏</GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet>
+  <GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet>RI-Furniture 皇權自檢刷屏（【29】）</GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet>
   <GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet_Desc>每次啟動刷 54 條「皇權房間要求補丁未生效」。成因是 disroom.mashiro 把爵位的 throneRoomRequirements / bedroomRequirements 整片清空，而那是玩家故意啟用的效果 —— RI 的傢俱因此必然加不進去，屬於預期中的設計衝突。本項只靜音這一類自檢結論，該模組的其它日誌一律照常輸出。</GNH_LocalFixes_Toggle_riFurnitureRoyalCompatQuiet_Desc>
-  <GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>射程計算空引用</GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>
+  <GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>射程計算空引用（【2】）</GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange>
   <GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange_Desc>原版算射程時有兩處直接使用「攻擊者」卻沒有先判空，特定情況下會刷空引用。本項補上判空。</GNH_LocalFixes_Toggle_patchVerbPropertiesAdjustedRange_Desc>
-  <GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>XML 補丁按名字判定 DLC 失效</GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>
+  <GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>XML 補丁按名字判定 DLC 失效（【4】）</GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName>
   <GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName_Desc>中文環境裡 DLC 的顯示名會被語言包翻譯（Royalty → 皇權），於是補丁裡寫 &lt;li&gt;Royalty&lt;/li&gt; 的判定會靜默失敗、整塊補丁被跳過（而且一條日誌都不寫）。本項讓英文短名與中文顯示名都能匹配。</GNH_LocalFixes_Toggle_patchModListerHasActiveModWithName_Desc>
-  <GNH_LocalFixes_Toggle_xmlExtensionsFindMod>XmlExtensions 的 FindMod 判定失效</GNH_LocalFixes_Toggle_xmlExtensionsFindMod>
+  <GNH_LocalFixes_Toggle_xmlExtensionsFindMod>XmlExtensions 的 FindMod 判定失效（【14】）</GNH_LocalFixes_Toggle_xmlExtensionsFindMod>
   <GNH_LocalFixes_Toggle_xmlExtensionsFindMod_Desc>同樣是「按名字判定 DLC」的毛病，但走的是 XmlExtensions 自己那條程式碼路徑（與本補丁包另一處修復互不重疊，兩者都要開才完整）。</GNH_LocalFixes_Toggle_xmlExtensionsFindMod_Desc>
-  <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>RaceGeneDef 型別名解析到正確的一份</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>
+  <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>RaceGeneDef 型別名解析到正確的一份（【34】）</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda>
   <GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>當 telanda 的動物遺傳模組與 ElToro Patches 同時在場時，同一個型別名會同時存在於兩個組件。本項保證解析到 telanda 的那一份；telanda 不在場時什麼都不做。</GNH_LocalFixes_Toggle_patchGenTypesPreferTelanda_Desc>
-  <GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>ElToro Patches 與 telanda 搶 defName</GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>
+  <GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>ElToro Patches 與 telanda 搶 defName（【24】）</GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes>
   <GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes_Desc>兩個模組各自定義了一整套 RaceGeneDef，而且 25 個完全重名、互相覆蓋。本項讓它們不再互搶；telanda 缺席時還會順手把無人消費的那批資料表安靜地摘掉。</GNH_LocalFixes_Toggle_patchLoadModXMLFilterTelandaGenes_Desc>
-  <GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>非樂器不許進「樂器」分組（源頭攔截）</GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>
+  <GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>非樂器不許進「樂器」分組（源頭攔截【11】）</GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument>
   <GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument_Desc>在物品登記進分組的那一刻檢查「def 說是樂器、真實型別卻不是」的物件並擋回去，於是根本不會有東西混進去。與「音樂淡出每幀報錯」那一項配套，建議一起開。</GNH_LocalFixes_Toggle_patchListerThingsRejectMislabeledInstrument_Desc>
-  <GNH_LocalFixes_Toggle_keepLeaderTitle>保護自訂的領袖頭銜</GNH_LocalFixes_Toggle_keepLeaderTitle>
+  <GNH_LocalFixes_Toggle_keepLeaderTitle>保護自訂的領袖頭銜（【15】）</GNH_LocalFixes_Toggle_keepLeaderTitle>
   <GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>開啟時：你已經定好的領袖頭銜（主席、教宗……這類）不會再被遊戲重新隨機，改模因、點「隨機符號」都不會動它。關閉後：完全恢復原版行為。想給某個文化換頭銜，把頭銜清空（或臨時關掉本開關）再點一次「隨機符號」即可。</GNH_LocalFixes_Toggle_keepLeaderTitle_Desc>
-  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore>抵消「月經體液」強制關閉 Cumpilation 設定</GNH_LocalFixes_Toggle_cumpilationSettingsRestore>
+  <GNH_LocalFixes_Toggle_cumpilationSettingsRestore>抵消「月經體液」強制關閉 Cumpilation 設定（【27】）</GNH_LocalFixes_Toggle_cumpilationSettingsRestore>
   <GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>「RJW Menstruation Fluids」每次啟動都會把 Cumpilation 的 9 個開關無條件寫成關閉，你在設定介面裡開啟也沒用（下次啟動又被按回去，而且它只改記憶體、從不寫入磁碟）。本項在它之後按你自己存過的值恢復，不寫死任何開關。</GNH_LocalFixes_Toggle_cumpilationSettingsRestore_Desc>
   <GNH_LocalFixes_Group_XmlPatches>XML 補丁（可單獨關閉）</GNH_LocalFixes_Group_XmlPatches>
   <GNH_LocalFixes_Toggle_xmlPatchGate>讓 XML 補丁也能單獨關閉</GNH_LocalFixes_Toggle_xmlPatchGate>
   <GNH_LocalFixes_Toggle_xmlPatchGate_Desc>開啟時：下面每個 XML 補丁檔案各有一個開關，關掉哪個就只有那個檔案裡的修復不生效。關閉時：所有 XML 補丁照常全部執行（等於把它們全部打開）。★ 這一項只決定「開關是否生效」，本身不修任何問題。</GNH_LocalFixes_Toggle_xmlPatchGate_Desc>
-  <GNH_LocalFixes_Toggle_xmlConfigErrorCleanup>設定自檢噪音 + 欄位級清理</GNH_LocalFixes_Toggle_xmlConfigErrorCleanup>
-  <GNH_LocalFixes_Toggle_xmlConfigErrorCleanup_Desc>一個檔案裡裝著多條彼此獨立的小修復：量子溫控設備的射擊/視線豁免、Sex_MC_UAP 標籤方括號豁免、softresin 當成裝備的問題，以及【33】LT 貞操帶/胸罩的耐久與可燃欄位、【34】兩個基因分類排序撞號、【35】OA 會計記錄裡的非法欄位、【36】三條指向不存在 def 的交叉引用。</GNH_LocalFixes_Toggle_xmlConfigErrorCleanup_Desc>
+  <GNH_LocalFixes_Toggle_xmlConfigErrorCleanup>設定自檢噪音 + 欄位級清理（【33】）</GNH_LocalFixes_Toggle_xmlConfigErrorCleanup>
+  <GNH_LocalFixes_Toggle_xmlConfigErrorCleanup_Desc>一個檔案裡裝著 7 節彼此獨立的小修復（檔案內用 A~G 編號，不用【N】—— 那會和全域修復編號撞車）：A 量子溫控設備的通行性與射擊/視線豁免、B softresin 被當成可裝備物、C Sex_MC_UAP 標籤裡的方括號（問題出在漢化，不在模組本身）、D LT 貞操帶/胸罩漏寫耐久與可燃、E 兩個基因分類的顯示優先級撞號、F OA 會計記錄寫了不存在的欄位、G 三條指向「本機不存在的 def」的交叉引用。每節都自帶「目標不存在就整段不執行」的守衛，所以哪個模組沒裝都不會刷紅字。</GNH_LocalFixes_Toggle_xmlConfigErrorCleanup_Desc>
   <GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn>把 HediffDef 當 DamageDef 引用（【32】）</GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn>
   <GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn_Desc>Fortification Industrial - Citadel 在 damageMultipliers 裡寫了 PurificationBurn，而它在 Monolyn Race 裡是 HediffDef —— 每次都報「No Verse.DamageDef named」。摘掉那條從來沒生效過的倍率條目。</GNH_LocalFixes_Toggle_xmlDamageDefPurificationBurn_Desc>
   <GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef>通用動物動畫的 Rotti 死引用（【7】）</GNH_LocalFixes_Toggle_xmlElToroAnimsRottiRef>
@@ -190,13 +190,13 @@
   <GNH_LocalFixes_Toggle_debugSpamPrefix>讀檔刷「Debug:________isCustomSite」等除錯輸出（【65】）</GNH_LocalFixes_Toggle_debugSpamPrefix>
   <GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>鼠族基因擴展（RatkinGeneExpanded）在 CustomSiteComp.PostExposeData 裡留了三條 Log.Warning(「Debug:________…」)，每次讀檔刷一次。本項給 Log.Warning 掛一個極窄的前綴過濾：只丟掉以「Debug:________」開頭的行（那 13 個字元正常日誌裡不可能出現），其餘一律放行。</GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>
 
-  <GNH_LocalFixes_Toggle_rjwOrgasmPacing>修復 RJW 高潮節奏被弄亂（【18】）</GNH_LocalFixes_Toggle_rjwOrgasmPacing>
+  <GNH_LocalFixes_Toggle_rjwOrgasmPacing>修復 RJW 高潮節奏被弄亂（【35】）</GNH_LocalFixes_Toggle_rjwOrgasmPacing>
   <GNH_LocalFixes_Toggle_rjwOrgasmPacing_Desc>性行為時高潮值要麼一直鎖 0、要麼幾秒內ྷ到 100 無限迴圈。根因是「更自然的性欲」接管了 RJW 的高潮計算，而它在「性交次數 = 0」時會給一個永遠達不到的闀值、次數刷高後又只剩 12 tick 一輪。本項在它之後重算這兩個數：它在場就按它的公式算、只修兩個 bug（下限 0→1、上限 100→10），它的精液系統完全不動；沒偵測到就按 RJW 原文重算。兩種情況都保證一輪不短於 4 秒。關掉後完全恢復原行為。</GNH_LocalFixes_Toggle_rjwOrgasmPacing_Desc>
   <GNH_LocalFixes_Toggle_rjwOrgasmProbe>RJW 高潮取證（預設關閉）</GNH_LocalFixes_Toggle_rjwOrgasmProbe>
-  <GNH_LocalFixes_Toggle_rjwOrgasmProbe_Desc>純唯讀取證：在高潮鏈路三處各掛一個取樣點，把當時算出的值原樣打進日誌 —— 不 return false、不改任何欄位。取樣點：SetupOrgasmTicks 前（need_some_sex 的真實回傳值與當時 CurLevel）、SatisfyPersonal 後（加給了誰、加到多少）、Need_Sex.NeedInterval 後（衰減值）。每種只打前 15~40 條。預設關閉，只在排查高潮節奏時打開。它與【18】RJW 高潮節奏是兩回事：那個是修復（會改寫 sex_ticks），這個是取證（唯讀）。</GNH_LocalFixes_Toggle_rjwOrgasmProbe_Desc>
+  <GNH_LocalFixes_Toggle_rjwOrgasmProbe_Desc>純唯讀取證：在高潮鏈路三處各掛一個取樣點，把當時算出的值原樣打進日誌 —— 不 return false、不改任何欄位。取樣點：SetupOrgasmTicks 前（need_some_sex 的真實回傳值與當時 CurLevel）、SatisfyPersonal 後（加給了誰、加到多少）、Need_Sex.NeedInterval 後（衰減值）。每種只打前 15~40 條。預設關閉，只在排查高潮節奏時打開。它與【35】RJW 高潮節奏是兩回事：那個是修復（會改寫 sex_ticks），這個是取證（唯讀）。</GNH_LocalFixes_Toggle_rjwOrgasmProbe_Desc>
   <GNH_LocalFixes_Toggle_parsedIntLocator>定位「Parsed X as int」的具體來源檔案（預設關閉）</GNH_LocalFixes_Toggle_parsedIntLocator>
   <GNH_LocalFixes_Toggle_parsedIntLocator_Desc>第三輪診斷還剩約 40 條 Parsed 警告沒定位。本項是純診斷：給 DefFromNodeNew 與 ParseIntPermissive 各掛一個 Prefix，後者在有小數時把「當前解析的 XML 檔」一起打出來。不改變任何載入結果；預設關閉，排查時再開。</GNH_LocalFixes_Toggle_parsedIntLocator_Desc>
 
   <GNH_LocalFixes_Toggle_allDiagnostics>全部診斷一起開（總控，預設關閉）</GNH_LocalFixes_Toggle_allDiagnostics>
-  <GNH_LocalFixes_Toggle_allDiagnostics_Desc>本組三個唯讀取證工具（詳細錯誤勘探 / 世界生成期死亡取證 / Parsed 定位）排查時常常要同時開兩三個，這個總控省那幾下。它不替代各自的開關：關掉它那三個回到各看各的，原本的勾選狀態不會被改動。</GNH_LocalFixes_Toggle_allDiagnostics_Desc>
+  <GNH_LocalFixes_Toggle_allDiagnostics_Desc>本組四個唯讀取證工具（RJW 高潮取證 / 詳細錯誤勘探 / 世界生成期死亡取證 / Parsed 定位）排查時常常要同時開兩三個，這個總控省那幾下。它不替代各自的開關：關掉它，那四個回到各看各的，原本的勾選狀態不會被改動。它自己也預設關閉 —— 不排查時不該讓日誌多出任何一行。</GNH_LocalFixes_Toggle_allDiagnostics_Desc>
 </LanguageData>

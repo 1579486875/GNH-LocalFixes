@@ -181,6 +181,8 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 只读扫描：把 ExtraWeapon2 动过的每个方法上挂着几个补丁、分别来自哪个 Harmony ID 写进日志，
+        // 同一方法上两个以上 transpiler 的标星点名。**不改任何指令、不卸别人的补丁**，最坏只是多几行日志。
         private static void Run()
         {
             List<string> lines = new List<string>();
@@ -342,6 +344,9 @@ namespace GNH.LocalFixes
         private static bool installed;
         private static int caught;
 
+        // 由开关 `ew2DeathPathRepair` 控制（`installed` 守卫）。
+        // 给 EW2 的 Notify_KilledPawn postfix 加 Finalizer：它的异常不再中断排在其后的死亡处理。
+        // 具体推导与「为什么不改 EW2 本身」见上面的类头。
         internal static void Install()
         {
             if (installed)

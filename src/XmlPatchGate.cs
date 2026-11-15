@@ -555,6 +555,9 @@ namespace GNH.LocalFixes
         /// </summary>
         private static int nmmArchState;   // 0=未判, 1=新架构, -1=旧架构
 
+        // NMM 是否已用上「新架构」（即 dll 里有 `CompProperties_NMM` 这个类型）。
+        // 结果缓存在 `nmmArchState`（0 = 未判定 / 正 = 有 / 负 = 没有），只算一次。
+        // ⚠ 这个判定只用来决定「要不要补类型」，**绝不据此删玩家已有的 comp** —— 见文件头那段事故记录。
         private static bool NmmHasNewArchitecture()
         {
             if (nmmArchState != 0)

@@ -87,6 +87,9 @@ namespace GNH.LocalFixes
         private const string StaleElementName = "rjwpe.SoundReplacementDef";
 
         [HarmonyPostfix]
+        // 原方法把「所有将要加载的 XML 文件」列好之后跑：把引用旧类型 `rjwpe.SoundReplacementDef`
+        // （作者已改名为 `VoiceReplacementDef`）的那份文件从清单里剔掉。
+        // 结果为空就直接返回；剔掉这些文件的行为等价于「它们本来就没加载成功」，不改任何有效内容。
         public static void Postfix(ref List<LoadableXmlAsset> __result)
         {
             if (__result == null || __result.Count == 0)

@@ -315,6 +315,9 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 判断某个 packageId 的模组是否在场，**比较时忽略大小写**（模组 id 的大小写在各处写法不一）。
+        // `RunningMods` 是 `IEnumerable<ModContentPack>`，只能 foreach，不能按 id 索引。
+        // packageId 为空时返回 false。
         private static bool IsModActive(string packageId)
         {
             // ⚠ RunningMods 是 IEnumerable<ModContentPack>，只能 foreach（见另一处同类注释）。

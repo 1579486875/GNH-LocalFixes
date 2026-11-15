@@ -74,6 +74,7 @@ namespace GNH.LocalFixes
         // patchedTargets 把「转译器」和「内容过滤」混在一起数，单看它会误判。
         private static bool contentFilterInstalled;
 
+        // 由开关 `logSpamFilter` 控制（`installed` 守卫）。具体拦哪几类日志见文件头。
         internal static void Install()
         {
             if (installed)

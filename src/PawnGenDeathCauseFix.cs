@@ -126,6 +126,8 @@ namespace GNH.LocalFixes
         // ------------------------------------------------------------------
         private static FieldInfo pawnField;
 
+        // 从 `Pawn_HealthTracker` 反查它所属的 Pawn（反射读私有字段 `pawn`）。
+        // tracker 为 null、或字段取不到时返回 **null** —— 调用方必须判空，不拿空值去拼日志。
         private static Pawn GetPawn(Pawn_HealthTracker tracker)
         {
             if (tracker == null)

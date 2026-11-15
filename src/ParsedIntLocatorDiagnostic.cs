@@ -82,6 +82,8 @@ namespace GNH.LocalFixes
 
         private static int logged;
 
+        // 由**诊断**开关 `parsedIntLocator` 控制（默认关闭，`installed` 守卫）。
+        // 它只给日志加行、不改变任何加载结果，具体见文件头。
         internal static void Install()
         {
             if (installed)

@@ -117,6 +117,8 @@ namespace GNH.LocalFixes
         // 这个方法每帧都会被调用，每次都打反而把日志刷满，所以只打第一条。
         private static bool announced;
 
+        // 由开关 `rjwGenesSpamQuiet` 控制（`installed` 守卫）。只拦那一句 `multipreg checks`，
+        // 该模组的报错与警告照常输出。
         internal static void Install()
         {
             if (installed)

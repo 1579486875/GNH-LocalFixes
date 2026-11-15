@@ -235,6 +235,8 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 把一份 `RitualObligation` 列表里 `ID <= 0` 的条目逐个补成唯一 ID，返回**实际补了几个**。
+        // 列表为空返回 0（0 表示「这一份不用动」，不是出错）。
         private static int FixList(List<RitualObligation> list, UniqueIDsManager uim)
         {
             if (list == null || list.Count == 0)

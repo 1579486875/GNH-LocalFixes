@@ -96,6 +96,8 @@ namespace GNH.LocalFixes
             = new System.Collections.Generic.Dictionary<string, int>();
         private const int MaxLogPerSite = 3;
 
+        // 按取样点计数并限流（每个点最多 `MaxLogPerSite` 条）。
+        // 这个补丁挂在性行为的热路径上，**自己的异常绝不能外抛** —— 抛出去会让「修节奏的东西」变成新的崩点。
         private static void NoteError(string site, Exception ex)
         {
             try
@@ -417,6 +419,8 @@ namespace GNH.LocalFixes
             return min + (float)Rng.NextDouble() * (max - min);
         }
 
+        // 反射读一个 int 字段。字段为 null、实例为 null、取到 null、类型对不上 —— 一律返回 **0**（哨兵值），
+        // 不抛。用 0 而不是 -1 是因为调用方拿它做「次数」的下限判断，0 会被当成「没记录」。
         private static int ReadInt(FieldInfo f, object inst)
         {
             try

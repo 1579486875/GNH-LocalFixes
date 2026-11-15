@@ -174,6 +174,8 @@ namespace GNH.LocalFixes
         /// <summary>「无需处理」这件事只记一次。</summary>
         private static bool notApplicableLogged;
 
+        // 由开关 `crossPromotionUnpatch` 控制。只安排一次（`installDone` 守卫）：
+        // 重复进来会重扫 AppDomain 全部程序集、重复挂 UI 钩子，还可能往 LongEventHandler 里多排一次队。
         internal static void Install()
         {
             if (installDone)
@@ -235,6 +237,9 @@ namespace GNH.LocalFixes
             installDone = neutralized || uiHookInstalled;
         }
 
+        // 在指定时机尝试摘掉 CrossPromotion 的前置处理。已成功（`neutralized`）或试太多次
+        // （`neutralizeAttempts`）就直接返回；失败只记日志、**不外抛** —— 这个时机多半在加载期，
+        // 把异常抛出去会把整轮加载打断。
         internal static void TryNeutralize(string stage)
         {
             if (neutralized)

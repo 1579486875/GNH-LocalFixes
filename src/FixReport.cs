@@ -94,6 +94,8 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 判断某个 packageId 的模组是否在场。`id` 为空返回 false；取不到模组列表时也返回 false ——
+        // 宁可少报一条「已加载」，也不误报（界面上那个「目标模组未启用」标错了比不标更糟）。
         internal static bool IsLoaded(string id)
         {
             if (id.NullOrEmpty())
@@ -318,6 +320,8 @@ namespace GNH.LocalFixes
         /// </summary>
         private static bool? anyDefLoadCacheMod;
 
+        // 有没有任何 DefLoadCache 类模组在场。结果缓存在 `anyDefLoadCacheMod`（`bool?`）里，只算一次；
+        // 取不到模组列表时按 false 处理。
         private static bool AnyDefLoadCacheModPresent()
         {
             if (anyDefLoadCacheMod.HasValue)

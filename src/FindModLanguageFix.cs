@@ -139,6 +139,8 @@ namespace GNH.LocalFixes
         // 官方 DLC 的 packageId 前缀。只有以此开头的模组才会参与「末段匹配」。
         private const string OfficialPrefix = "Ludeon.RimWorld";
 
+        // 原本匹配成功（`__result` 为 true）就一个字都不动 —— 这是本补丁的核心安全前提。
+        // 只在原本会失败时，把「中文显示名」与「英文短名」两种写法都试一遍，命中就写回 `__result`。
         private static void Postfix(string name, ref bool __result)
         {
             // 原本就匹配成功 → 一个字都不动。

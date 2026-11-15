@@ -49,6 +49,8 @@ namespace ElToro_BAddon
         protected Pawn human => (Pawn)this.job.targetA.Thing;
         protected Pawn animal => (Pawn)this.job.targetB.Thing;
 
+        // 一律返回 true，且**不做任何预约**：这个 Job 全程只是站在旁边看，不占用床/椅子/囚位。
+        // 返回 false 会让 Job 一开始就被判定失败。参数 `errorOnFailed` 因此不被使用。
         public override bool TryMakePreToilReservations(bool errorOnFailed)
         {
             return true;

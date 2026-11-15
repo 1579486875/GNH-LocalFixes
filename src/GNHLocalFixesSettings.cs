@@ -64,6 +64,8 @@ namespace GNH.LocalFixes
         // 读写
         // ======================================================================
 
+        // 确保 `toggles` 非空：`ExposeData` 读完盘之后它可能还是 null（老存档里没有这个节点）。
+        // 只补空引用，**不重置已有的值** —— 否则玩家的勾选会被悄悄清掉。
         private void EnsureDict()
         {
             if (toggles == null)

@@ -654,6 +654,8 @@ namespace GNH.LocalFixes
         // 本补丁自己出错时的去重日志 key（Log.ErrorOnce 需要）。
         private const int PatchErrorLogKey = 0x4D4D4645; // "MMFE"
 
+        // 原方法把东西登记进分组之后跑：把「类型不是乐器、却被标成乐器」的对象从「乐器」分组里摘出来。
+        // 挂在热路径上，任何意外都在这里吃掉并记一条 `ErrorOnce` —— 绝不让修 bug 的东西自己变成崩点。
         private static void Postfix(ListerThings __instance, Thing t)
         {
             // 这是挂在热路径上的补丁：任何意外都必须被吞掉，

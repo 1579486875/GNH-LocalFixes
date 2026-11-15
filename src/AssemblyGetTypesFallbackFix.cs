@@ -151,6 +151,8 @@ namespace GNH.LocalFixes
         // 给 64 是留足余量；有它兜着，这个集合就不可能无限长大。
         private const int MaxReportedReasons = 64;
 
+        // 由开关 `assemblyGetTypesFallback` 控制（`installed` 守卫，重复调用直接返回）。
+        // 这一项补的是「整份类型清单作废」这个结构性缺口，具体推导见文件头。
         internal static void Install()
         {
             if (installed)
@@ -480,6 +482,8 @@ namespace GNH.LocalFixes
             return ex.Message;
         }
 
+        // 把 `MethodBase` 拼成「类型全名.方法名()」给日志读。
+        // `DeclaringType` 为 null（动态方法 / 全局函数）时用 `?` 占位 —— 绝不因为拿不到类型就抛。
         private static string Describe(MethodBase method)
         {
             Type declaring = method.DeclaringType;

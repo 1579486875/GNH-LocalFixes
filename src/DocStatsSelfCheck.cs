@@ -55,17 +55,27 @@ namespace GNH.LocalFixes
             }
         }
 
+        // 把「About.xml 声明的修复条数」与「`FixToggles.All` 的真实条数」比一次。
+        // **只在不一致时打 WARNING** —— 所以平时日志里看不到它，别以为它没跑。
+        // 找不到 About.xml（工坊版被改名等）就直接返回，不当成缺陷报。
         private static void Run()
         {
             // 只数「修复项」：About 里那句「现在 N 条」说的是**修复**条数。
-            // 诊断工具（GroupDiagnostics）不计入 —— 它本来就不在修复清单里列出
-            // （用户 2026-11-05 明确要求），算进去会永远对不上。
+            //
+            // 【2026-11-16 订正】工具的口径 = **诊断工具整组 + 性能剖析那一项**。
+            //   原先只排除 GroupDiagnostics，于是 72 − 5 = 67；而 About / README /
+            //   编号体系一直是 **66**（有编号的 65 条 + xmlPatchGate 这个总控）。
+            //   差的正是 GroupAdvanced 里的 deepProfilerQuiet —— 它关掉的是
+            //   **游戏自带的 DeepProfiler**，不修任何模组的缺陷，
+            //   与诊断工具同属「占一个开关、不算一条修复」。
+            //   tools/docstats.py 用同一个口径，两边必须一致，否则脚本与运行时自检会互相打架。
             int actual = 0;
             if (FixToggles.All != null)
             {
                 for (int i = 0; i < FixToggles.All.Length; i++)
                 {
-                    if (FixToggles.All[i].Group != FixToggles.GroupDiagnostics)
+                    string g = FixToggles.All[i].Group;
+                    if (g != FixToggles.GroupDiagnostics && g != FixToggles.GroupAdvanced)
                     {
                         actual++;
                     }

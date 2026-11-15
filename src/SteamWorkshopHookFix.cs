@@ -211,6 +211,8 @@ namespace GNH.LocalFixes
         /// </summary>
         private static bool hookFieldsResolved;
 
+        // 由开关 `steamWorkshopHook` 控制（`installed` 守卫）。这是【6】之外的**第二道保险**：
+        // 【6】摘掉整段前置处理，本项把「取工坊信息」链路上的空值与异常再兜一层。
         internal static void Install()
         {
             if (installed)
