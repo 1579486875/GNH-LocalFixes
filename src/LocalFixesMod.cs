@@ -468,7 +468,8 @@ namespace GNH.LocalFixes
             TryInstall("debugSpamPrefix", "DebugSpamPrefixFix",
                 DebugSpamPrefixFix.Install);
             // allDiagnostics 是**总控开关**，本身不装任何补丁 ——
-            // 它的作用点在 IsFixEnabled：开着时把三个诊断抬成 true。
+            // 它的作用点在 IsFixEnabled：**四个**诊断里任意一个开着，它就显示成开；
+            // 它自己不参与安装决策（2026-11-16 起「总控开就抬子项」那条已删，见下面的订正）。
             // 这里留一个接线点，是为了让 verify-toggles 的「声明/接线」对账能过，
             // 顺便在日志里明确写一句「它是总控」，免得有人以为它漏装了。
             TryInstall("allDiagnostics", "AllDiagnosticsToggle", () =>
@@ -1374,8 +1375,9 @@ namespace GNH.LocalFixes
                 {
                     // 【2026-11-15】诊断子项**显示有效值**，与 IsFixEnabled() 完全同源。
                     // 为什么不能显示存储值：老玩家的设置文件里可能只有 allDiagnostics=true、
-                    // 四个子项根本没记录。那种情况下运行时会把它们抬成 true（IsFixEnabled 那条），
-                    // 而界面若显示存储值，就会画成「关着」—— 于是出现
+                    // 四个子项根本没记录。那种配置由 `MigrateAllDiagnosticsOnce` 在**读盘时**补写四条 true
+                    // （只补一次；写盘后键就存在了，第二次读盘不会再动），
+                    // 而界面若显示存储值，就可能画成「关着」—— 于是出现
                     // 「界面上是叉、实际却在打日志」这种最难查的不一致。
                     value = IsFixEnabled(entry.Id);
                 }
@@ -1391,9 +1393,10 @@ namespace GNH.LocalFixes
                     // 现在改成**全选语义**（这也是玩家的直觉）：
                     //   · 动总控   → 把整组诊断一起设成同一个值；
                     //   · 动某个子项 → 回头重算总控（四个全开才算开）。
-                    // 与 IsFixEnabled() 里那条「总控开时把子项抬成 true」并不冲突：
-                    // 那条是给**旧配置文件**兜底的（老存档里可能只有 allDiagnostics），
-                    // 界面这条保证新写入的值本身就自洽。
+                    // 旧配置文件（老存档里可能只有 allDiagnostics）由 `MigrateAllDiagnosticsOnce`
+                    // 兜底 —— 它只在「有总控键为 true、且四个子项键一个都没有」时补写四条 true，
+                    // 写完之后键就存在了，第二次读盘不会再触发；
+                    // 界面这条只保证**新写入的值本身就自洽**，不再依赖任何运行时推导。
                     if (entry.Id == AllDiagnosticsId)
                     {
                         for (int k = 0; k < FixToggles.All.Length; k++)
