@@ -946,13 +946,20 @@ namespace GNH.LocalFixes
                     // 与界面显示相反。
                     return !FixToggles.IsDefaultOff(toggleId);
                 }
-                // 【2026-11-13】总控：`allDiagnostics` 开着时，三个诊断一律视为开。
-                // 三个诊断各自仍可单控 —— 这里只在「总控开」时把它们抬成 true，
-                // 不改动它们自己的存档值，所以关掉总控后各自的状态原样回来。
-                if (FixToggles.IsDiagnostic(toggleId) && settings.IsOn("allDiagnostics"))
-                {
-                    return true;
-                }
+                // 【2026-11-16 订正：这里原来有一条「总控开就把子项抬成 true」的兼容逻辑】
+                //
+                // 用户报的现象是「有概率不会一起关」。根因就是这条抬升与界面判据不一致：
+                //   · 子项**显示**用的是 IsFixEnabled（含抬升）→ 总控=true 时四条全显示勾；
+                //   · 总控**自己显示**用的是 AllDiagnosticsOn(存储值) → 四条存储值可能是 false
+                //     → 总控显示成「没勾」。
+                // 于是界面上出现「总控空着、下面四条全勾」这种自相矛盾的状态；玩家点那个空着的
+                // 总控时，before=AllDiagnosticsOn=false、点完 value=true，执行的是「全选」，
+                // 而四条**本来就是勾的** —— 看起来就像点了没反应。再点一次才全关。
+                // 之所以「有概率」：取决于设置文件里是「总控 true + 子项 false」（旧配置、抬升生效）
+                // 还是「总控与子项都是 true」（新配置、抬升没作用）。
+                //
+                // 现在改成**存储值就是唯一真相**：不再抬升。旧配置由 GNHLocalFixesSettings
+                // 在 PostLoadInit 里做一次性补齐（见那边的注释），之后总控与子项永远同步。
                 return settings.IsOn(toggleId);
             }
             catch (Exception)

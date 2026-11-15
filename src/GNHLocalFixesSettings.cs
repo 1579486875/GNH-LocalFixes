@@ -124,6 +124,47 @@ namespace GNH.LocalFixes
         }
 
         /// <summary>
+        /// 一次性迁移：把「只有总控、没有子项」的旧配置补齐成「总控与四个子项都开」。
+        ///
+        /// <para>
+        /// **为什么需要**：2026-11-13 那一版的设计是「总控开着就把子项抬成 true，不改子项存档值」。
+        /// 那条抬升在 2026-11-16 被删掉了（它让界面出现「总控空着、下面四条全勾」的自相矛盾，
+        /// 表现为「点了没反应，再点一次才全关」）。删掉之后，只存过 `allDiagnostics=true` 的
+        /// 老玩家，四个子项会退回「默认关」—— 等于把他的「我要全开」这个意图丢了。
+        /// 这里补一次：检测到「总控=true 且四个子项的键都没写过」时，把它们写成 true。
+        /// </para>
+        ///
+        /// <para>
+        /// **为什么会话只跑一次**：`PostLoadInit` 每次读盘都会进，但这段只在「四个键都不存在」
+        /// 时才动手；补写之后键就存在了，第二次进来条件不成立。
+        /// </para>
+        /// </summary>
+        private void MigrateAllDiagnosticsOnce()
+        {
+            if (toggles == null || toggles.Count == 0)
+            {
+                return;
+            }
+            // 总控本身没被写过 → IsOn 走默认值（它在 IsDefaultOff 里，默认 false），不会误触发。
+            if (!toggles.ContainsKey("allDiagnostics") || !IsOn("allDiagnostics"))
+            {
+                return;
+            }
+            // 只要任何一个子项已经有记录，说明玩家动过（或已经被本迁移补过）→ 不动。
+            if (toggles.ContainsKey("ew2TranspilerProbe")
+                || toggles.ContainsKey("pawnGenDeathProbe")
+                || toggles.ContainsKey("parsedIntLocator")
+                || toggles.ContainsKey("rjwOrgasmProbe"))
+            {
+                return;
+            }
+            toggles["ew2TranspilerProbe"] = true;
+            toggles["pawnGenDeathProbe"] = true;
+            toggles["parsedIntLocator"] = true;
+            toggles["rjwOrgasmProbe"] = true;
+        }
+
+        /// <summary>
         /// 存档读写：只存玩家在这一页改过的开关状态。读的时候缺字段按默认值补，
         /// 所以老存档升级上来不会丢设置，新增开关也不会让旧存档报错。
         /// </summary>
@@ -145,6 +186,7 @@ namespace GNH.LocalFixes
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
             {
                 EnsureDict();
+                MigrateAllDiagnosticsOnce();
             }
         }
     }
