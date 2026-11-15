@@ -127,9 +127,14 @@ namespace GNH.LocalFixes
             // 「allDiagnostics 自己不在这个集合里」的注释直接矛盾。
             // 后果不是自引用死循环，而是一条更隐蔽的路径：
             //   IsDefaultOff 里没有 allDiagnostics → settings.IsOn("allDiagnostics") 默认 true
-            //   → IsFixEnabled() 里那条「总控开就抬成 true」对三个诊断全部命中
+            //   → 当时那条「总控开就抬成 true」对三个诊断全部命中
             //   → **三个诊断在出厂状态下全部生效**，与 About/界面写的「默认关闭」相反。
             // 本轮实机日志里在跑就是它：设置文件里根本没有 parsedIntLocator 这一项。
+            //
+            // 【2026-11-16 更新】那条「抬升」已经在 LocalFixesMod.IsFixEnabled 里**删掉了**
+            // （它导致界面「总控空着、下面四条全勾」，表现为「点了没反应，再点一次才全关」）。
+            // 现在 `allDiagnostics` 仍要留在 IsDefaultOff 里 —— 否则它的出厂默认会变成 true，
+            // 而界面/About 都写着「默认关闭」。这条约束与抬升是否存无关，独立成立。
         }
 
         internal static bool IsDefaultOff(string id)
@@ -145,8 +150,10 @@ namespace GNH.LocalFixes
                 // 不改变任何加载结果，没有排查需求时不该打扰任何人。
                 || string.Equals(id, "parsedIntLocator", StringComparison.Ordinal)
                 // 【2026-11-13 订正】总控自己也要默认关。
-                // 少了这一条，`IsFixEnabled` 里那条「总控开 → 三个诊断视为开」
+                // 少了这一条，当时那条「总控开 → 三个诊断视为开」的抬升
                 // 会在**出厂默认**下全部命中 —— 三个诊断全开，而界面写着「默认关闭」。
+                // 【2026-11-16】抬升已删，但这条**仍然必须保留**：
+                // 总控的出厂默认值就是它的 `!IsDefaultOff`，删了它总控会默认亮起来。
                 || string.Equals(id, "allDiagnostics", StringComparison.Ordinal);
         }
 
