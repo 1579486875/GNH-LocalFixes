@@ -115,79 +115,79 @@
   <GNH_LocalFixes_Toggle_xmlRjw17SraeLibField_Desc>雪兔服裝擴展（工坊 3668025052）的早期版本在 1.6\Assemblies 裡放了兩個程式集名都是 SRAELib 1.0.0.0 的 dll —— SRAELib.dll（19,456 位元組，有 targetNullifyingHediffs）與 SRAELib_old.dll（18,944 位元組，沒有），遊戲載入到舊的那個，於是 ThoughtDef_HediffAttraction 報「doesn't correspond to any field」。作者 2026-11-05 的更新已經刪掉那個舊 dll、並補上了 1.7 目錄，欄位現在是存在的 —— 所以本項會自動讓路、什麼都不做，絕不會去刪作者的功能。只有當玩家仍在使用舊版 dll（欄位確實缺失）時，本項才會執行刪除；1.6 下永不執行，因為那裡該欄位本來就有效。</GNH_LocalFixes_Toggle_xmlRjw17SraeLibField_Desc>
   <GNH_LocalFixes_Toggle_xmlRjw17HediffVisible>HediffStage.visible 欄位不存在（【37】）</GNH_LocalFixes_Toggle_xmlRjw17HediffVisible>
   <GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>某些模組給 HediffStage 寫了 visible 欄位，而 1.6 與 1.7 的 Verse.HediffStage 都沒有這個欄位（只有 becomeVisible）→ 每次載入刷「doesn't correspond to any field in type HediffStage」。刪掉不改變任何行為，只消日誌。兩個版本都成立，無需版本守衛。</GNH_LocalFixes_Toggle_xmlRjw17HediffVisible_Desc>
-  <GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup>裸體評價 1.7 重構後的過期 comp（【44】）</GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup>
+  <GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup>裸體評價 1.7 重構後的過期 comp（【43】）</GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup>
   <GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup_Desc>「[OWL] NMM Combined Edition」的 1.7 patch 仍在給 BasePawn 追加 10 個舊架構的 CompProperties_*（BugsTracker / CoverBody / … / Fixation），而 1.7 的 dll 裡那 10 個型別一個都不存在 —— 作者已重構成單一 CompProperties_NMM。BasePawn 是 Human、全部動物、全部機械族的公共基底類別，而 comps 是整表解析：任意一項解析失敗就整隻 def 被丟棄，實測讓 344 個 ThingDef 消失（含 Human 本人），並連帶 8,304 條 cross-reference 報錯、主選單每秒 1 次空引用。本項刪掉那 10 個死引用、補上正確的型別。兩處都帶 success=Always：作者日後自己修好了會安靜空轉。★ 不改那個模組的任何原始檔案。</GNH_LocalFixes_Toggle_xmlNmmStaleCompCleanup_Desc>
-  <GNH_LocalFixes_Toggle_xmlHotwifeInverse>淫妻與公牛：10 個關係 def 寫了不存在的欄位（【46】）</GNH_LocalFixes_Toggle_xmlHotwifeInverse>
+  <GNH_LocalFixes_Toggle_xmlHotwifeInverse>淫妻與公牛：10 個關係 def 寫了不存在的欄位（【45】）</GNH_LocalFixes_Toggle_xmlHotwifeInverse>
   <GNH_LocalFixes_Toggle_xmlHotwifeInverse_Desc>「淫妻與公牛」的 10 個 PawnRelationDef 都寫了一行 &lt;inverse&gt;…&lt;/inverse&gt;，而 RimWorld 的 PawnRelationDef **從來沒有這個欄位** —— 1.6 與 1.7 兩份程式集都是 21 個欄位、都沒有它，原版資料 0 處引用。關係反向邏輯走 PawnRelationWorker、不讀 def 上的欄位，所以刪掉這 10 個節點不改變任何遊戲行為，只是不再刷 10 條紅字。</GNH_LocalFixes_Toggle_xmlHotwifeInverse_Desc>
-  <GNH_LocalFixes_Toggle_xmlHotwifeJobDriver>淫妻與公牛：一個 JobDef 指向不存在的類（【47】）</GNH_LocalFixes_Toggle_xmlHotwifeJobDriver>
+  <GNH_LocalFixes_Toggle_xmlHotwifeJobDriver>淫妻與公牛：一個 JobDef 指向不存在的類（【46】）</GNH_LocalFixes_Toggle_xmlHotwifeJobDriver>
   <GNH_LocalFixes_Toggle_xmlHotwifeJobDriver_Desc>該模組的 FWQ_FamilyCheckIn 把 driverClass 寫成了一個不存在的類，而它的 dll 裡真實存在的 JobDriver 只有一個。本項把它改指向那個真實類：def 保留、存檔安全、日誌乾淨。（不刪 def 是因為存檔裡若有小人在跑這個 job，刪了會讓 Scribe 找不到定義。）</GNH_LocalFixes_Toggle_xmlHotwifeJobDriver_Desc>
-  <GNH_LocalFixes_Toggle_xmlRjwSkillSexOrder>RJW 的 Sex 技能缺排序擴展（【48】）</GNH_LocalFixes_Toggle_xmlRjwSkillSexOrder>
+  <GNH_LocalFixes_Toggle_xmlRjwSkillSexOrder>RJW 的 Sex 技能缺排序擴展（【47】）</GNH_LocalFixes_Toggle_xmlRjwSkillSexOrder>
   <GNH_LocalFixes_Toggle_xmlRjwSkillSexOrder_Desc>「角色編輯器 - 技能排序修復」要求每個 SkillDef 都帶 SkillOrderExtension，否則那條技能根本不進它的排序表、編輯器裡會錯位。RJW 的 Sex 技能沒有這個擴展，於是每次啟動刷一條紅字。本項按它自己的格式補一條 order=5（原版技能是 120 到 10 每檔 10，取 5 表示排在所有原版技能之後）。★ 目標修復模組不在場、RJW 沒裝、或擴展已存在，本項都不動作。</GNH_LocalFixes_Toggle_xmlRjwSkillSexOrder_Desc>
-  <GNH_LocalFixes_Toggle_harmonyPatchClassIsolate>單個補丁失敗不再連累整批（【45】）</GNH_LocalFixes_Toggle_harmonyPatchClassIsolate>
+  <GNH_LocalFixes_Toggle_harmonyPatchClassIsolate>單個補丁失敗不再連累整批（【44】）</GNH_LocalFixes_Toggle_harmonyPatchClassIsolate>
   <GNH_LocalFixes_Toggle_harmonyPatchClassIsolate_Desc>Harmony 批次安裝補丁時沒有逐個兜底：只要有一個補丁類別找不到目標方法，整批安裝立刻中斷，排在後面的全部不生效。而模組通常把安裝寫在靜態建構子裡，於是「一個方法改了簽名」會變成「整個模組幾十個功能集體消失」，日誌裡卻只有一條紅字。本項在 Harmony 的錯誤邊界上加一層攔截：壞掉的補丁類別仍然不會生效，但會被單獨點名報出來，同批其餘補丁照常安裝。</GNH_LocalFixes_Toggle_harmonyPatchClassIsolate_Desc>
   <GNH_LocalFixes_Toggle_logSpamFilter>兩處偵錯輸出刷屏（【39】）</GNH_LocalFixes_Toggle_logSpamFilter>
   <GNH_LocalFixes_Toggle_logSpamFilter_Desc>WeaponStats（工坊 974066449）在 Turret.cs:74 每開一次武器統計面板就 Log.Message 一遍砲塔 defName（實測 1 小時 2,737 條），另有固定字串「Update weapons list」；RimImmortal.Core（工坊 3296476341）有個前綴方法每次都寫一行「…::Start」（實測 190 條）。兩處都是作者留在正式版裡的偵錯輸出，不是報錯。本項在 Verse.Log.Message 上按三個收緊的判據攔下它們，其餘日誌一律照常輸出。</GNH_LocalFixes_Toggle_logSpamFilter_Desc>
-  <GNH_LocalFixes_Toggle_deepProfilerQuiet>DeepProfiler 拖日誌與記憶體（【40】，預設關閉）</GNH_LocalFixes_Toggle_deepProfilerQuiet>
+  <GNH_LocalFixes_Toggle_deepProfilerQuiet>DeepProfiler 拖日誌與記憶體（預設關閉）</GNH_LocalFixes_Toggle_deepProfilerQuiet>
   <GNH_LocalFixes_Toggle_deepProfilerQuiet_Desc>Verse.DeepProfiler 的開關條件是 enable 与 logVerbose 两个条件同时为真：enabled 預設 true，所以只要玩家開著「詳細日誌」，它每次 LongEvent 都印整棵呼叫樹 + Hotspot analysis（實測一局 14.5 小時：7,105 次呼叫樹、8,001 次 hotspot，8 秒寫 54,094 行），內部呼叫清單還持續累積物件（11.5h 9.2 GB → 14.5h 15.7 GB）。本項只把 enabled 設 false：logVerbose 保留、其它日誌一條不少；代價是遊戲內效能剖析失效（需要時關掉本項重開即可）。</GNH_LocalFixes_Toggle_deepProfilerQuiet_Desc>
-  <GNH_LocalFixes_Toggle_fixPawnScribeNull>讀檔刷上百條 /fixPawn 報錯（【41】）</GNH_LocalFixes_Toggle_fixPawnScribeNull>
+  <GNH_LocalFixes_Toggle_fixPawnScribeNull>讀檔刷上百條 /fixPawn 報錯（【40】）</GNH_LocalFixes_Toggle_fixPawnScribeNull>
   <GNH_LocalFixes_Toggle_fixPawnScribeNull_Desc>「裸體評價」的 Fixation 組件無條件執行 Scribe_References.Look(ref fixPawn, "fixPawn")，而這些存檔裡的 fixPawn 在 1.6→1.7 遷移後解析不出來，於是登記了一個 null loadID —— 每次讀檔固定刷「register the same load ID twice」與「never added during LoadingVars」各 66 條（涉及 100 個 Pawn）。本項只在「label 是 fixPawn 且引用本身是 null」時跳過登記；有效引用與存檔格式都不動。</GNH_LocalFixes_Toggle_fixPawnScribeNull_Desc>
-    <GNH_LocalFixes_Toggle_assignableCompDupeGuard>同一台建築掛了兩個「可分配」組件（【42】）</GNH_LocalFixes_Toggle_assignableCompDupeGuard>
+    <GNH_LocalFixes_Toggle_assignableCompDupeGuard>同一台建築掛了兩個「可分配」組件（【41】）</GNH_LocalFixes_Toggle_assignableCompDupeGuard>
     <GNH_LocalFixes_Toggle_assignableCompDupeGuard_Desc>有些存檔裡的床 / 座椅身上被塞進了兩個 CompAssignableToPawn 系組件，兩者用同一個父物件登記 /assignedPawns，鍵完全相同 —— 讀檔時固定刷「Tried to register the same list of load IDs twice」與「Could not get load IDs list … never added during LoadingVars」各一半（實測 32 條/局，涉及 2 台）。查存檔可見該 Thing 區塊裡 assignedPawns 與 uninstalledAssignedPawns 各寫了兩遍，中間夾著 quality。遊戲自己遇到這種情況也是「用第一份、丟第二份」，本項只是把那件既定的事提前做完、不再報紅字；不動任何物件，不改存檔格式，單組件的正常建築完全不受影響。</GNH_LocalFixes_Toggle_assignableCompDupeGuard_Desc>
 
     <GNH_LocalFixes_Group_Diagnostics>診斷工具（預設關閉）</GNH_LocalFixes_Group_Diagnostics>
     <GNH_LocalFixes_Toggle_ew2TranspilerProbe>詳細錯誤勘探（預設關閉）</GNH_LocalFixes_Toggle_ew2TranspilerProbe>
     <GNH_LocalFixes_Toggle_ew2TranspilerProbe_Desc>專門給「遊戲一閃就沒了、日誌裡一個字都沒有」這類疑難用的唯讀勘探工具。RimWorld 裡很多模組是用 transpiler 直接改遊戲方法內部指令的，ExtraWeapon2 就是其中之一，而它決定「改哪一處」的辦法是數某個呼叫第幾次出現。只要前面還有別的模組也改過同一個方法，這個「第幾次」就會數偏 —— 補丁回報安裝成功，實際卻改錯位置，表現就是武器行為不正常，或者一點開火遊戲瞬間消失、連一行報錯都留不下。開啟本項後重開遊戲，它會在進到介面時掃一遍 ExtraWeapon2 動過的那幾個方法，把每個方法上掛著幾個補丁、分別來自哪個 Harmony ID 全寫進日誌；同一方法上有兩個以上 transpiler 就標星點名。它唯讀：不改任何指令、不卸載別人的補丁，最壞只是多幾行日誌。用法：開本項 → 重啟遊戲 → 日誌裡搜 [GNH LocalFixes] 看那幾行。沒有排查需求時建議一直關著。</GNH_LocalFixes_Toggle_ew2TranspilerProbe_Desc>
-    <GNH_LocalFixes_Toggle_ew2DeathPathRepair>ExtraWeapon2 額外武器擊殺回調兜底（【43】）</GNH_LocalFixes_Toggle_ew2DeathPathRepair>
+    <GNH_LocalFixes_Toggle_ew2DeathPathRepair>ExtraWeapon2 額外武器擊殺回調兜底（【42】）</GNH_LocalFixes_Toggle_ew2DeathPathRepair>
     <GNH_LocalFixes_Toggle_ew2DeathPathRepair_Desc>ExtraWeapon2 在 Pawn_EquipmentTracker.Notify_KilledPawn 上掛了一個 postfix，逐一走訪額外武器、對每一把呼叫原版的 Notify_KilledPawn。它自己那層走訪已經做了防護（按索引走、每一項都判空），真正的風險落在被呼叫的那個原版方法上：它會讀 pawn.Ideo、再走訪這把武器的所有 comp —— 任何一個第三方 comp 拋例外，都會中斷整條 postfix 鏈，排在它後面的死亡處理（掉裝備、屍體生成、紀錄與關係更新）就全部跳過，一次死亡會停在半截。本項給那層 postfix 加一層 Finalizer：攔下、留日誌、吞掉。★ 不改 ExtraWeapon2 的任何邏輯；前 3 次印完整堆疊，之後只計數，不會刷屏。</GNH_LocalFixes_Toggle_ew2DeathPathRepair_Desc>
-  <GNH_LocalFixes_Toggle_xmlCumworksBadCompRef>無限精液工坊：兩個儲液桶寫了不存在的組件（【49】）</GNH_LocalFixes_Toggle_xmlCumworksBadCompRef>
+  <GNH_LocalFixes_Toggle_xmlCumworksBadCompRef>無限精液工坊：兩個儲液桶寫了不存在的組件（【48】）</GNH_LocalFixes_Toggle_xmlCumworksBadCompRef>
   <GNH_LocalFixes_Toggle_xmlCumworksBadCompRef_Desc>它的兩個儲液桶各寫了一行 Class="RJW_Menstruation_Fluids.CompProperties_CumGatherer"，而那個型別在 ELT 月經體液模組的三個 dll 裡都不存在。MayRequire 只查模組是否啟用、不查型別是否存在，所以這兩行會一路走到解析階段才爆；comps 是整表解析，一失效連宿主定義一起丟，這兩個桶其實根本不存在。本項刪掉那兩行，宿主與其它組件都不動。★ 按型別存在性讓路。</GNH_LocalFixes_Toggle_xmlCumworksBadCompRef_Desc>
-  <GNH_LocalFixes_Toggle_rjwPawnGenPostfixNull>RJW 生成失敗被放大成世界生成崩潰（【50】）</GNH_LocalFixes_Toggle_rjwPawnGenPostfixNull>
+  <GNH_LocalFixes_Toggle_rjwPawnGenPostfixNull>RJW 生成失敗被放大成世界生成崩潰（【49】）</GNH_LocalFixes_Toggle_rjwPawnGenPostfixNull>
   <GNH_LocalFixes_Toggle_rjwPawnGenPostfixNull_Desc>RJW 給「生成小人」掛的那段後處理沒有判空：一旦上游重試了上百次之後只能返回空（例：某個派系的 BOSS 基因組合必死），它還是會對空物件做後處理，當場拋空引用。這一拋不要緊，它位於世界生成的派系步驟裡，於是「某個領袖生不出來」被放大成「WorldGenStep_Factions 失敗」——輕則該派系沒有領袖，重則新檔建不出來。本項在那個後處理的最前面加一句「結果為空就直接返回」，再用一層只認「結果為空 + 空引用」的兜底把漏網的情形吞掉並記一條日誌。★ 結果非空時完全走原邏輯，一個位元組都不改；★ 它只管「不要讓一個生成失敗拖垮整步」，不負責修那個本身生不出小人的派系。</GNH_LocalFixes_Toggle_rjwPawnGenPostfixNull_Desc>
-  <GNH_LocalFixes_Toggle_mechanitorBandwidthGizmo>機械師頻寬面板每幀刷屏（【51】）</GNH_LocalFixes_Toggle_mechanitorBandwidthGizmo>
+  <GNH_LocalFixes_Toggle_mechanitorBandwidthGizmo>機械師頻寬面板每幀刷屏（【50】）</GNH_LocalFixes_Toggle_mechanitorBandwidthGizmo>
   <GNH_LocalFixes_Toggle_mechanitorBandwidthGizmo_Desc>選中單個機械師小人時，右上角那個「頻寬」小面板會擺一排小方塊表示已用頻寬。它的排版迴圈有個除零隱患：行數一旦加過頭，格子邊長被算成 0，隨後「每行幾個」變成無窮大，迴圈條件永遠成立——跑滿 1000 次後報一條錯、整個面板不畫，而且每幀都重來一次。真正要緊的是後半句：Verse.Log 累計 10,000 條之後會把自己整個關掉，於是從那以後別的模組報什麼錯你都看不到。實測一次 4 小時的工作階段被這條刷了 57,137 條。本項給「要擺幾個格子」加一個上限，讓迴圈一定能收斂；再把那條每幀重複的報錯降級成「整局只報一次」兜底。★ 頻寬真超過上限時，面板只畫前一部分方塊——那麼小的區域本來就分辨不出來；★ 官方哪天自己修好了，本項會自動讓路、什麼都不做。</GNH_LocalFixes_Toggle_mechanitorBandwidthGizmo_Desc>
-  <GNH_LocalFixes_Toggle_xmlMiliraApparelPaths>米莉拉服裝貼圖表裡有重複條目（【52】）</GNH_LocalFixes_Toggle_xmlMiliraApparelPaths>
+  <GNH_LocalFixes_Toggle_xmlMiliraApparelPaths>米莉拉服裝貼圖表裡有重複條目（【51】）</GNH_LocalFixes_Toggle_xmlMiliraApparelPaths>
   <GNH_LocalFixes_Toggle_xmlMiliraApparelPaths_Desc>米莉拉的「穿這件衣服就換成自家貼圖」表裡，BodyStrap 與 TribalA 這兩條各出現了兩次。遊戲往字典裡塞第二條時會拋重複鍵異常，被 catch 吞掉——表面上只是兩條紅字，實際後果是這張表的內容與作者預期不一致，該種族整套服裝貼圖替換會退回人類預設貼圖。本項只在「真的重複了」的時候動手：先刪掉該鍵的全部條目，再加回恰好一條。★ 正常只有一條時 xpath 不命中，整段不執行，一個位元組都不改——上游修好後本項自動讓路。★ 本模組必須排在外星人SA紋理適配之後才有意義，About 裡已寫 loadAfter。</GNH_LocalFixes_Toggle_xmlMiliraApparelPaths_Desc>
-  <GNH_LocalFixes_Toggle_xiuxianCopyBookGuard>邊緣仙路配方補丁在 DefOf 就緒前必崩（【53】）</GNH_LocalFixes_Toggle_xiuxianCopyBookGuard>
+  <GNH_LocalFixes_Toggle_xiuxianCopyBookGuard>邊緣仙路配方補丁在 DefOf 就緒前必崩（【52】）</GNH_LocalFixes_Toggle_xiuxianCopyBookGuard>
   <GNH_LocalFixes_Toggle_xiuxianCopyBookGuard_Desc>邊緣仙路（RimImmortal-Core）在「配方生成結果」那一步掛了一個 postfix，裡面用 try/catch 包住自己的邏輯，但收尾的 finally 裡又去解引用同一個 DefOf 欄位 ——而 DefOf 要等所有 Def 載入完才注入，那時它還是 null。結果：catch 把第一處空引用吞了、只打一行日誌，緊接著 finally 又炸一次，這次沒人接，異常逃出整個流程，把 play data 載入打斷，遊戲隨後會重置模組設定並放棄載入。本項在它前面加一道守衛：那個 DefOf 欄位還是 null 時，整個 postfix 跳過。★ 欄位就緒之後自動放行，不是永久停用；★ 1.7 側通常根本不會觸發（那邊時序不同），這正是預期。</GNH_LocalFixes_Toggle_xiuxianCopyBookGuard_Desc>
 
   <GNH_LocalFixes_Toggle_pawnGenDeathProbe>世界生成期死亡取證（預設關閉）</GNH_LocalFixes_Toggle_pawnGenDeathProbe>
   <GNH_LocalFixes_Toggle_pawnGenDeathProbe_Desc>給「某個派系的領袖怎麼都生不出來」這類疑難用的唯讀勘探工具。開啟後，當引擎準備判定某隻小人死亡、而這隻小人正在被生成時，會把牠的種族 / 派系 / 身上每條 Hediff / 五項死亡判據的逐條結果 / 全部致命產能的實際數值寫進日誌。唯讀，不改任何行為，每個行程最多 24 條。</GNH_LocalFixes_Toggle_pawnGenDeathProbe_Desc>
-  <GNH_LocalFixes_Toggle_pawnGenRestorePartGuard>世界生成期裝義體被誤判死亡（【54】）</GNH_LocalFixes_Toggle_pawnGenRestorePartGuard>
+  <GNH_LocalFixes_Toggle_pawnGenRestorePartGuard>世界生成期裝義體被誤判死亡（【53】）</GNH_LocalFixes_Toggle_pawnGenRestorePartGuard>
   <GNH_LocalFixes_Toggle_pawnGenRestorePartGuard_Desc>世界生成時先給派系成員裝義體，原版裝義體的程式碼裡有一句「恢復這個部位」，它預設會順手做一次死亡判定 —— 可装配還沒做完，於是小人當場被判死，派系領袖連生 120 次全敗、累計 720 條紅字。本項只在「小人正在生成」時關掉那次多餘的判定。依據是引擎作者自己在「裝假體」路徑上就傳了 checkStateChange: false。★ 手術台 / 戰鬥 / 日常治療全部不受影響；生成結束後引擎自己的校驗照常生效。</GNH_LocalFixes_Toggle_pawnGenRestorePartGuard_Desc>
-  <GNH_LocalFixes_Toggle_twilightGameComponentRebuild>貞操科技的核心組件從來沒被建立（【55】）</GNH_LocalFixes_Toggle_twilightGameComponentRebuild>
+  <GNH_LocalFixes_Toggle_twilightGameComponentRebuild>貞操科技的核心組件從來沒被建立（【54】）</GNH_LocalFixes_Toggle_twilightGameComponentRebuild>
   <GNH_LocalFixes_Toggle_twilightGameComponentRebuild_Desc>「緹瓦萊特貞操科技」的核心組件把建構子寫成了無參形式，而引擎按「傳一個 Game 物件」的方式建立它，參數對不上 → 建立失敗 → 引擎 catch 掉只打一行紅字。結果這套系統的所有功能都不工作。本項在引擎建完組件之後用無參建構把它補進去，並做幂等檢查。★ 作者的邏輯一行不改、全部照跑，唯一變化是「它終於會跑了」；★ 模組沒裝就跳過；作者改對後本項自動讓位。</GNH_LocalFixes_Toggle_twilightGameComponentRebuild_Desc>
 
-  <GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>帝國頭銜生成時的集合改動異常（【56】）</GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>
+  <GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>帝國頭銜生成時的集合改動異常（【55】）</GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>
   <GNH_LocalFixes_Toggle_rqpFactionLeaderGuard_Desc>「Real Faction Guest」給派系領袖校正背景故事時，會在走訪某個集合的過程中改動它，拋出「Collection was modified」。它自己的上層有 try/catch，所以遊戲不會中斷；真正的影響是那一次背景修正沒做成，日誌裡多一段整棧紅字。本項只把這一種異常單獨摘掉並合併成一條提示。★ 這是「讓日誌說實話」，不是「把功能修好了」；★ 別的異常原樣上拋。</GNH_LocalFixes_Toggle_rqpFactionLeaderGuard_Desc>
 
-  <GNH_LocalFixes_Toggle_factionOfPlayerNoise>世界生成期刷 720 條「找不到玩家派系」（【57】）</GNH_LocalFixes_Toggle_factionOfPlayerNoise>
+  <GNH_LocalFixes_Toggle_factionOfPlayerNoise>世界生成期刷 720 條「找不到玩家派系」（【56】）</GNH_LocalFixes_Toggle_factionOfPlayerNoise>
   <GNH_LocalFixes_Toggle_factionOfPlayerNoise_Desc>每次世界生成都會刷 240 條「Could not find player faction.」，三次就是 720 條。真正打出這句話的是引擎自己：Faction.OfPlayer 的 getter 在找不到玩家派系時會打一條 Error，而世界生成時玩家派系本來就還沒建立 —— 這是正常的中間狀態。本項在「還沒進地圖且確實沒有玩家派系」時改走引擎自帶的靜默版本。★ 傳回值與原先一模一樣（都是 null），不改任何模組；★ 進遊戲後真找不到玩家派系，原版照常報紅字。</GNH_LocalFixes_Toggle_factionOfPlayerNoise_Desc>
 
-  <GNH_LocalFixes_Toggle_xmlVoeSushiMigration>餐廳前哨還在產已被合併掉的 8 種壽司（【58】）</GNH_LocalFixes_Toggle_xmlVoeSushiMigration>
+  <GNH_LocalFixes_Toggle_xmlVoeSushiMigration>餐廳前哨還在產已被合併掉的 8 種壽司（【57】）</GNH_LocalFixes_Toggle_xmlVoeSushiMigration>
   <GNH_LocalFixes_Toggle_xmlVoeSushiMigration_Desc>VCE - Sushi 在 1.6/1.7 把 8 種壽司合併成 4 種、舊名全刪，官方的遷移定義只管存檔引用，管不到模組 XML 之間的引用。VOE 附加前哨的餐廳子模組正好寫死了那 8 個舊名，於是載入期連打 8 條錯誤、該前哨的壽司產出也失效。本項按上游的合併關係把 8 條換成 4 條，數值照抄原檔案。★ 品種從 8 種變 4 種是上游自己的合併，產出數值未動；★ 上游修好後本項自動讓位。</GNH_LocalFixes_Toggle_xmlVoeSushiMigration_Desc>
 
-  <GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath>涅瓦蓮星隕信標貼圖路徑少一層目錄（【59】）</GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath>
+  <GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath>涅瓦蓮星隕信標貼圖路徑少一層目錄（【58】）</GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath>
   <GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath_Desc>附加包給「星隕信標」寫的貼圖路徑少了 StarfallBeacon 這一層子目錄，圖其實就在同族主包裡。於是載入期報兩條「找不到貼圖」，遊戲裡顯示成紫白方塊。本項只把路徑改成真正存在的那一條，視覺與作者原意完全一致。★ 「翠綠祝福」的 lotus 同樣是少一層目錄，已一併修好；兩條都只是把路徑補全，用的是本體自己那份原件。</GNH_LocalFixes_Toggle_xmlNivarianStarfallBeaconTexPath_Desc>
 
-  <GNH_LocalFixes_Toggle_xmlAncientThreatIntField>一個整數欄位被寫成了小數，每次載入刷 38 條（【60】）</GNH_LocalFixes_Toggle_xmlAncientThreatIntField>
+  <GNH_LocalFixes_Toggle_xmlAncientThreatIntField>一個整數欄位被寫成了小數，每次載入刷 38 條（【59】）</GNH_LocalFixes_Toggle_xmlAncientThreatIntField>
   <GNH_LocalFixes_Toggle_xmlAncientThreatIntField_Desc>「Ancient amorphous threat」往所有敘事者的父類裡加了個組件，其中「第幾天觸發」寫成了 0.5，而它在引擎裡是整數欄位 —— 引擎會截斷成 0 並打一條「Parsed 0.5 as int.」，因為加在父類上，每個敘事者各報一次，於是每次載入 38 條。本項把值寫成顯式整數 0。★ 行為完全不變（原來就被截斷成 0）；★ 沒改成 1 是因為那會延後觸發時間，屬於改作者數值設計。</GNH_LocalFixes_Toggle_xmlAncientThreatIntField_Desc>
 
-  <GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard>世界生成期被「Just A Flesh Wound」判死（【61】）</GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard>
+  <GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard>世界生成期被「Just A Flesh Wound」判死（【60】）</GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard>
   <GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard_Desc>「[Kit] Just A Flesh Wound」把每條 MissingBodyPart 按部位最大生命值折算成傷害、四肢還有倍率，從一份「韌性」裡扣、扣光就判死。而裝義體本身就會產生一批 MissingBodyPart —— 於是 UFC 那種全身義體化打手在世界生成時一次裝 4 件義體，36 個部位變缺失，韌性扣光、當場判死，領袖連生 120 次全敗。本項只在「小人正在被生成」時跳過它那一次重算；遊戲內真實受傷與斷肢時邏輯一點不改。</GNH_LocalFixes_Toggle_jafwLethalDamageGenGuard_Desc>
 
-  <GNH_LocalFixes_Toggle_xmlSiloTubeIntField>發射井的管子尺寸與開蓋動畫被截斷成 0（【64】）</GNH_LocalFixes_Toggle_xmlSiloTubeIntField>
+  <GNH_LocalFixes_Toggle_xmlSiloTubeIntField>發射井的管子尺寸與開蓋動畫被截斷成 0（【61】）</GNH_LocalFixes_Toggle_xmlSiloTubeIntField>
   <GNH_LocalFixes_Toggle_xmlSiloTubeIntField_Desc>「邊緣彈道導彈:【地球科技】」把 141 個值寫成了小數，而它們在 IRBM.SiloTube 裡都是整數：size 有 0.1/0.2/0.3 共 70 處，coverMovementTicks 有 0.5/0.1 共 71 處。引擎不報錯，悄悄截斷成 0 再各打一條「Parsed 0.5 as int.」。後果不是噪音：size 的預設是 1，變 0 後井蓋可能不顯示；coverMovementTicks 的預設是 60（1 秒），變 0 後開蓋沒動畫。本項按作者意圖折算成整數：size 取 1，coverMovementTicks 0.5 秒→30、0.1 秒→6。</GNH_LocalFixes_Toggle_xmlSiloTubeIntField_Desc>
 
-  <GNH_LocalFixes_Toggle_snowRabbitGraphicThread>雪兔的分層建築上層顯示成紫塊（【65】）</GNH_LocalFixes_Toggle_snowRabbitGraphicThread>
+  <GNH_LocalFixes_Toggle_snowRabbitGraphicThread>雪兔的分層建築上層顯示成紫塊（【62】）</GNH_LocalFixes_Toggle_snowRabbitGraphicThread>
   <GNH_LocalFixes_Toggle_snowRabbitGraphicThread_Desc>「SnowRabbit」把貼圖載入放在了 Comp_LayeredBuildingRenderer.Initialize() 裡，而讀檔時 Initialize 跑在 ScribeLoader 的非同步執行緒上 —— Unity 貼圖必須在主執行緒載入，於是必然失敗，那棟建築的上層從此是紫塊。本項把載入挪到第一次 PostDraw（一定在主執行緒）：非主執行緒跳過、主執行緒補一次。作者的程式碼一行沒改。</GNH_LocalFixes_Toggle_snowRabbitGraphicThread_Desc>
 
-  <GNH_LocalFixes_Toggle_ritualObligationId>讀檔時「儀式義務」的 ID 撞車（【66】）</GNH_LocalFixes_Toggle_ritualObligationId>
+  <GNH_LocalFixes_Toggle_ritualObligationId>讀檔時「儀式義務」的 ID 撞車（【63】）</GNH_LocalFixes_Toggle_ritualObligationId>
   <GNH_LocalFixes_Toggle_ritualObligationId_Desc>讀檔刷「Cannot register RitualObligation, (id=RitualObligation_0)」——「_0」說明那個對象的 load id 是 0。反編譯確認 RitualObligation 的 ID 預設就是 0，只有帶參數的建構子才分配 ID，無參數建構子是空的。本項在註冊前掃一遍所有 Ideo 的所有儀式義務，把 ID ≤ 0 的補成唯一 ID。後果是「儀式義務列表裡可能有一條被頂掉」，補 ID 不改變任何遊戲邏輯。</GNH_LocalFixes_Toggle_ritualObligationId_Desc>
 
-  <GNH_LocalFixes_Toggle_notifyNewLinkNoise>讀檔時「同一條設施連結被重複登記」的告警（【67】）</GNH_LocalFixes_Toggle_notifyNewLinkNoise>
+  <GNH_LocalFixes_Toggle_notifyNewLinkNoise>讀檔時「同一條設施連結被重複登記」的告警（【64】）</GNH_LocalFixes_Toggle_notifyNewLinkNoise>
   <GNH_LocalFixes_Toggle_notifyNewLinkNoise_Desc>讀檔刷「Notify_NewLink was called but the link is already here.」，全在 Map.FinalizeLoading 期間、全是工作台。反編譯確認：發現重複時原方法只會 Log.Error 然後 return，不會重複加入——所以設施加成沒有失效，這只是多餘的呼叫產生的噪音。本項在重複時自己返回，少掉那條 Error，同時打一條帶 Label 的 Warning 方便定位。</GNH_LocalFixes_Toggle_notifyNewLinkNoise_Desc>
 
-  <GNH_LocalFixes_Toggle_debugSpamPrefix>讀檔刷「Debug:________isCustomSite」等除錯輸出（【68】）</GNH_LocalFixes_Toggle_debugSpamPrefix>
+  <GNH_LocalFixes_Toggle_debugSpamPrefix>讀檔刷「Debug:________isCustomSite」等除錯輸出（【65】）</GNH_LocalFixes_Toggle_debugSpamPrefix>
   <GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>鼠族基因擴展（RatkinGeneExpanded）在 CustomSiteComp.PostExposeData 裡留了三條 Log.Warning(「Debug:________…」)，每次讀檔刷一次。本項給 Log.Warning 掛一個極窄的前綴過濾：只丟掉以「Debug:________」開頭的行（那 13 個字元正常日誌裡不可能出現），其餘一律放行。</GNH_LocalFixes_Toggle_debugSpamPrefix_Desc>
 
   <GNH_LocalFixes_Toggle_rjwOrgasmPacing>修復 RJW 高潮節奏被弄亂（【18】）</GNH_LocalFixes_Toggle_rjwOrgasmPacing>

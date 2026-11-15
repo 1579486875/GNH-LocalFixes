@@ -1288,6 +1288,34 @@ namespace GNH.LocalFixes
         /// </summary>
         private const float CheckboxReserve = 32f;
 
+        /// <summary>
+        /// 诊断总控那一项的 Id。写在这里是为了**只写一次** ——
+        /// 界面联动与 FixToggles.IsDiagnostic 用的是同一个字符串，
+        /// 两处写岔就会出现「勾了总控什么都没发生」这种查不出来的毛病。
+        /// </summary>
+        private const string AllDiagnosticsId = "allDiagnostics";
+
+        /// <summary>
+        /// 四个诊断是不是**全都开着**。总控的勾选状态就取这个值。
+        ///
+        /// <para>
+        /// 判据必须是「全部子项都开」而不是「总控自己存了什么」：
+        /// 玩家手动把四个逐个勾上时，总控也该自动跟着亮起来（这是全选复选框的标准语义）。
+        /// </para>
+        /// </summary>
+        private static bool AllDiagnosticsOn(GNHLocalFixesSettings settings)
+        {
+            for (int k = 0; k < FixToggles.All.Length; k++)
+            {
+                string id = FixToggles.All[k].Id;
+                if (FixToggles.IsDiagnostic(id) && !settings.IsOn(id))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         private static void DrawToggleList(Listing_Standard listing, GNHLocalFixesSettings settings, float width)
         {
             // 文本与高度都取自缓存 —— 与 MeasureListHeight 用的是同一份，
@@ -1320,12 +1348,57 @@ namespace GNH.LocalFixes
                 // 所以先复制一份、比完再写回设置对象 —— 这样「有没有变化」一目了然，
                 // 也不会因为中途异常把设置改坏。
                 bool value = settings.IsOn(entry.Id);
+                // 总控显示的是**「四个是不是全开」**，而不是它自己存的那个值 ——
+                // 这样玩家把四条诊断逐个手动勾上时，总控会自己亮起来（全选复选框的标准语义）。
+                if (entry.Id == AllDiagnosticsId)
+                {
+                    value = AllDiagnosticsOn(settings);
+                }
+                else if (FixToggles.IsDiagnostic(entry.Id))
+                {
+                    // 【2026-11-15】诊断子项**显示有效值**，与 IsFixEnabled() 完全同源。
+                    // 为什么不能显示存储值：老玩家的设置文件里可能只有 allDiagnostics=true、
+                    // 四个子项根本没记录。那种情况下运行时会把它们抬成 true（IsFixEnabled 那条），
+                    // 而界面若显示存储值，就会画成「关着」—— 于是出现
+                    // 「界面上是叉、实际却在打日志」这种最难查的不一致。
+                    value = IsFixEnabled(entry.Id);
+                }
                 bool before = value;
                 Rect toggleRect = listing.GetRect(26f);
                 Widgets.CheckboxLabeled(toggleRect, cacheLabel[i], ref value);
                 if (value != before)
                 {
-                    settings.SetOn(entry.Id, value);
+                    // 【2026-11-15 用户报的两个现象】：
+                    //   ① 勾上「全部诊断一起开」，下面那几条诊断**不会跟着打勾**；
+                    //   ② 全部勾上之后，取消任意一条诊断，最上面那个总控**不会自动取消**。
+                    // 根因：这里原来只写自己那一项，没有任何联动。
+                    // 现在改成**全选语义**（这也是玩家的直觉）：
+                    //   · 动总控   → 把整组诊断一起设成同一个值；
+                    //   · 动某个子项 → 回头重算总控（四个全开才算开）。
+                    // 与 IsFixEnabled() 里那条「总控开时把子项抬成 true」并不冲突：
+                    // 那条是给**旧配置文件**兜底的（老存档里可能只有 allDiagnostics），
+                    // 界面这条保证新写入的值本身就自洽。
+                    if (entry.Id == AllDiagnosticsId)
+                    {
+                        for (int k = 0; k < FixToggles.All.Length; k++)
+                        {
+                            string otherId = FixToggles.All[k].Id;
+                            if (FixToggles.IsDiagnostic(otherId))
+                            {
+                                settings.SetOn(otherId, value);
+                            }
+                        }
+                        settings.SetOn(entry.Id, value);
+                    }
+                    else if (FixToggles.IsDiagnostic(entry.Id))
+                    {
+                        settings.SetOn(entry.Id, value);
+                        settings.SetOn(AllDiagnosticsId, AllDiagnosticsOn(settings));
+                    }
+                    else
+                    {
+                        settings.SetOn(entry.Id, value);
+                    }
                 }
 
                 // 状态提示：只对**异常状态**标注，正常项不画（避免界面噪音）。
