@@ -458,6 +458,8 @@ namespace GNH.LocalFixes
                 RavenChooseImplantZeroWeightFix.Install);
             TryInstall("tsindGarageDoorsQuiet", "TsindGarageDoorsQuietFix",
                 TsindGarageDoorsQuietFix.Install);
+            TryInstall("descriptionWhitespaceTrim", "DescriptionWhitespaceTrimFix",
+                DescriptionWhitespaceTrimFix.Install);
 
             TryInstall("rqpFactionLeaderGuard", "RqpFactionLeaderValidatorGuardFix",
                 RqpFactionLeaderValidatorGuardFix.Install);

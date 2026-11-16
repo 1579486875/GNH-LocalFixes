@@ -87,6 +87,9 @@
   "allDiagnostics": "总控开关，本身不装任何补丁 —— 它只是让 IsFixEnabled 在开时把三个诊断抬成 true。没有目标模组。",
   "tsindGarageDoorsQuiet": {
    "reason": "【67】日志层静音：目标是 Log.Error 的字符串前缀，不是某个模组提供的类型/Def，没有单一目标模组（TSIND Garage Doors QA 本身就是那个补丁包，它的本体模组缺席才是要静音的场景）"
+  },
+  "descriptionWhitespaceTrim": {
+   "reason": "【68】全局修补：目标是「所有 Def 的 description 字段」，不是某个模组提供的类型或 Def —— 任何模组的 DefInjected 翻译都可能带入首尾空白，所以没有单一目标模组。受害最明显的是 LDR（工坊 3695591404）的 LDR_ISBM_silo，但只修它一家就违背了本项的用意（全库扫描出 20 条同类翻译，横跨 6 个模组）。"
   }
  }
 }

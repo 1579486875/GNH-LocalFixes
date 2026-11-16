@@ -662,6 +662,23 @@ new Entry("deepProfilerQuiet", GroupAdvanced,
                 + "★ 不改作者的 XPath、也不替他加守卫 —— 那是他的功能设计（报告 §6.4 明确列为「不做」）；"
                 + "★ 若你真装了车库门本体、保温仍不生效，说明作者的 XPath 需要更新：关掉本项即可让错误重新出现；"
                 + "★ 关掉本项 → 回到每次启动刷 4 条 ERROR 的原状。"),
+            // 【68】2026-11-16 第五轮日志诊断新增。
+            new Entry("descriptionWhitespaceTrim", GroupSpam,
+                "翻译给描述多带了首尾空白（【68】）",
+                "有些模组的 DefInjected 翻译在 <description> 结尾多留了一个空格或换行。"
+                + "翻译是**原样 SetValue 进字段**的（不像源 def 那样由引擎处理缩进），"
+                + "于是那个空格就留在了 def.description 里；DevMode 下每次加载都会刷"
+                + "「Config error in X: description has trailing whitespace」。"
+                + "本机全库扫描出 20 条这种翻译（日志里只见到 1 条，因为很多 Def 子类"
+                + "override 了 ConfigErrors 却没调 base，把其余 19 条藏住了）。"
+                + "本项在**翻译注入完成之后、DevMode 校验之前**（即"
+                + " LoadedLanguage.InjectIntoData_BeforeImpliedDefs 的 Postfix）"
+                + "把所有 Def 的 description 首尾空白裁掉。"
+                + "★ 只去掉不可见字符，一个可见的字都不改，译文语义零变化；"
+                + "★ 这是把数据修成引擎认可的状态（Def.ConfigErrors 本就把首尾空白判为错误），不是捂住报警；"
+                + "★ 不动 label —— label 会参与字符串拼接，作者可能故意留空格当分隔符；"
+                + "★ 整条全是空白的 description 不动，否则会把「首尾空白」升级成「empty description」；"
+                + "★ 作者哪天自己改对了，本项就什么都不做；关掉本项 → 红字原样回来。"),
 
             // ---------------- 兼容与判定 ----------------
             new Entry("patchVerbPropertiesAdjustedRange", GroupCompat,

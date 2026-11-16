@@ -71,7 +71,7 @@ rows.sort(key=lambda x: x[0])
 print(f"生成 {len(rows)} 条有编号的速览行；无编号的修复项 {len(unnum)} 个：{[u[0] for u in unnum]}")
 
 body = []
-body.append('■ 修复速览（66 条，编号与设置界面一一对应）')
+body.append(f'■ 修复速览（{len(rows)} 条，编号与设置界面一一对应）')
 body.append('')
 for n, clean in rows:
     body.append(f'【{n}】{clean}')
@@ -97,12 +97,19 @@ old = m.group(1)
 newseg_nl = newseg.replace('\n', nl) + nl
 ab2 = ab[:m.start(1)] + newseg_nl + ab[m.end(1):]
 
-# 顺便修那句过时的「唯一没有开关的是【1】」
+# 顺便修那句过时的「唯一没有开关的是【1】」。
+# 2026-11-16：这行早年被脚本替换过一次，替换后的文案里已不含「唯一没有开关的是」，
+# 于是这里原来的 assert 会在第二次运行时炸掉。改成幂等：有就替换，没有就跳过。
 old_line = [ln for ln in ab2.split(nl) if '唯一没有开关的是' in ln]
-assert len(old_line) == 1, old_line
-ab2 = ab2.replace(old_line[0],
-    '★ 每一份修复在设置界面里都有独立开关（XML 补丁那 22 个由组末的总控统一放行）。'
-    '没有「只能靠删文件才能关掉」的项。')
+if len(old_line) > 1:
+    raise SystemExit(f"「唯一没有开关的是」出现 {len(old_line)} 次，预期至多 1 次，请人工确认")
+if old_line:
+    ab2 = ab2.replace(old_line[0],
+        '★ 每一份修复在设置界面里都有独立开关（XML 补丁那 22 个由组末的总控统一放行）。'
+        '没有「只能靠删文件才能关掉」的项。')
+    print("（顺带替换了过时的「唯一没有开关的是」那行）")
+else:
+    print("（「唯一没有开关的是」已不在文中，跳过）")
 
 with open(AB, 'wb') as f:
     f.write((b'\xef\xbb\xbf' if bom else b'') + ab2.encode('utf-8'))
