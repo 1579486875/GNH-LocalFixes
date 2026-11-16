@@ -86,27 +86,48 @@ namespace GNH.LocalFixes
     //   ⑨ 会**无条件重建** `inspectorTabsResolved`，所以在 ⑦ 补进去的类型能正常生效，
     //   不需要自己去碰 `inspectorTabsResolved`。
     //
-    //   补的条件（四条同时成立，缺一不动）：
-    //     ① 本页签类型存在（没装「裸体评价更多看法」就直接退出）；
+    //   补的条件（五条同时成立，缺一不动）：
+    //     ① 能解析到「该补哪一个页签类型」—— 见下面的「不要写死类型名」；
     //     ② `def.race != null` —— 是个 pawn，不是物品/建筑；
-    //     ③ `def.inspectorTabs` 非空 **且含 `ITab_Pawn_Health`** ——
+    //     ③ `def.race.Humanlike` —— 是人形（动物、机械体提前挡掉）；
+    //     ④ `def.inspectorTabs` 非空 **且含 `ITab_Pawn_Health`** ——
     //        说明这确实是一份「人形 pawn 的页签列表」，而不是随便什么列表；
-    //     ④ 目前不含本页签 —— 防重复，也保证「本来就有的种族」一点不受影响。
+    //     ⑤ 目前不含 NMM 页签 —— 防重复，也保证「本来就有的种族」一点不受影响。
     //
-    //   ⇒ 原版人类、鼠族这类正常继承 `BasePawn` 的种族，第 ④ 条直接挡掉；
-    //     动物没有 `ITab_Pawn_Health`，第 ③ 条挡掉；
-    //     物品/建筑没有 `race`，第 ② 条挡掉。
+    //   ⇒ 原版人类、鼠族这类正常继承 `BasePawn` 的种族，第 ⑤ 条直接挡掉；
+    //     动物在第 ③ 条挡掉；物品/建筑在第 ② 条挡掉。
+    //
+    // ── 不要写死类型名：两套模组注册的**不是同一个类** ──
+    //
+    //   反编译 + 查 XML 实际注册（2026-11-16 核实）：
+    //
+    //     · [OWL] NMM Combined Edition（`dord.nuditymattersmore`）
+    //         → `NudityMattersMore.ITab_Pawn_NMMRouter`
+    //     · 两个独立模组（`shark510.nuditymattersmoreopinions`）
+    //         → `NudityMattersMore_opinions.ITab_Pawn_NMMOpinions`
+    //
+    //   而且 `ITab_Pawn_NMMRouter : ITab_Pawn_NMMOpinions`（它多带 Enhanced 渲染与样式切换），
+    //   在合并版环境里两个类型**同时存在**。写死任何一个，另一边就会补错。
+    //
+    //   ⇒ 做法：先去 Def 数据里找「已经含 NMM 页签的那个 def」（正常情况下原版 `Human`
+    //     就是），从它的 `inspectorTabs` 里把**实际在用的那个 Type 原样取出来**。
+    //     这样无论玩家装的是哪一套、哪个版本（1.5/1.6/1.7）、将来作者是否改名，
+    //     拿到的都一定是对的。只有一处都找不到时，才回落到候选名表。
+    //
+    //   判定「是不是 NMM 页签」也不用精确比对某个 Type，而是看**全名里有没有
+    //   `ITab_Pawn_NMM` 这个片段** —— Router、Opinions、以及将来可能的改名都能认出来，
+    //   同时不会误伤原版的 `ITab_Pawn_Health` 之类。
     //
     // ── 为什么不是「把页签加给所有 pawn」 ──
     //
     //   那会给动物、机械体也塞一份。虽然本页签自己的 `IsVisible` 会判断 `Humanlike`
     //   从而不显示，但没必要让它们的 `inspectorTabsResolved` 里多一个永远不显示的实例。
-    //   第 ③ 条用 `ITab_Pawn_Health` 当判据，等价于「这个 def 的页签栏是给人形 pawn 用的」。
+    //   第 ④ 条用 `ITab_Pawn_Health` 当判据，等价于「这个 def 的页签栏是给人形 pawn 用的」。
     //
     // ── 自动让路 ──
     //
-    //   · 没装「裸体评价更多看法」→ 拿不到类型，打一行 Message 跳过；
-    //   · 作者以后把这些种族改成继承 `BasePawn`，或自己补了这一项 → 第 ④ 条挡掉，本项不做事；
+    //   · 没装「裸体评价更多看法」（两个候选类型都不在）→ 打一行 Message 跳过；
+    //   · 作者以后把这些种族改成继承 `BasePawn`，或自己补了这一项 → 第 ⑤ 条挡掉，本项不做事；
     //   · 玩家关掉本项 → 整项不安装，回到原状。
     // ==========================================================================
 
@@ -116,7 +137,16 @@ namespace GNH.LocalFixes
     /// </summary>
     internal static class NmmTabCustomRaceFix
     {
-        private const string TabTypeName = "NudityMattersMore_opinions.ITab_Pawn_NMMOpinions";
+        // 候选类型名，按「合并版优先」排列。真正用哪个不靠这张表决定 ——
+        // 见 ResolveTabType()：先去 Def 里找「实际已经被注册的那个」，找不到才回落到这里。
+        private static readonly string[] TabTypeCandidates =
+        {
+            // [OWL] NMM Combined Edition（dord.nuditymattersmore）注册的是这个：
+            // 它继承自 ITab_Pawn_NMMOpinions，另带 Enhanced 渲染与样式切换。
+            "NudityMattersMore.ITab_Pawn_NMMRouter",
+            // 两个独立模组（shark510.nuditymattersmoreopinions）注册的是这个。
+            "NudityMattersMore_opinions.ITab_Pawn_NMMOpinions",
+        };
 
         private static bool installed;
 
@@ -127,6 +157,15 @@ namespace GNH.LocalFixes
         private static readonly List<string> samples = new List<string>();
 
         private const int MaxSamples = 6;
+
+        /// <summary>本次解析到的页签类型（可能为 null）。</summary>
+        private static Type resolvedTabType;
+
+        /// <summary>是否已经解析过（解析失败也要记，避免每次都重扫一遍全库）。</summary>
+        private static bool resolveAttempted;
+
+        /// <summary>解析到的类型来源，仅用于日志说明。</summary>
+        private static string resolveSource;
 
         /// <summary>安装本补丁。由 LocalFixesMod 的构造函数通过 TryInstall 调用。</summary>
         internal static void Install()
@@ -159,8 +198,17 @@ namespace GNH.LocalFixes
                     return;
                 }
 
-                // 没装 NMM 就没必要挂 —— 挂了也只是空转。
-                if (AccessTools.TypeByName(TabTypeName) == null)
+                // 两个候选类型一个都不在 → 说明没装 NMM，没必要挂。
+                bool anyCandidate = false;
+                foreach (string name in TabTypeCandidates)
+                {
+                    if (AccessTools.TypeByName(name) != null)
+                    {
+                        anyCandidate = true;
+                        break;
+                    }
+                }
+                if (!anyCandidate)
                 {
                     installed = true;
                     Log.Message("[GNH LocalFixes] 【69】Nudity Matters More (opinions) is not present;"
@@ -211,7 +259,8 @@ namespace GNH.LocalFixes
                     + "原因：这些种族在自己 XML 里另起了一个根、手抄了一份 15 项的 inspectorTabs，"
                     + "既不继承原版的 BasePawn，那一份里也没有本页签；"
                     + "而本页签是靠 patch 加到 BasePawn 上的，所以它们天然拿不到。"
-                    + "本项只补「含 ITab_Pawn_Health 但缺本页签」的 pawn def，"
+                    + "本项补的是「" + (resolveSource ?? "?") + "」这个类型，"
+                    + "只给「人形 + 含 ITab_Pawn_Health 但缺本页签」的 pawn def 补，"
                     + "原版人类与鼠族这类正常继承的种族、动物、物品一概不碰。"
                     + "（本条及后续同类只计数，不再逐条打印。）");
             }
@@ -222,10 +271,78 @@ namespace GNH.LocalFixes
             }
         }
 
+        /// <summary>
+        /// 解析「该补哪一个页签类型」。
+        ///
+        /// 两个模组注册的类**不是同一个**：
+        ///   · [OWL] NMM Combined Edition  → NudityMattersMore.ITab_Pawn_NMMRouter
+        ///   · 两个独立模组（opinions）     → NudityMattersMore_opinions.ITab_Pawn_NMMOpinions
+        /// 而且 Router 继承自 Opinions，两者会同时存在。
+        ///
+        /// 所以**不能写死**。做法是：先去 Def 数据里找「已经含 NMM 页签的那个 def」，
+        /// 从它的 inspectorTabs 里把**实际在用的那个 Type 原样取出来** ——
+        /// 这样无论玩家装的是哪一套、哪个版本，拿到的都一定是对的。
+        /// 只有一处都找不到时（几乎不会发生），才回落到候选名表。
+        /// </summary>
+        private static Type ResolveTabType()
+        {
+            if (resolveAttempted)
+            {
+                return resolvedTabType;
+            }
+            resolveAttempted = true;
+
+            // ① 从实际已注册的 def 里取（最可靠，天然兼容两套模组与各版本）
+            try
+            {
+                foreach (ThingDef def in DefDatabase<ThingDef>.AllDefs)
+                {
+                    if (def == null || def.inspectorTabs == null)
+                    {
+                        continue;
+                    }
+                    foreach (Type t in def.inspectorTabs)
+                    {
+                        if (t == null || t.FullName == null)
+                        {
+                            continue;
+                        }
+                        // 只要名字里带 ITab_Pawn_NMM 即可：Router / Opinions / 以及将来可能的改名都在内，
+                        // 但不会误抓原版的 ITab_Pawn_Health 之类。
+                        if (t.FullName.IndexOf("ITab_Pawn_NMM", StringComparison.Ordinal) >= 0)
+                        {
+                            resolvedTabType = t;
+                            resolveSource = t.FullName + "（取自已注册的 " + def.defName + "）";
+                            return resolvedTabType;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // 落到下面的候选表
+            }
+
+            // ② 回落到候选名表（按合并版优先）
+            foreach (string name in TabTypeCandidates)
+            {
+                Type t = AccessTools.TypeByName(name);
+                if (t != null)
+                {
+                    resolvedTabType = t;
+                    resolveSource = t.FullName + "（取自候选名表）";
+                    return resolvedTabType;
+                }
+            }
+
+            resolveSource = null;
+            return null;
+        }
+
         /// <summary>遍历全部 ThingDef 并按条件补页签。返回补了几个。</summary>
         private static int PatchAllDefs()
         {
-            Type tabType = AccessTools.TypeByName(TabTypeName);
+            Type tabType = ResolveTabType();
             if (tabType == null)
             {
                 return 0;
@@ -238,6 +355,13 @@ namespace GNH.LocalFixes
                 if (def == null || def.race == null)
                 {
                     // 不是 pawn：物品、建筑、地形都不该有 pawn 页签。
+                    continue;
+                }
+
+                // 只补人形种族。动物、机械体即使有自定义页签列表也不碰 ——
+                // 本页签自己的 IsVisible 也会判 Humanlike，这里提前挡掉可以少给它们塞无用实例。
+                if (!def.race.Humanlike)
+                {
                     continue;
                 }
 
@@ -256,7 +380,7 @@ namespace GNH.LocalFixes
                 }
 
                 // 已经有本页签（正常继承来的，或别的补丁加的）→ 不动。
-                if (tabs.Contains(tabType))
+                if (ContainsNmmTab(tabs))
                 {
                     continue;
                 }
@@ -278,6 +402,28 @@ namespace GNH.LocalFixes
             }
 
             return count;
+        }
+
+        /// <summary>
+        /// 判断列表里是否已经有 NMM 的页签。
+        /// 用名字片段判而不是精确比对某个 Type ——
+        /// 这样 Router / Opinions / 将来改名的版本都能认出来，不会重复添加。
+        /// </summary>
+        private static bool ContainsNmmTab(List<Type> tabs)
+        {
+            for (int i = 0; i < tabs.Count; i++)
+            {
+                Type t = tabs[i];
+                if (t == null || t.FullName == null)
+                {
+                    continue;
+                }
+                if (t.FullName.IndexOf("ITab_Pawn_NMM", StringComparison.Ordinal) >= 0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>把样例拼成「a、b、c 等」。</summary>
