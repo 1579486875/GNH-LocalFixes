@@ -456,6 +456,8 @@ namespace GNH.LocalFixes
                 TwilightGameComponentRebuildFix.Install);
             TryInstall("ravenChooseImplantZeroWeight", "RavenChooseImplantZeroWeightFix",
                 RavenChooseImplantZeroWeightFix.Install);
+            TryInstall("tsindGarageDoorsQuiet", "TsindGarageDoorsQuietFix",
+                TsindGarageDoorsQuietFix.Install);
 
             TryInstall("rqpFactionLeaderGuard", "RqpFactionLeaderValidatorGuardFix",
                 RqpFactionLeaderValidatorGuardFix.Install);

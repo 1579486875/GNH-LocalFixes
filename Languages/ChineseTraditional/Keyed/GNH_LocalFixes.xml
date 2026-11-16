@@ -158,6 +158,8 @@
   <GNH_LocalFixes_Toggle_twilightGameComponentRebuild_Desc>「緹瓦萊特貞操科技」的核心組件把建構子寫成了無參形式，而引擎按「傳一個 Game 物件」的方式建立它，參數對不上 → 建立失敗 → 引擎 catch 掉只打一行紅字。結果這套系統的所有功能都不工作。本項在引擎建完組件之後用無參建構把它補進去，並做幂等檢查。★ 作者的邏輯一行不改、全部照跑，唯一變化是「它終於會跑了」；★ 模組沒裝就跳過；作者改對後本項自動讓位。</GNH_LocalFixes_Toggle_twilightGameComponentRebuild_Desc>
   <GNH_LocalFixes_Toggle_ravenChooseImplantZeroWeight>帝國頭銜生成時刷「總權重 0」（【66】）</GNH_LocalFixes_Toggle_ravenChooseImplantZeroWeight>
   <GNH_LocalFixes_Toggle_ravenChooseImplantZeroWeight_Desc>「Raven Race - Embers in Shadow」挑植入體的那一步裡，候選集經過預算篩選後可能一個「市值為正」的都不剩，於是它呼叫原版 RandomElementByWeight 時總權重為 0 —— 原版打一條 ERROR 並回傳 null，那隻 pawn 這次就一個植入體都不裝。本項在它前面先看一遍候選：只要沒有任何權重為正的項，就直接回傳 null 並安靜跳過，不再打那條 ERROR。★ 回傳 null 與引擎 TryRandomElementByWeight 失敗時的結果完全一致；★ 存在正權重候選就原樣放行，抽誰仍交給原版；★ 模組沒裝 / 作者改了實作 → 自動讓位；★ 關掉本項 → 回到每次刷一行 ERROR 的原狀。</GNH_LocalFixes_Toggle_ravenChooseImplantZeroWeight_Desc>
+  <GNH_LocalFixes_Toggle_tsindGarageDoorsQuiet>車庫門的可選增強找不到目標 def（【67】）</GNH_LocalFixes_Toggle_tsindGarageDoorsQuiet>
+  <GNH_LocalFixes_Toggle_tsindGarageDoorsQuiet_Desc>「TSIND Garage Doors QA」是給車庫門加氣密保溫的可選增強，但它的兩條 XPath 沒有守衛 —— 車庫門本體沒裝時，每次啟動刷 4 條「Failed to find a node referenced by &lt;xpath&gt;」的 ERROR。本機只有這個 QA 補丁、沒有車庫門本體，所以那兩條一條都命中不了。本項只在日誌層靜音，第一次靜音時打一條說明寫清原因。★ 不改作者的 XPath、不替他加守衛（那是他的功能設計）；★ 若你裝了本體、保溫仍不生效，關掉本項即可讓錯誤重現；★ 關掉 → 回到原狀。</GNH_LocalFixes_Toggle_tsindGarageDoorsQuiet_Desc>
 
   <GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>帝國頭銜生成時的集合改動異常（【55】）</GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>
   <GNH_LocalFixes_Toggle_rqpFactionLeaderGuard_Desc>「Real Faction Guest」給派系領袖校正背景故事時，會在走訪某個集合的過程中改動它，拋出「Collection was modified」。它自己的上層有 try/catch，所以遊戲不會中斷；真正的影響是那一次背景修正沒做成，日誌裡多一段整棧紅字。本項只把這一種異常單獨摘掉並合併成一條提示。★ 這是「讓日誌說實話」，不是「把功能修好了」；★ 別的異常原樣上拋。</GNH_LocalFixes_Toggle_rqpFactionLeaderGuard_Desc>

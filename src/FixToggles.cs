@@ -650,6 +650,18 @@ new Entry("deepProfilerQuiet", GroupAdvanced,
                 + "★ 只要存在正权重候选就原样放行，抽谁仍然完全交给原版；"
                 + "★ 模组没装 / 作者改了实现 → 本项自动让位，只打一行 Message；"
                 + "★ 关掉本项 → 回到「每次头衔生成刷一行 ERROR」的原状。"),
+            // 【67】2026-11-16 第四轮全局日志诊断 §6 新增。
+            new Entry("tsindGarageDoorsQuiet", GroupSpam,
+                "车库门的可选增强找不到目标 def（【67】）",
+                "「TSIND Garage Doors QA」是给车库门加气密保温的可选增强，但它那两条 XPath "
+                + "没有守卫 —— 车库门本体没装时，每次启动都会刷 4 条 ERROR"
+                + "（XmlExtensions 说「Failed to find a node referenced by <xpath>」）。"
+                + "本机 ModsConfig 的 1,178 条启用项里只有这个 QA 补丁、没有车库门本体，"
+                + "所以那两条一条都命中不了。"
+                + "本项只在**日志层**把它静音，第一次静音时会打一条说明写清原因。"
+                + "★ 不改作者的 XPath、也不替他加守卫 —— 那是他的功能设计（报告 §6.4 明确列为「不做」）；"
+                + "★ 若你真装了车库门本体、保温仍不生效，说明作者的 XPath 需要更新：关掉本项即可让错误重新出现；"
+                + "★ 关掉本项 → 回到每次启动刷 4 条 ERROR 的原状。"),
 
             // ---------------- 兼容与判定 ----------------
             new Entry("patchVerbPropertiesAdjustedRange", GroupCompat,
