@@ -1194,11 +1194,17 @@ new Entry("xmlVoeSushiMigration", GroupXmlPatches,
             new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
         {
             { "nmmIdeoTrackerNull", "dord.nuditymattersmore" },
-            // 【69】目标方法 ITab_Pawn_NMMOpinions.get_IsVisible 就在
-            // NudityMattersMore_opinions.dll（packageId dord.nuditymattersmore）里。
-            // 注意：它真正要治的是「RJW 的 is_mechanoid 误判」，但被守卫的方法属于 NMM，
-            // 所以这里登记 NMM —— 模组没装时这一项本来也无事可做。
-            { "nmmTabMechanoidMisjudge", "dord.nuditymattersmore" },
+            // 【69】目标方法 ITab_Pawn_NMMOpinions.get_IsVisible 在
+            // NudityMattersMore_opinions.dll 里，那个 DLL 属于
+            // packageId = shark510.nuditymattersmoreopinions（目录 NudityMattersMore_opinions）。
+            //
+            // ⚠ 2026-11-16 订正：初版这里登记成了 dord.nuditymattersmore ——
+            //   那是**另一个**模组（目录 RJW-功能-裸体评价，[OWL] NMM Combined Edition，
+            //   它提供的是 NudityMattersMore.dll 即本体）。两者 packageId 与目录是交叉的：
+            //     NudityMattersMore_opinions  → shark510.nuditymattersmoreopinions
+            //     RJW-功能-裸体评价           → dord.nuditymattersmore
+            //   登记错会让设置界面误报「目标模组未启用」。
+            { "nmmTabMechanoidMisjudge", "shark510.nuditymattersmoreopinions" },
             // RimJobWorld 本体；它挂的 Postfix 就在 rim.job.world 里
             { "rjwPawnGenPostfixNull", "rim.job.world" },
             // RJW 高潮取证探针：三个取样点全挂在 rjw.SexUtility / rjw.Need_Sex /
