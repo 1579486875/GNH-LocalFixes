@@ -1205,7 +1205,15 @@ new Entry("xmlVoeSushiMigration", GroupXmlPatches,
             //     NudityMattersMore_opinions  → shark510.nuditymattersmoreopinions
             //     RJW-功能-裸体评价           → dord.nuditymattersmore
             //   登记错会让设置界面误报「目标模组未启用」。
-            { "nmmTabCustomRaceMissing", "shark510.nuditymattersmoreopinions" },
+            // ⚠ 2026-11-16 第二轮订正（D-10，用户截图）：原先这里只填了
+            //   shark510.nuditymattersmoreopinions（1.6 独立版）。但 v1.4.63 已经改成
+            //   「从 Def 数据里读实际注册的页签类型」，于是**两套装法都能命中**：
+            //     合并版 [OWL] NMM Combined Edition → NudityMattersMore.ITab_Pawn_NMMRouter
+            //     独立版 NMM opinions            → NudityMattersMore_opinions.ITab_Pawn_NMMOpinions
+            //   只填一个，另一套的用户就会看到「目标模组未启用」的假提示（实测就是本机：
+            //   合并版已启用、独立版没装，界面却标未启用）。
+            //   现在用 `;` 分隔多值，**任一在场**即算可用。
+            { "nmmTabCustomRaceMissing", "dord.nuditymattersmore;shark510.nuditymattersmoreopinions" },
             // RimJobWorld 本体；它挂的 Postfix 就在 rim.job.world 里
             { "rjwPawnGenPostfixNull", "rim.job.world" },
             // RJW 高潮取证探针：三个取样点全挂在 rjw.SexUtility / rjw.Need_Sex /
@@ -1317,6 +1325,57 @@ new Entry("xmlVoeSushiMigration", GroupXmlPatches,
         ///   ② 登记过的前置模组在不在场。
         /// 任何异常都当作 Active（不显示提示），宁可少标也不误标。
         /// </summary>
+        /// <summary>
+        /// `requiresModById` 的值可以是**一个** packageId，也可以用 `;` 分隔**多个**，
+        /// 任一在场即算「目标可用」。
+        ///
+        /// <para>
+        /// **为什么需要多值**：同一个功能可能由「两套装法」之一提供。
+        /// 典型就是【69】：合并版（`dord.nuditymattersmore`）与独立版
+        /// （`shark510.nuditymattersmoreopinions`）各注册了一个页签类，
+        /// 而 v1.4.63 起本项是**从 Def 数据里读实际注册的那个**，两套都能跑。
+        /// 只填一个的后果不是「保守」，是**必然误报一半用户** ——
+        /// 实测本机装了合并版，界面却一直标「目标模组未启用」。
+        /// </para>
+        ///
+        /// <para>
+        /// ⚠ 其余 46 条**不要**随便加第二个值：它们的目标方法确实只存在于某一个模组里，
+        /// 多填一个会把「目标没装、本项在空转」这个真实状态掩盖掉，那是反向误报。
+        /// </para>
+        /// </summary>
+        private static bool AnyModActive(string spec)
+        {
+            if (spec.NullOrEmpty())
+            {
+                return false;
+            }
+            // 单值路径（绝大多数）：省掉一次数组分配
+            if (spec.IndexOf(';') < 0)
+            {
+                return ModsConfig.IsActive(spec);
+            }
+            string[] parts = spec.Split(';');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                string one = parts[i];
+                if (one.NullOrEmpty())
+                {
+                    continue;
+                }
+                if (ModsConfig.IsActive(one.Trim()))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 某一项当前的状态。判据只有两条，且都是**能确定**的：
+        ///   ① 开关是不是关着；
+        ///   ② 登记过的前置模组在不在场（值可以是 `;` 分隔的多个，任一在场即算可用 —— 见 `AnyModActive`）。
+        /// 任何异常都当作 Active（不显示提示），宁可少标也不误标。
+        /// </summary>
         internal static FixStatus StatusOf(Entry entry)
         {
             try
@@ -1334,7 +1393,7 @@ new Entry("xmlVoeSushiMigration", GroupXmlPatches,
                 string modId;
                 if (requiresModById.TryGetValue(entry.Id, out modId) && !modId.NullOrEmpty())
                 {
-                    if (!ModsConfig.IsActive(modId))
+                    if (!AnyModActive(modId))
                     {
                         return FixStatus.TargetMissing;
                     }
