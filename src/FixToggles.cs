@@ -750,22 +750,20 @@ new Entry("deepProfilerQuiet", GroupAdvanced,
                 + "要真修得改那个模组的遍历写法，风险远高于收益，故不做；"
                 + "★ 别的异常（含真正的空引用）原样上抛，一个都不替别人兜。",
                 "GNH.LocalFixes.RqpFactionLeaderValidatorGuardFix"),
-            // 【69】2026-11-16 玩家实测反馈（两轮会话确认，附截图与对照实验）。
-            new Entry("nmmTabMechanoidMisjudge", GroupCompat,
+            // 【69】2026-11-16 玩家实测反馈（两轮会话确认，附截图与改年龄对照实验）。
+            new Entry("nmmTabCustomRaceMissing", GroupCompat,
                 "人工种族的「裸体评价」页签不出现（【69】）",
-                "「裸体评价更多看法」的页签是否显示，取决于它自己的 IsVisible："
-                + "canDoLoving && Humanlike && !EntityOrGhoul。其中第一项 `rjw.xxx.can_do_loving` "
-                + "的**第一行**就是 `if (is_mechanoid(pawn)) return false;`。"
-                + "而 RJW 判断机械体用的是**字符串包含**：只要 FleshType 的 defName 里含 "
-                + "\"Android\"，就算机械体；唯一的豁免是 `Androids.SexualizeAndroidRJW` 这个扩展。"
-                + "于是**除 Androids 那一家之外，任何名字带 Android 的人工种族都会被当成机械体**，"
-                + "can_do_loving 直接返回 false，页签就消失了 —— 但模组机制完全正常"
-                + "（全裸照常遮体、走光照常掉心情），因为 NMM 的裸体判定走的是另一套代码。"
-                + "本项只在「人形 + 不是 entity/ghoul + 确实被 is_mechanoid 判成机械体」"
-                + "这三条**同时**成立时，才把页签显示出来。"
-                + "★ 未成年的人形种族 is_mechanoid 为 false → 仍然不显示，作者原意不变；"
-                + "★ 真机械体不是 Humanlike、Ghoul 与实体被单独排除 → 也都不动；"
-                + "★ 原版人类本来就显示，补丁直接跳过，零影响；"
+                "有些种族（实测 Aya 系列 13 个全中）在自己的 XML 里**另起一个根**，"
+                + "并手抄了一份 15 项的原版 inspectorTabs —— 既不继承原版 `BasePawn`，"
+                + "那份拷贝里也没有本页签。而本页签是靠 patch 挂到 `BasePawn` 上的，"
+                + "所以这类种族天然拿不到：页签压根没进 `inspectorTabs`。"
+                + "结果是模组机制一切正常（全裸照常遮体、走光照常掉心情），只有这个页签没有，"
+                + "而且**与年龄无关**。"
+                + "本项在语言注入之后、ResolveReferences 之前，给「自己写了页签列表、"
+                + "但漏了这一项」的人形种族补上。"
+                + "★ 判据用原版必有的 `ITab_Pawn_Health`：只补本来就是「人形 pawn 页签栏」的 def；"
+                + "★ 原版人类、鼠族这类正常继承的种族本来就含本页签，会被直接跳过，零影响；"
+                + "★ 动物没有健康页签、物品建筑没有 race，都不在范围内；"
                 + "★ 关掉本项 → 页签回到原状。"),
 
             // ---------------- 行为与设置 ----------------
@@ -1204,7 +1202,7 @@ new Entry("xmlVoeSushiMigration", GroupXmlPatches,
             //     NudityMattersMore_opinions  → shark510.nuditymattersmoreopinions
             //     RJW-功能-裸体评价           → dord.nuditymattersmore
             //   登记错会让设置界面误报「目标模组未启用」。
-            { "nmmTabMechanoidMisjudge", "shark510.nuditymattersmoreopinions" },
+            { "nmmTabCustomRaceMissing", "shark510.nuditymattersmoreopinions" },
             // RimJobWorld 本体；它挂的 Postfix 就在 rim.job.world 里
             { "rjwPawnGenPostfixNull", "rim.job.world" },
             // RJW 高潮取证探针：三个取样点全挂在 rjw.SexUtility / rjw.Need_Sex /
