@@ -20,7 +20,7 @@
 import re, os, sys
 import xml.etree.ElementTree as ET
 
-BASE = r"E:\TAML\modfix\GNH-LocalFixes"
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CS = os.path.join(BASE, r"src\FixToggles.cs")
 AB = os.path.join(BASE, r"About\About.xml")
 

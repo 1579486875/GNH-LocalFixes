@@ -9,7 +9,7 @@
 """
 import re, os, sys
 
-BASE = r"E:\TAML\modfix\GNH-LocalFixes"
+BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CS = os.path.join(BASE, r"src\FixToggles.cs")
 text = open(CS, 'rb').read().decode('utf-8-sig')
 lines = text.split('\n')
