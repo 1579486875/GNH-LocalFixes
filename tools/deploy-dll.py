@@ -20,6 +20,11 @@
 | `bin/Release/Assemblies/GNH.LocalFixes.dll` | ✅ | ✅ |
 | `About/About.xml` | ✅ | ✅ |
 | `Languages/{S,T,E}/Keyed/GNH_LocalFixes.xml` | ✅ | ✅ |
+| `README.md` / `技术说明.md` / `LICENSE` | ✅ | ✅ |
+
+⚠ 2026-11-16 订正（审查 D-08）：上面那三个文档类文件原先**从不部署**，
+部署侧长期停在旧版（实测两个环境的 hash 都与仓库不同）。
+玩家从工坊下载后看到的就是它们，读到的却是旧说明。
 
 ⚠ 不部署 `Patches/`（那是仓库与部署共享的同一份，且本脚本不负责 XML 补丁的版本差异）。
 """
@@ -66,6 +71,13 @@ for d, label in TARGETS:
         continue
     pairs = [(SRC_DLL, os.path.join(d, 'Assemblies', 'GNH.LocalFixes.dll')),
              (SRC_AB, os.path.join(d, 'About', 'About.xml'))]
+    # 2026-11-16 加（审查 D-08）：文档也是发布内容 ——
+    # 玩家从工坊下载后会在模组目录里看到它们，而它们此前从不部署，
+    # 于是部署侧长期停在旧版（实测两个环境的 README / 技术说明 hash 都与仓库不同）。
+    for _doc in ('README.md', '技术说明.md', 'LICENSE'):
+        _s = os.path.join(ROOT, _doc)
+        if os.path.exists(_s):
+            pairs.append((_s, os.path.join(d, _doc)))
     for L in LANGS:
         pairs.append((os.path.join(ROOT, 'Languages', L, 'Keyed', 'GNH_LocalFixes.xml'),
                       os.path.join(d, 'Languages', L, 'Keyed', 'GNH_LocalFixes.xml')))
