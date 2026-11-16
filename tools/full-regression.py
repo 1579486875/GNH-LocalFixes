@@ -32,7 +32,14 @@ GATES = {
     ],
     # ── LocalFixes ──
     'GNH-LocalFixes': [
+        # 2026-11-16 加（审查 D-02）：模板 §1.1 要求「版本号三处一致」。
+        # 实测 About 1.4.63 / csproj 1.4.57 / DLL 1.4.57.0 —— 最近 6 次改版只改了 About。
+        ('版本号一致性', 'tools/check-version-consistency.py', [], True),
         ('开关表一致性', 'tools/verify-toggles.py', [], True),
+        # 2026-11-16 加（审查 §1.1「开关存在 ≠ 开关有效」）：
+        # 逐个核对 76 个开关是否真的连到实现 —— patchClassName / xmlPatchFile / TryInstall 三条路。
+        # 第一版拿 id 字面量 grep，误报 30 个；正确口径见脚本头部注释。
+        ('开关接线', 'tools/audit-toggle-wiring.py', [], True),
         ('编号审计', 'tools/audit-numbering.py', [], True),
         ('分组排序', 'tools/check-group-order.py', [], True),
         ('默认关闭表', 'tools/check-default-off.py', [], True),
