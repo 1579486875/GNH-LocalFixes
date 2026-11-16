@@ -460,6 +460,8 @@ namespace GNH.LocalFixes
                 TsindGarageDoorsQuietFix.Install);
             TryInstall("descriptionWhitespaceTrim", "DescriptionWhitespaceTrimFix",
                 DescriptionWhitespaceTrimFix.Install);
+            TryInstall("nmmTabMechanoidMisjudge", "NmmTabMechanoidMisjudgeFix",
+                NmmTabMechanoidMisjudgeFix.Install);
 
             TryInstall("rqpFactionLeaderGuard", "RqpFactionLeaderValidatorGuardFix",
                 RqpFactionLeaderValidatorGuardFix.Install);

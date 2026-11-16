@@ -750,6 +750,23 @@ new Entry("deepProfilerQuiet", GroupAdvanced,
                 + "要真修得改那个模组的遍历写法，风险远高于收益，故不做；"
                 + "★ 别的异常（含真正的空引用）原样上抛，一个都不替别人兜。",
                 "GNH.LocalFixes.RqpFactionLeaderValidatorGuardFix"),
+            // 【69】2026-11-16 玩家实测反馈（两轮会话确认，附截图与对照实验）。
+            new Entry("nmmTabMechanoidMisjudge", GroupCompat,
+                "人工种族的「裸体评价」页签不出现（【69】）",
+                "「裸体评价更多看法」的页签是否显示，取决于它自己的 IsVisible："
+                + "canDoLoving && Humanlike && !EntityOrGhoul。其中第一项 `rjw.xxx.can_do_loving` "
+                + "的**第一行**就是 `if (is_mechanoid(pawn)) return false;`。"
+                + "而 RJW 判断机械体用的是**字符串包含**：只要 FleshType 的 defName 里含 "
+                + "\"Android\"，就算机械体；唯一的豁免是 `Androids.SexualizeAndroidRJW` 这个扩展。"
+                + "于是**除 Androids 那一家之外，任何名字带 Android 的人工种族都会被当成机械体**，"
+                + "can_do_loving 直接返回 false，页签就消失了 —— 但模组机制完全正常"
+                + "（全裸照常遮体、走光照常掉心情），因为 NMM 的裸体判定走的是另一套代码。"
+                + "本项只在「人形 + 不是 entity/ghoul + 确实被 is_mechanoid 判成机械体」"
+                + "这三条**同时**成立时，才把页签显示出来。"
+                + "★ 未成年的人形种族 is_mechanoid 为 false → 仍然不显示，作者原意不变；"
+                + "★ 真机械体不是 Humanlike、Ghoul 与实体被单独排除 → 也都不动；"
+                + "★ 原版人类本来就显示，补丁直接跳过，零影响；"
+                + "★ 关掉本项 → 页签回到原状。"),
 
             // ---------------- 行为与设置 ----------------
             new Entry("keepLeaderTitle", GroupBehaviour,
@@ -1177,6 +1194,11 @@ new Entry("xmlVoeSushiMigration", GroupXmlPatches,
             new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
         {
             { "nmmIdeoTrackerNull", "dord.nuditymattersmore" },
+            // 【69】目标方法 ITab_Pawn_NMMOpinions.get_IsVisible 就在
+            // NudityMattersMore_opinions.dll（packageId dord.nuditymattersmore）里。
+            // 注意：它真正要治的是「RJW 的 is_mechanoid 误判」，但被守卫的方法属于 NMM，
+            // 所以这里登记 NMM —— 模组没装时这一项本来也无事可做。
+            { "nmmTabMechanoidMisjudge", "dord.nuditymattersmore" },
             // RimJobWorld 本体；它挂的 Postfix 就在 rim.job.world 里
             { "rjwPawnGenPostfixNull", "rim.job.world" },
             // RJW 高潮取证探针：三个取样点全挂在 rjw.SexUtility / rjw.Need_Sex /
