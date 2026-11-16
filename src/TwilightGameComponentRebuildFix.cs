@@ -31,7 +31,7 @@ namespace GNH.LocalFixes
     //
     // 【根因：构造函数签名与引擎约定不符（反编译实证）】
     //
-    //   引擎侧（1.7.5005 反编译原文，Verse.Game.FillComponents）：
+    //   引擎侧（Verse.Game.FillComponents）：
     //
     //       private void FillComponents()
     //       {
@@ -74,12 +74,35 @@ namespace GNH.LocalFixes
     //     · GetHandler(pawn, createIfMissing) —— 外部调用一律拿不到 handler。
     //   换句话说：**这套系统一个功能都不工作，日志里却只有三行红字。**
     //
-    // 【修法：在 FillComponents 之后把漏掉的那个补上】
+    // 【修法：Prefix 先补上 + Postfix 兜底，两处共用同一个判重流程】
     //
-    //   不碰工坊 / 本地 DLL 的一个字节，只在本模组里加一个 Harmony Postfix：
-    //   等引擎把该建的组件都建完，再自己用「无参构造」造一个塞进 components。
+    //   ⚠ 2026-11-16 改：原先只装 Postfix，结果**原版循环仍然先失败并打一条 ERROR**，
+    //      然后我们的 Postfix 才补上。日志长这样（相隔 17 毫秒）：
     //
-    //   三点必须注意的地方（都已在实现里处理）：
+    //          12:46:15.039 ERROR Could not instantiate a GameComponent of type LT…Challenges …
+    //          12:46:15.056 INFO  [GNH LocalFixes] 【54】added the missing GameComponent …
+    //
+    //      补丁**是生效的**，但玩家每次开档仍会看到一条红字，极容易被误判成「补丁坏了」。
+    //
+    //   改法来自一份日志诊断报告的 §3.3「首选方案」：
+    //   **在 Prefix 里就把组件建好塞进 components，原版循环遍历到它时发现「已经有了」直接跳过**
+    //   —— 把「先失败再补救」变成「一开始就不失败」。
+    //
+    //   为什么 Prefix 里能安全访问 components：
+    //      引擎 `FillComponents()` 的第一行就是 `components.RemoveAll(…)`，
+    //      说明进入该方法时 `components` **必然非 null**（Game 构造函数里已初始化）。
+    //      所以 Prefix 里读它、写它都安全。
+    //
+    //   为什么**同时保留 Postfix**：
+    //      两条路径都会走 `FillComponents`（`Game..ctor` 与 `Game.ExposeSmallComponents`），
+    //      但只要判重存在，Postfix 在正常路径下就不会做任何事。
+    //      保留它是为了兜住「Prefix 因某种原因没生效」的情况 —— 代价为零，收益是少一种失效模式。
+    //
+    //   ⚠ Prefix 不能返回 false（那会跳过原版方法体，其它 GameComponent 就全建不出来了）。
+    //      必须是「只做自己的事、原样放行」的 void Prefix。
+    //
+    // 【三点必须注意的地方（都已在实现里处理）】
+    //
     //     1. **幂等** —— FillComponents 在 `Game..ctor` 与 `Game.ExposeSmallComponents`
     //        两条路径上都会走（反编译 callers 实测：Game..ctor 与 Game.ExposeSmallComponents）。
     //        不判重会让 GameComponentTick 一轮跑两遍。
@@ -97,13 +120,14 @@ namespace GNH.LocalFixes
     // 【自动让路】
     //
     //   · 模组没装 → AccessTools.TypeByName 返回 null → 直接跳过（打一行 Message，不是 Error）；
-    //   · 模组更新后把构造函数改对了 → 引擎自己就能创建 → 本项的判重会让它什么都不做；
+    //   · 模组更新后把构造函数改对了 → 引擎自己就能创建 → 判重让它什么都不做；
     //   · FillComponents 改名 / 消失 → 装不上，打 Error 并留待下次重试；
     //   · 玩家关掉开关 → 整项不安装。
     // ==========================================================================
 
     /// <summary>
     /// 【54】给「缇瓦莱特贞操科技」补上那个永远创建不出来的 GameComponent。
+    /// 2026-11-16 起改为 Prefix（先补）+ Postfix（兜底），消除「原版先报一条 ERROR」。
     /// </summary>
     internal static class TwilightGameComponentRebuildFix
     {
@@ -122,6 +146,12 @@ namespace GNH.LocalFixes
 
         /// <summary>目标类型是否已解析过（避免每次都走一次字符串查找）。</summary>
         private static bool typeResolved;
+
+        /// <summary>Prefix 补上时的次数（只用于日志区分「首建」与「兜底」）。</summary>
+        private static int addedInPrefix;
+
+        /// <summary>Postfix 兜底补上时的次数。</summary>
+        private static int addedInPostfix;
 
         /// <summary>安装本补丁。由 LocalFixesMod 的构造函数通过 TryInstall 调用。</summary>
         internal static void Install()
@@ -152,20 +182,26 @@ namespace GNH.LocalFixes
                     return;
                 }
 
+                MethodInfo prefix = AccessTools.Method(
+                    typeof(TwilightGameComponentRebuildFix), nameof(Prefix));
                 MethodInfo postfix = AccessTools.Method(
                     typeof(TwilightGameComponentRebuildFix), nameof(Postfix));
-                if (postfix == null)
+                if (prefix == null || postfix == null)
                 {
-                    Log.Error("[GNH LocalFixes] 【54】internal error: Postfix not found.");
+                    Log.Error("[GNH LocalFixes] 【54】internal error: Prefix/Postfix not found.");
                     return;
                 }
 
-                new Harmony("GNH.LocalFixes.TwilightGameComponentRebuild")
-                    .Patch(fill, postfix: new HarmonyMethod(postfix));
+                // 两个都装：Prefix 让原版循环不再报错，Postfix 兜住「Prefix 没生效」的意外。
+                // 判重在 TryEnsureComponent 里，正常路径下 Postfix 什么都不会做。
+                new Harmony("GNH.LocalFixes.TwilightGameComponentRebuild").Patch(
+                    fill,
+                    prefix: new HarmonyMethod(prefix),
+                    postfix: new HarmonyMethod(postfix));
 
                 installed = true;
                 Log.Message("[GNH LocalFixes] 【54】Twilight GameComponent rebuild installed"
-                    + " (target: " + TargetTypeName + ").");
+                    + " (prefix-first; target: " + TargetTypeName + ").");
             }
             catch (Exception ex)
             {
@@ -200,13 +236,40 @@ namespace GNH.LocalFixes
         }
 
         /// <summary>
-        /// 引擎把所有 GameComponent 建完之后，检查目标组件在不在；不在就用无参构造补一个。
+        /// 引擎建组件**之前**：先把它补上，这样原版循环遍历到它时 GetComponent 已非 null，
+        /// 直接跳过，不会抛 MissingMethodException、也不会打那条 ERROR。
+        ///
+        /// ⚠ 必须是 void Prefix 且不返回 false —— 返回 false 会跳过整个原版方法体，
+        ///    其它 GameComponent（原版的、别的模组的）就全都建不出来了。
+        /// </summary>
+        private static void Prefix(Game __instance)
+        {
+            if (TryEnsureComponent(__instance, true))
+            {
+                addedInPrefix++;
+            }
+        }
+
+        /// <summary>
+        /// 引擎建组件**之后**：兜底。正常情况下 Prefix 已经补上了，这里判重后会直接返回。
         /// </summary>
         private static void Postfix(Game __instance)
         {
-            if (__instance == null)
+            if (TryEnsureComponent(__instance, false))
             {
-                return;
+                addedInPostfix++;
+            }
+        }
+
+        /// <summary>
+        /// 判重后补组件。返回 true 表示本次真的补了一个。
+        /// Prefix 与 Postfix 共用这同一段，保证两处的判重口径完全一致。
+        /// </summary>
+        private static bool TryEnsureComponent(Game game, bool fromPrefix)
+        {
+            if (game == null)
+            {
+                return false;
             }
 
             try
@@ -214,20 +277,20 @@ namespace GNH.LocalFixes
                 Type t = ResolveTargetType();
                 if (t == null)
                 {
-                    return;
+                    return false;
                 }
 
                 // ---- 幂等：已经存在就什么都不做 ----
                 // 注意这里用「类型的完整名」比较，而不是 `is` / `== typeof(...)`：
                 // 我们手上只有反射得到的 Type，用 FullName 比较既准确又不受可见性影响。
-                if (__instance.components != null)
+                if (game.components != null)
                 {
-                    for (int i = 0; i < __instance.components.Count; i++)
+                    for (int i = 0; i < game.components.Count; i++)
                     {
-                        GameComponent c = __instance.components[i];
+                        GameComponent c = game.components[i];
                         if (c != null && c.GetType().FullName == TargetTypeName)
                         {
-                            return;
+                            return false;
                         }
                     }
                 }
@@ -239,19 +302,29 @@ namespace GNH.LocalFixes
                 {
                     Log.ErrorOnce("[GNH LocalFixes] 【54】" + TargetTypeName
                         + " is not a Verse.GameComponent — skipped.", ErrorOnceKey);
-                    return;
+                    return false;
                 }
 
-                __instance.components.Add(comp);
+                // components 理论上非 null（FillComponents 第一行就 RemoveAll 它），
+                // 但 Prefix 阶段仍防御一次：万一为 null 就先建列表，否则 Add 会抛。
+                if (game.components == null)
+                {
+                    game.components = new System.Collections.Generic.List<GameComponent>();
+                }
+
+                game.components.Add(comp);
                 Log.Message("[GNH LocalFixes] 【54】added the missing GameComponent "
-                    + TargetTypeName + " (its constructor takes no arguments, so the engine"
-                    + " could never create it; the orgasm-permission challenge system can now run).");
+                    + TargetTypeName + " (via " + (fromPrefix ? "prefix" : "postfix")
+                    + "; its constructor takes no arguments, so the engine could never create it;"
+                    + " the orgasm-permission challenge system can now run).");
+                return true;
             }
             catch (Exception ex)
             {
                 // 补不上也不能让 FillComponents 的调用方（Game 构造函数）受影响。
                 Log.ErrorOnce("[GNH LocalFixes] 【54】rebuilding the Twilight GameComponent"
                     + " failed: " + ex, ErrorOnceKey);
+                return false;
             }
         }
     }

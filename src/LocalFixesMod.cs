@@ -454,6 +454,8 @@ namespace GNH.LocalFixes
                 PawnGenDeathCauseFix.InstallGuard);
             TryInstall("twilightGameComponentRebuild", "TwilightGameComponentRebuildFix",
                 TwilightGameComponentRebuildFix.Install);
+            TryInstall("ravenChooseImplantZeroWeight", "RavenChooseImplantZeroWeightFix",
+                RavenChooseImplantZeroWeightFix.Install);
 
             TryInstall("rqpFactionLeaderGuard", "RqpFactionLeaderValidatorGuardFix",
                 RqpFactionLeaderValidatorGuardFix.Install);

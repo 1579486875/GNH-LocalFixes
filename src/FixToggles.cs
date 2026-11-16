@@ -632,6 +632,24 @@ new Entry("deepProfilerQuiet", GroupAdvanced,
                 + "而且不依赖「哪个方法调用」，作者怎么改都还能拦住。"
                 + "★ 顺带把其它模组同风格的调试输出也挡住。",
                 "GNH.LocalFixes.DebugSpamPrefixFix"),
+            // 【66】2026-11-16 第四轮全局日志诊断新增。
+            //   RavenRace 用 Transpiler 把原版的 RandomElementByWeight 换成了自己的
+            //   ChooseImplant(...)，而 ChooseImplant 的最后一行仍然是原版那个调用 ——
+            //   于是「总权重 0 时打 ERROR 并返回 null」的行为被完整保留进了它自己那层，
+            //   绕过了 TechHediffsZeroBudgetFix 挂在 GenerateTechHediffsFor 上的 Finalizer。
+            new Entry("ravenChooseImplantZeroWeight", GroupSpam,
+                "帝国头衔生成时刷「总权重 0」（【66】）",
+                "「Raven Race - Embers in Shadow」挑植入体的那一步（ChooseImplant）里，"
+                + "候选集经过预算筛选后可能一个「市值为正」的都不剩，"
+                + "于是它调用原版 RandomElementByWeight 时总权重为 0 —— "
+                + "原版会打一条 ERROR 并返回 null，那只 pawn 这次就一个植入体都不装。"
+                + "本项在它前面先看一遍候选：只要没有任何一个权重为正的项，"
+                + "就直接返回 null 并安静跳过，**不再打那条 ERROR**。"
+                + "★ 返回 null 与引擎自己 TryRandomElementByWeight 失败时的结果完全一致，"
+                + "该 pawn 的装备状态与「原版没报错时」一模一样；"
+                + "★ 只要存在正权重候选就原样放行，抽谁仍然完全交给原版；"
+                + "★ 模组没装 / 作者改了实现 → 本项自动让位，只打一行 Message；"
+                + "★ 关掉本项 → 回到「每次头衔生成刷一行 ERROR」的原状。"),
 
             // ---------------- 兼容与判定 ----------------
             new Entry("patchVerbPropertiesAdjustedRange", GroupCompat,
@@ -1166,6 +1184,8 @@ new Entry("xmlVoeSushiMigration", GroupXmlPatches,
             // ---- 2026-11-12 第二轮全局日志诊断新增 ----
             // 贞操科技：被补建的那个 GameComponent 在这个模组的 dll 里
             { "twilightGameComponentRebuild", "LT.TwilightChastityTechnology" },
+            // Raven Race（工坊 3781005562）：被补的 ChooseImplant 在它的 dll 里
+            { "ravenChooseImplantZeroWeight", "ZuoYao.RavenRace" },
             // Real Faction Guest：背景校验器在这个模组的 dll 里
             { "rqpFactionLeaderGuard", "rtxyd.RealFactionGuest" },
             // 涅瓦莲附加包：写错 texPath 的那个 def 由它提供

@@ -155,6 +155,8 @@
   <GNH_LocalFixes_Toggle_pawnGenRestorePartGuard_Desc>世界生成时先给派系成员装义体，原版装义体的代码里有一句「恢复这个部位」，它默认会顺手做一次死亡判定 —— 可装配还没做完，于是小人当场被判死，派系领袖连生 120 次全败、累计 720 条红字。本项只在「小人正在生成」时关掉那次多余的判定。依据是引擎作者自己在「装假体」路径上就传了 checkStateChange: false。★ 手术台 / 战斗 / 日常治疗全部不受影响；生成结束后引擎自己的校验照常生效。</GNH_LocalFixes_Toggle_pawnGenRestorePartGuard_Desc>
   <GNH_LocalFixes_Toggle_twilightGameComponentRebuild>贞操科技的核心组件从来没被创建（【54】）</GNH_LocalFixes_Toggle_twilightGameComponentRebuild>
   <GNH_LocalFixes_Toggle_twilightGameComponentRebuild_Desc>「缇瓦莱特贞操科技」的核心组件把构造函数写成了无参形式，而引擎按「传一个 Game 对象」的方式创建它，参数对不上 → 创建失败 → 引擎 catch 掉只打一行红字。结果这套系统的所有功能都不工作。本项在引擎建完组件之后用无参构造把它补进去，并做幂等检查。★ 作者的逻辑一行不改、全部照跑，唯一变化是「它终于会跑了」；★ 模组没装就跳过；作者改对后本项自动让位。</GNH_LocalFixes_Toggle_twilightGameComponentRebuild_Desc>
+  <GNH_LocalFixes_Toggle_ravenChooseImplantZeroWeight>帝国头衔生成时刷「总权重 0」（【66】）</GNH_LocalFixes_Toggle_ravenChooseImplantZeroWeight>
+  <GNH_LocalFixes_Toggle_ravenChooseImplantZeroWeight_Desc>「Raven Race - Embers in Shadow」挑植入体的那一步里，候选集经过预算筛选后可能一个「市值为正」的都不剩，于是它调用原版 RandomElementByWeight 时总权重为 0 —— 原版打一条 ERROR 并返回 null，那只 pawn 这次就一个植入体都不装。本项在它前面先看一遍候选：只要没有任何权重为正的项，就直接返回 null 并安静跳过，不再打那条 ERROR。★ 返回 null 与引擎 TryRandomElementByWeight 失败时的结果完全一致；★ 存在正权重候选就原样放行，抽谁仍交给原版；★ 模组没装 / 作者改了实现 → 自动让位；★ 关掉本项 → 回到每次刷一行 ERROR 的原状。</GNH_LocalFixes_Toggle_ravenChooseImplantZeroWeight_Desc>
 
   <GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>帝国头衔生成时的集合改动异常（【55】）</GNH_LocalFixes_Toggle_rqpFactionLeaderGuard>
   <GNH_LocalFixes_Toggle_rqpFactionLeaderGuard_Desc>「Real Faction Guest」给派系领袖校正背景故事时，会在遍历某个集合的过程中改动它，抛出「Collection was modified」。它自己的上层有 try/catch，所以游戏不会中断；真正的影响是那一次背景修正没做成，日志里多一段整栈红字。本项只把这一种异常单独摘掉并合并成一条提示。★ 这是「让日志说实话」，不是「把功能修好了」；★ 别的异常原样上抛。</GNH_LocalFixes_Toggle_rqpFactionLeaderGuard_Desc>
