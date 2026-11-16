@@ -81,6 +81,11 @@ namespace GNH.LocalFixes
         /// <summary>当前正在解析的字段名（由 ResolveFieldForNode 的 Postfix 写入）。</summary>
         private static string curField = "(unknown)";
 
+        /// <summary>
+        /// 安装三条 Patch：①`DefFromNodeNew` → 记文件名；②`ParseIntPermissive` → 打日志；
+        /// ③`ResolveFieldForNode` → 记字段名（可选，拿不到就退回「只有文件名」）。
+        /// 每个目标都单独判空：任一找不到就说明原因、其余照装，绝不整项失效。
+        /// </summary>
         internal static void Install()
         {
             if (installed)
