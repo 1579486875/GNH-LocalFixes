@@ -1,3 +1,4 @@
+import sys
 # -*- coding: utf-8 -*-
 """
 R5：把 C# 的迁移逻辑与界面联动**逐行翻译成 Python 跑一遍**，验证 8 种真实配置下的行为。
@@ -102,6 +103,7 @@ print("=" * 92)
 
 # 专项：迁移不该误伤
 print("\n迁移的边界：")
+any_bad = False
 for name, cfg, should in [
     ("空配置", {}, False),
     ("只有总控=true", {"allDiagnostics": True}, True),
@@ -114,4 +116,9 @@ for name, cfg, should in [
     migrate(t)
     changed = t != before
     ok2 = changed == should
+    if not ok2:
+        any_bad = True
     print("  %-30s 改动=%-5s 应为=%-5s %s" % (name, changed, should, "✓" if ok2 else "✗"))
+
+# 2026-11-16 补：原先只 print。任一项 ✗ 即失败。
+sys.exit(1 if any_bad else 0)

@@ -7,6 +7,7 @@
       不要穿插在有编号的条目之间 —— 否则视觉上就是乱序。
 """
 import io
+import sys
 import re
 import os
 
@@ -74,3 +75,6 @@ for grp, items in by_group.items():
 
 print("=" * 60)
 print("有问题的分组：%d 个" % problems)
+
+# 2026-11-16 补：原先只 print、不 exit —— 查出乱序也返回 0，自动化无从判断。
+sys.exit(1 if problems else 0)

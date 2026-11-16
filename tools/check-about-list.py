@@ -6,6 +6,7 @@ About.xml 里的这份速览是玩家在模组管理器里能读到的第一手�
 编号一旦与实现错位，玩家照着编号去找开关就会找错 —— 这类错不报错、不崩，只有人去对才发现。
 """
 import re, os
+import sys
 import xml.etree.ElementTree as ET
 
 BASE = r"E:\TAML\modfix\GNH-LocalFixes"
@@ -85,3 +86,10 @@ print(f"C# 有、About 没有的号：{sorted(cs_nums - about_nums)}")
 # 速览段里声称的条数
 mt = re.search(r'修复速览（(\d+)\s*条', seg)
 print(f"\nAbout 声称条数：{mt.group(1) if mt else '?'}；C# 实际有编号项：{len(CSNUM)}")
+
+# 2026-11-16 补：原先只 print。这里把「号集合不一致」或「声称条数≠实际条数」判为失败。
+# 2026-11-16 订正：**只依据号集合差集**判失败。
+# 不拿「About 声称 66 条」跟「C# 有编号 65 项」比 —— 那个 66 是含无编号项的口径
+# （72 项 = 66 条修复 + 6 个工具；66 条里有 1 条是 xmlPatchGate，按规矩不编号）。
+# 把这种口径写死在脚本里，只会随改动漂移。
+sys.exit(1 if ((about_nums - cs_nums) or (cs_nums - about_nums)) else 0)

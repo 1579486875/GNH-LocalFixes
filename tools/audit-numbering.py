@@ -68,3 +68,6 @@ dup = {k: v for k, v in c.items() if v > 1}
 print("  重复号:", dup if dup else "无")
 missing = [n for n in range(1, max(nums) + 1) if n not in c] if nums else []
 print("  空缺号:", missing)
+
+# 2026-11-16 补：原先只 print。重复号或空缺号都算失败。
+sys.exit(1 if (dup or missing) else 0)

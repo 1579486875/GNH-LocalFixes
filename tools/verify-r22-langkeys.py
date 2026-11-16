@@ -21,6 +21,7 @@ for i in ids:
 for g in groups:
     need.add("GNH_LocalFixes_Group_" + g.replace("Group", ""))
 
+any_missing = False
 for lang in ("ChineseSimplified", "ChineseTraditional", "English"):
     d = os.path.join(BASE, "Languages", lang, "Keyed")
     keys = set()
@@ -33,7 +34,12 @@ for lang in ("ChineseSimplified", "ChineseTraditional", "English"):
             if isinstance(el.tag, str):
                 keys.add(el.tag)
     missing = sorted(need - keys)
+    if missing:
+        any_missing = True
     extra = len(keys - need)
     print("  %-20s 应有 %d / 实际 %d / 缺 %d%s / 富余 %d"
           % (lang, len(need), len(keys), len(missing),
              ("（" + ", ".join(missing[:3]) + "…）") if missing else "", extra))
+
+# 2026-11-16 补：原先只 print。任一语言「缺」不为 0 即失败。
+sys.exit(1 if any_missing else 0)
