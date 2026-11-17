@@ -55,6 +55,27 @@ GATES = {
         ('迁移（R5）', 'tools/verify-r5-migration.py', [], True),
         ('静态审计', 'tools/static-audit.py', [], True),
         ('工具自身健康度', 'tools/tool-health.py', [], True),
+        # 2026-11-17 本轮加：模板 §B.17.4「两份同名语言目录只同步了一半」。
+        # 反编译 1.7.5011.24 的 Verse.LoadedLanguage 实证：AllDirectories 先试
+        # folderName（= Prefs.langFolderName = "ChineseSimplified (简体中文)"），
+        # 命中就 continue，永不回退 legacyFolderName。
+        # 本仓库目前只有 `Languages/ChineseSimplified` 一套，靠 legacy 回退命中 ——
+        # 能用，但这是**唯一**的加载路径；将来若补一份带括号的，两套必须一致。
+        ('语言目录对一致性（B.17.4）', 'tools/check-dup-langdirs.py', [], True),
+        # 2026-11-17 本轮加：requiresModById 指向的 packageId 必须真的存在。
+        # 写成死 id 的开关永远不会激活，界面上也不会提示「目标未安装」——
+        # 等于一条静默消失的修复。这类错不报红字、不崩，只能靠清单核对。
+        ('前置模组存在性', 'tools/check-requires-mods.py', [], True),
+        # 2026-11-17 本轮加：全仓库 .py 的语法与编译告警。
+        # 起因：`verify-patches.py` / `audit-toggle-wiring.py` / `update-template-1818.py`
+        # 三个脚本的 docstring 里写了单个反斜杠 + 非法转义字符（Windows 路径、Markdown 反引号），
+        # 每次运行先打一条 SyntaxWarning。不影响功能，但污染闸门输出，且 Python 3.12+ 逐步收紧。
+        ('Python 语法（全仓库）', 'tools/check-py-syntax.py', [], True),
+        # 2026-11-17 本轮加：《边缘世界本地化翻译提示词》第七步 ——
+        # 译文里的英文半角双引号必须换成全角 “ ”。424k 个文本节点里漏一个肉眼查不出来，
+        # 它不报错、不影响加载，只有玩家读到那句时才看得出别扭。
+        # 只扫中文目录；值里含代码 / XML 属性片段的按白名单放行（半角在那里是语法的一部分）。
+        ('译文引号风格（全角）', 'tools/check-quote-style.py', [], True),
         ('文档数字对账', 'tools/docstats.py', ['--check'], True),
     ],
 }

@@ -33,7 +33,7 @@ verify-patches.py —— Patches\\*.xml 的静态门禁（改完必须跑）
   python tools/verify-patches.py --deployed # 额外检查**部署到 Mods 目录的那一份**
 
 【为什么要有 --deployed —— 2026-11-12 又踩了一次】
-  tools/deploy.ps1 的 Patches\ 是**从 bin\<配置>\ 复制**的（那是构建产物），
+  tools/deploy.ps1 的 Patches\\ 是**从 bin\\<配置>\\ 复制**的（那是构建产物），
   不是从工程根。所以「改完 XML 直接 deploy」会把**上一次构建时的那份旧 XML** 装进游戏 ——
   文件大小可能一模一样（本次就是 7419 字节 vs 7419 字节），肉眼完全看不出来。
 

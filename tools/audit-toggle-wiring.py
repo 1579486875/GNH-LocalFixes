@@ -24,7 +24,7 @@
 | `xmlPatchFile` | `Patches/` 下该文件名存在 | 开关指向一个不存在的补丁文件 |
 | 两者都 null | 必须是下列之一：① 由 `TryInstall("id", ...)` 手工安装；② 诊断总控；③ 纯行为开关（在别的类里读 `IsFixEnabled`） | 否则是死开关 |
 
-`xmlPatchFile` 还要**反向**核对：`Patches\` 下每个 .xml 是否都有开关管着。
+`xmlPatchFile` 还要**反向**核对：`Patches\\` 下每个 .xml 是否都有开关管着。
 """
 import os
 import re
