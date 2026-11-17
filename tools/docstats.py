@@ -71,6 +71,17 @@ ids = re.findall(r'new Entry\("([^"]+)"', block)
 #   同步改了 src/DocStatsSelfCheck.cs，两处必须一起动。
 diag = len(re.findall(r'new Entry\("[^"]+",\s*GroupDiagnostics', block))
 diag += len(re.findall(r'new Entry\("[^"]+",\s*GroupAdvanced', block))
+
+# 2026-11-17 本轮加：分组明细（README 的「诊断 a + 崩溃 b + …」那一行）
+diag5 = len(re.findall(r'new Entry\("[^"]+",\s*GroupDiagnostics', block))
+n_crash = len(re.findall(r'new Entry\("[^"]+",\s*GroupCrash', block))
+n_spam = len(re.findall(r'new Entry\("[^"]+",\s*GroupSpam', block))
+n_compat = len(re.findall(r'new Entry\("[^"]+",\s*GroupCompat', block))
+n_behaviour = len(re.findall(r'new Entry\("[^"]+",\s*GroupBehaviour', block))
+n_advanced = len(re.findall(r'new Entry\("[^"]+",\s*GroupAdvanced', block))
+n_xml = len(re.findall(r'new Entry\("[^"]+",\s*GroupXmlPatches', block))
+print(f"分组实测：诊断 {diag5} / 崩溃 {n_crash} / 刷屏 {n_spam} / 兼容 {n_compat} / "
+      f"行为 {n_behaviour} / 剖析 {n_advanced} / XML {n_xml} = {diag5+n_crash+n_spam+n_compat+n_behaviour+n_advanced+n_xml}")
 fix_count = total - diag
 
 xml_refs = re.findall(r'xmlPatchFile:\s*"([^"]+)"', tg)
@@ -111,6 +122,13 @@ m = re.search(r"现在\s*(\d+)\s*条", about)
 about_declared = int(m.group(1)) if m else None
 print(f"\nAbout.xml 简介声明            : {about_declared}")
 
+# 2026-11-17 本轮加：编号体系的上限（【1】…【N】）。
+# 起因：README 里到处写「66 条修复」，而 FixToggles 的编号其实已经长到 69 —— 三处数字
+# （66 / 72 / About 的 70）互相打架，全靠人记，docstats 一处都没管。
+num_ids = [int(x) for x in re.findall(r"【(\d+)】", block)]
+max_num = max(num_ids) if num_ids else 0
+print(f"编号体系上限（【1】…【N】）     : {max_num}")
+
 # README：几处数字
 rm_total = re.search(r"共\s*(\d+)\s*项修复", readme)
 rm_switch = re.search(r"\*\*(\d+)\s*个独立开关\*\*", readme)
@@ -145,6 +163,28 @@ if rm_switch and int(rm_switch.group(1)) != total:
     problems.append(f"README 写「{rm_switch.group(1)} 个独立开关」，实际 {total} 个")
 if rm_xml and int(rm_xml.group(1)) != len(xml_files):
     problems.append(f"README 写「{rm_xml.group(1)} 个 XML 补丁」，实际 {len(xml_files)} 个")
+
+# 2026-11-17 本轮加：README 里另外三处写死过的数字。
+rm_settings = re.search(r"###\s*(\d+)\s*个设置项", readme)
+rm_cover = re.search(r"\*\*(\d+)\s*个开关覆盖全部\s*(\d+)\s*条(?:修复|编号)\*\*", readme)
+rm_break = re.search(r"（诊断\s*(\d+)\s*\+\s*崩溃\s*(\d+)\s*\+\s*刷屏\s*(\d+)\s*\+\s*兼容\s*(\d+)"
+                     r"\s*\+\s*行为\s*(\d+)\s*\+\s*剖析\s*(\d+)\s*\+\s*XML\s*(\d+)\s*=\s*(\d+)）", readme)
+print(f"README「### N 个设置项」       : {rm_settings.group(1) if rm_settings else '未找到'}")
+print(f"README「N 个开关覆盖 M 条修复」 : {(rm_cover.group(1)+'/'+rm_cover.group(2)) if rm_cover else '未找到'}")
+print(f"README 分组明细               : {rm_break.groups() if rm_break else '未找到'}")
+
+if rm_settings and int(rm_settings.group(1)) != total:
+    problems.append(f"README「### {rm_settings.group(1)} 个设置项」，实际 {total} 个")
+if rm_cover:
+    if int(rm_cover.group(1)) != total:
+        problems.append(f"README 写「{rm_cover.group(1)} 个开关覆盖…」，实际 {total} 个")
+    if int(rm_cover.group(2)) != max_num:
+        problems.append(f"README 写「覆盖全部 {rm_cover.group(2)} 条修复」，实际编号上限 {max_num}")
+if rm_break:
+    g = [int(x) for x in rm_break.groups()]
+    want = [diag5, n_crash, n_spam, n_compat, n_behaviour, n_advanced, n_xml, total]
+    if g != want:
+        problems.append(f"README 分组明细 {g} ≠ 实际 {want}")
 
 print()
 if not problems:

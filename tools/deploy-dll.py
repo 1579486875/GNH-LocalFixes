@@ -111,5 +111,12 @@ if diff and not WRITE:
         print("\n⚠ 游戏正在运行 —— 先关掉游戏，再加 --write 部署（DLL 会被占用）。")
     else:
         print("\n加 --write 才会真部署。")
+    # 2026-11-17 本轮加：--check 模式给闸门用（有差异就 exit 1）。
+    # 起因：README.md 这类文档改了仓库却没部署，是**最容易漏**的一步 ——
+    # 本轮就是这样（先改了 README，跑全量回归全绿，但部署目录里还是旧的）。
+    # 有了这个开关，full-regression 才能把「仓库 ↔ 两个部署目录」也纳入必过项。
+    if '--check' in sys.argv and (diff or miss):
+        print("❌ --check：存在未部署的差异")
+        sys.exit(1)
 elif WRITE:
     print("\n✅ 部署完成" if diff == 0 or not running else "\n⚠ 部分文件因占用未写入")
