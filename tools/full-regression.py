@@ -70,6 +70,11 @@ GATES = {
         # 起因：`verify-patches.py` / `audit-toggle-wiring.py` / `update-template-1818.py`
         # 三个脚本的 docstring 里写了单个反斜杠 + 非法转义字符（Windows 路径、Markdown 反引号），
         # 每次运行先打一条 SyntaxWarning。不影响功能，但污染闸门输出，且 Python 3.12+ 逐步收紧。
+        # 2026-11-17 本轮加：XML 补丁里 defName="X" 的引用目标在 1.7 / 1.6 两个环境是否可达。
+        # verify-patches.py 只查 XML 结构，**不查「这个 defName 到底有没有」** ——
+        # XPath 匹配到 0 个节点不是错误，补丁会静默不生效，日志里一个字都没有。
+        # 两级判据：1.7 下缺 = 缺陷；1.6 下缺 = 提示（1.6 副本只有 339 个模组目录）。
+        ('补丁目标可达性', 'tools/check-patch-targets.py', [], True),
         ('Python 语法（全仓库）', 'tools/check-py-syntax.py', [], True),
         # 2026-11-17 本轮加：《边缘世界本地化翻译提示词》第七步 ——
         # 译文里的英文半角双引号必须换成全角 “ ”。424k 个文本节点里漏一个肉眼查不出来，
