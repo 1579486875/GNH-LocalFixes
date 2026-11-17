@@ -115,6 +115,25 @@ if diff and not WRITE:
     # 起因：README.md 这类文档改了仓库却没部署，是**最容易漏**的一步 ——
     # 本轮就是这样（先改了 README，跑全量回归全绿，但部署目录里还是旧的）。
     # 有了这个开关，full-regression 才能把「仓库 ↔ 两个部署目录」也纳入必过项。
+    # 2026-11-17 本轮加：部署目录里的开发过程垃圾也计入 --check 失败。
+    # 姊妹仓库（NMM 汉化）实测有 14 个 .bak-*（同步脚本自己写进部署目录的备份），
+    # 因为「.bak 被豁免 + 多余不算失败」两条叠在一起，躺了几个月没人发现。
+    # 本仓库的 deploy-dll.py 不写备份，目前两环境都是 0 个；这条是给未来兜底的。
+    import os as _os
+    _JUNK = ('.bak', '.bak-sync', '.orig', '.tmp', '.old', '.rej')
+    _junk = []
+    for _t, _label in TARGETS:
+        for _dp, _dn, _fns in _os.walk(_t):
+            for _fn in _fns:
+                if _fn.lower().endswith(_JUNK):
+                    _junk.append(_os.path.join(_dp, _fn))
+    if _junk:
+        print("\n⚠ 部署目录里有开发过程垃圾 %d 个：" % len(_junk))
+        for _j in _junk[:10]:
+            print("   " + _j)
+        if '--check' in sys.argv:
+            print("❌ --check：部署目录不干净")
+            sys.exit(1)
     if '--check' in sys.argv and (diff or miss):
         print("❌ --check：存在未部署的差异")
         sys.exit(1)
