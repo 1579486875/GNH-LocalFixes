@@ -77,6 +77,14 @@ def index(roots):
 
 def main():
     verbose = '-v' in sys.argv
+    # 2026-11-17 加：环境缺失按 skip 处理（exit 0），不按失败处理。
+    # 判据依赖本机装没装 RimWorld。按失败处理会让换台机器 / 别人的 CI 永远红 ——
+    # 那不是代码问题。但必须明确打印「本项未核」，不能静默通过。
+    if not os.path.isdir(ENVS['1.7'][0]):
+        print('⏭ 跳过：找不到 1.7 游戏目录')
+        print('   %s' % ENVS['1.7'][0])
+        print('   本项**未核**（不是通过）。')
+        return 0
     files = sorted(f for f in os.listdir(PATCHES) if f.lower().endswith('.xml'))
     refs = {}
     for f in files:

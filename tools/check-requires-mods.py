@@ -124,6 +124,11 @@ def disk_ids():
 
 def main():
     verbose = '-v' in sys.argv
+    # 2026-11-17 加：环境缺失按 skip（判据依赖 RimCrow 数据库与本机磁盘）。
+    if not os.path.exists(RIMCROW_DATA) and not os.path.isdir(DISK_ROOTS[0]):
+        print('⏭ 跳过：既没有 RimCrow 数据库，也没有 RimWorld Mods 目录')
+        print('   本项**未核**（不是通过）。')
+        return 0
     src = open(SRC, 'rb').read().decode('utf-8-sig')
     req = parse_requires(src)
     if req is None:
