@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModMetaData>
+  <name>多模组红字修复补丁</name>
+  <author>大赢经直插白皮赢道</author>
+  <packageId>gnh.cn.cys.localfixes</packageId>
+  <url>https://github.com/1579486875/GNH-LocalFixes</url>
+  <modVersion>1.4.64</modVersion>
+  <supportedVersions>
+    <li>1.6</li>
+    <li>1.7</li>
+  </supportedVersions>
+  <description>RimWorld 装了几百上千个模组之后，总会遇到这类毛病：某个模组自己写错一行，或者和另一个模组撞上。游戏不崩，只是日志被刷满屏、某个功能悄悄失效、玩着玩着莫名卡顿。
+
+报给作者要等，自己又改不动。这个补丁把它们一条条揪出来修掉 —— 现在 70 条，条条独立、条条可关。
+
+本模组原名「多模组兼容修复补丁」，2026-11-11 改名为「多模组红字修复补丁」，功能与开关一个没变，只是名字更直白。
+
+■ 修复速览（69 条，编号与设置界面一一对应）
+
+【1】坏程序集不再拖垮整批补丁
+【2】射程计算空引用
+【3】VFE Empire 爵位扩展被清空
+【4】XML 补丁按名字判定 DLC 失效
+【5】修复 VFE Empire「乐器空间」的空引用崩溃
+【6】打开「模组」页面崩溃
+【7】通用动物动画的 Rotti 死引用
+【8】VFE 钢琴/营火/石棺补丁没执行
+【9】CCOE 的反射异常红字
+【10】植入体预算为 0 时的空引用崩溃
+【11】非乐器不许进「乐器」分组（源头拦截）
+【12】音乐淡出每帧报错
+【13】溪谷联邦炮塔引用已删除的类型
+【14】XmlExtensions 的 FindMod 判定失效
+【15】保护自定义的领袖头衔
+【16】开新局卡死在生成阶段
+【17】古代神殿警告刷屏
+【18】金鸢尾兰「不知名的沙皇」缺 xenotypeSet
+【19】雪兔纹身图标大小写不符
+【20】Allies are Helpful 的角色空引用
+【21】RJW-Genes 调试刷屏
+【22】Steam 工坊信息崩溃（第二道保险）
+【23】Vehicle Framework 调试菜单报错
+【24】ElToro Patches 与 telanda 抢 defName
+【25】雪兔公共库的并发崩溃
+【26】Guards For Me 的行为树残缺
+【27】抵消「月经体液」强制关闭 Cumpilation 设置
+【28】PE 模组的残留 def 报错
+【29】RI-Furniture 皇权自检刷屏
+【30】补回被删掉的戒律 issue
+【31】米莉拉领航员制服的 layers / comps
+【32】把 HediffDef 当 DamageDef 引用
+【33】配置自检噪音 + 字段级清理
+【34】RaceGeneDef 类型名解析到正确的一份
+【35】修复 RJW 高潮节奏被弄乱
+【36】1.7 下 SRAELib 字段缺失刷红字
+【37】HediffStage.visible 字段不存在
+【38】实时绘制空引用刷屏
+【39】两处调试输出刷屏
+【40】读档刷上百条 /fixPawn 报错
+【41】同一台建筑挂了两个「可分配」组件
+【42】ExtraWeapon2 额外武器击杀回调兜底
+【43】裸体评价 1.7 重构后的过期 comp
+【44】单个补丁失败不再连累整批
+【45】淫妻与公牛：10 个关系 def 写了不存在的字段
+【46】淫妻与公牛：一个 JobDef 指向不存在的类
+【47】RJW 的 Sex 技能缺排序扩展
+【48】无限精液工坊：两个储液桶写了不存在的组件
+【49】RJW 生成失败被放大成世界生成崩溃
+【50】机械师带宽面板每帧刷屏
+【51】米莉拉服装贴图表里有重复条目
+【52】边缘仙路配方补丁在 DefOf 就绪前必崩
+【53】世界生成期装义体被误判死亡
+【54】贞操科技的核心组件从来没被创建
+【55】帝国头衔生成时的集合改动异常
+【56】世界生成期刷 720 条「找不到玩家派系」
+【57】餐厅前哨还在产已被合并掉的 8 种寿司
+【58】涅瓦莲星陨信标贴图路径少一层目录
+【59】一个整数字段被写成了小数，每次加载刷 38 条
+【60】世界生成期被「Just A Flesh Wound」判死
+【61】发射井的管子尺寸与开盖动画被截断成 0
+【62】雪兔的分层建筑上层显示成紫块
+【63】读档时「仪式义务」的 ID 撞车
+【64】读档时「同一条设施链接被重复登记」的告警
+【65】读档刷「Debug:________isCustomSite」等调试输出
+【66】帝国头衔生成时刷「总权重 0」
+【67】车库门的可选增强找不到目标 def
+【68】翻译给描述多带了首尾空白
+【69】人工种族的「裸体评价」页签不出现
+让 XML 补丁也能单独关闭（总控，不占编号）
+
+⚠ 这份清单是**从代码里的开关表直接生成的**（tools 下的脚本），不是手写维护的第二份 ——
+   编号或措辞一改，重跑一次就同步，不会再出现「文档说的和实际装的不是一条」。
+
+■ 怎么用
+
+装进 Mods 目录、在游戏里启用即可，没有必填设置。
+
+位置建议靠下：排在 Harmony 之后，最好也排在它要修的那些模组之后。
+
+本模组由两部分组成，互不依赖 ——
+· Patches 目录下是 22 个 XML 补丁
+· Assemblies 目录里是一个 dll
+
+删掉哪一半，就只有那一半不生效。
+
+■ 设置界面（72 个开关，分七组）
+
+· 诊断工具（最上面一组，默认关闭）—— 5 个
+· 性能剖析（默认关闭）—— 1 个
+· 崩溃与卡死 —— 19 个
+· 日志刷屏 —— 13 个
+· 兼容与判定 —— 8 个
+· 行为与设置 —— 3 个
+· XML 补丁（可单独关闭）—— 23 个
+
+诊断工具那组是五个只读取证工具：
+
+· 「详细错误勘探」—— 查 transpiler 撞车
+· 「世界生成期死亡取证」—— 查某派系领袖生不出来
+· 「定位 Parsed X as int」—— 查哪个 XML 把小数值写进整数字段
+· 「RJW 高潮取证」—— 查高潮节奏不对时到底算出了什么
+· 「全部诊断一起开」—— 上面四个的总控
+
+它们都只读、不修任何东西，也不算在那些修复里；没有排查需求就让它一直关着。
+
+每条右侧会标出异常状态（灰色「已关闭」／暗黄「目标模组未启用」）。
+顶部有一行汇总，告诉你这次实际装上了多少条、被关了几条、目标模组没装几条。
+
+★ 每一份修复在设置界面里都有独立开关（XML 补丁那 22 个由组末的总控统一放行）。没有「只能靠删文件才能关掉」的项。
+
+■ 其它说明
+
+改开关要重启游戏才生效 —— 补丁一旦挂上没法中途中止，这个界面决定的是下次启动装哪几项。
+
+日志里搜 [GNH LocalFixes]，它会逐条打印装上了什么、跳过了什么、哪一步失败了。
+
+1.6 环境下如果某个 XML 补丁要修的目标模组没装，它会安静跳过、只在日志里留一行说明，不再把「Patch operation ... failed」当红字刷出来。
+
+每条的根因分析、反编译证据与验证方法，见仓库的《技术说明.md》。
+
+■ 模组信息
+
+适用版本　RimWorld 1.6 / 1.7
+前置依赖　Harmony
+作者　　　大赢经直插白皮赢道
+AI 协作　代码由 DeepSeek娘·汐蓝 辅助编写，作者负责设计、审阅与实机验证
+存档影响　不往存档里写任何数据，加装或移除都不用开新档
+仓库　　　https://github.com/1579486875/GNH-LocalFixes</description>
+  <modDependencies>
+    <li>
+      <packageId>brrainz.harmony</packageId>
+      <displayName>Harmony</displayName>
+      <steamWorkshopUrl>https://steamcommunity.com/sharedfiles/filedetails/?id=2009463077</steamWorkshopUrl>
+    </li>
+  </modDependencies>
+  <loadAfter>
+    <li>brrainz.harmony</li>
+    <!-- brrainz 系列其余三家：它们是 CrossPromotion 的宿主。
+         我们那套「摘除 CrossPromotion 前缀」的修复必须排在它们之后加载，
+         否则「我们摘 / 它们挂」的先后没有约束（详见 CrossPromotionUnpatch 的说明）。 -->
+    <li>brrainz.visualexceptions</li>
+    <li>brrainz.achtung</li>
+    <li>brrainz.cameraplus</li>
+    <li>ElToro.BAddon</li>
+    <!-- ElToro 的动画扩展（Mods\RJW_动画_通用动物动画）。
+         我们的 Patches/ElToroAnimsRottiRefFix.xml 改的正是它加载的 Def，
+         按 ELToro 的 Def 先就位。
+         （2026-10-06 审计发现原先漏了这一条。） -->
+    <li>ElToro.Anims</li>
+    <li>TOT.CeleTech.MKIII</li>
+    <li>OskarPotocki.VFE.Empire</li>
+    <!-- VFE 家具本体（Vanilla Furniture Expanded 的本体 Def 都在这里）。
+         我们的 Patches/VFEPianoFirepitRestore.xml 给 VFECore 的
+         Joy_Piano / Play_Piano 等 Def 补做被清掉的效果。
+
+         ⚠ 2026-10-12 复审纠正：本条原先写「必须排在它之后」并归因于
+           「xpath 要能查到这些 Def」。按上面说过的机制（def 先全部合并、
+           补丁后统一应用），对**定义者**的顺序**不是必须**的。
+           这个补丁真正需要的硬约束是排在 **disroom.mashiro 之后** ——
+           那个模组把爵位的 modExtensions 整个替换成空表，连累到这批家具效果；
+           那一条已在本列表末尾声明。
+         （2026-10-06 审计发现原先漏了这一条。） -->
+    <li>VanillaExpanded.VFECore</li>
+    <li>Gugustar.SnowRabbitRaceBeta</li>
+    <!-- [OA]脚踩花糕（ww.oberoniaaurea.steppedflowercake，工坊 3379736801）：
+         它是 OASFC_BasePawn 的定义者，而 OASFC_Pawn_Shubing（「不知名的沙皇」）
+         继承自它。我们的 Patches/OASFC_TsarXenotypeFix.xml 用
+         PatchOperationConditional 给那个 Def 补字段。
+
+         ⚠ 2026-10-12 复审**纠正了一处说反了的机制**（原文本条写的正好相反）：
+           原先写的是「xpath 问的是『现在有没有』……所以【必须】排在定义者之后，
+           排在前面的话 xpath 匹配不到，补丁会安静地什么都不做」。**这是错的。**
+
+           反编译 Verse.LoadedModManager 可证，加载分两步：
+             ① CombineIntoUnifiedXML —— 先把**所有已启用模组**的 def
+                合并进同一个 XmlDocument；
+             ② ApplyPatches —— 再遍历 runningMods，依次应用所有补丁。
+           补丁执行时，**所有 def 早已在同一份文档里**，与定义它的模组排第几无关。
+           所以顺序**不影响我们的 xpath 能否命中**；它只决定
+           「补丁与补丁之间」谁后应用。
+
+           因此这一条 loadAfter 的实际作用是「排序更整齐、意图更清楚」，
+           删掉也不会导致静默失效 —— 但它成本为零，保留即可。
+           别再从这条推断「排错顺序会静默失效」，那会把人引到错误的方向。
+
+         ⚠ 真正**必须**靠 loadAfter 的是「补丁打补丁」：见本文件末尾
+           disroom.mashiro 那条 —— 它用 PatchOperationReplace 把爵位的
+           modExtensions 整个换空，我们必须排在它之后才能把扩展补回来。那种才是硬约束。
+
+         ⚠ 另一个仍然成立的易混点：该补丁外层的 FindMod 守卫写的是
+           「[OA]Ratkin Faction: Oberonia aurea」（金鸢尾兰帝国，工坊 3159926804），
+           因为补丁里用到的 Ratkin_OA 异种人定义在那边；但要改的 Def 在本模组。
+           守卫通过 ≠ 目标已加载，这是两件事。
+
+         （2026-10-07 复审发现原先漏了这一条，与 2026-10-06 漏掉
+           vanillaexpanded.vfecore 属于同一类问题：新增补丁时容易忘记配顺序。） -->
+    <li>WW.OberoniaAurea.SteppedFlowerCake</li>
+    <li>Ariandel.MiliraImperium</li>
+    <li>SmashPhil.VehicleFramework</li>
+    <!-- CCOE：我们要给它自己的 Patch_CumOut 挂 Finalizer，
+         得保证它先加载、目标方法先就位。 -->
+    <li>keahuy.rjw.ccoe</li>
+    <!-- [天鹰2.0]溪谷联邦（tyll.valley）：它会往炮塔 Def 里塞一个
+         VFE Security 1.6 已删除的类型，导致整个 Def 加载失败。
+         我们的清理补丁（Patches/FixTY2ValleyLongRangeArtillery.xml）
+         必须排在它之后，才能把那个节点拿掉。 -->
+    <li>TYll.valley</li>
+    <!-- disroom.mashiro（disabledroomRequirements，工坊 3297881350，本机位次 1134
+         —— 2026-10-06 实测值；这个数字会随模组列表调整而变，只作参考）：
+
+         它的 Patches/RoyalTitles_VFEEmpire.xml 为了实现「删除所有房间要求」，用
+         PatchOperationReplace 把爵位的 modExtensions 整个替换成空表，xpath 覆盖
+         DukeBase / BaseEmpireTitle / ConsulBase / StellarchBase 四个父类 —— 也就是
+         原版全部帝国爵位加上 VFE 全部新增爵位。VFEEmpire 自己写的 RoyalTitleDefExtension
+         就这样被一并抹掉。
+
+         后果不是「少个字段」而是崩溃。WorldComponent_Hierarchy.MakePawnFor 里
+             title.GetModExtension<RoyalTitleDefExtension>().kindForHierarchy
+         两步之间没有 null 检查，取回 null 后直接 ldfld（IL 偏移 0x000d，已反编译核对）
+         抛 NullReferenceException；而 InitializeTitles 与 FinalizeInit 一路都没有
+         try/catch，整轮 WorldComponentUtility.FinalizeInit 就此中断，排在 VFEEmpire
+         之后的所有世界组件都不会被初始化。
+
+         所以本补丁包的 VFEE_RoyalTitleExtFix.xml 必须排在 disroom.mashiro 之后执行，
+         才能把扩展补回来；否则我们加的扩展随后被清空，日志里 NRE 照旧，看起来完全无效。
+
+         ⚠ 2026-10-18 复审补充：「排在它之后」靠的是 ModsConfig.xml 里的**列表位次**，
+            不是 About.xml 的 loadAfter 声明。反编译证实：Verse.ModMetaData.LoadAfter
+            唯一的读取点是 ModsConfig.TrySortMods()（手动「排序」按钮 / 外部排序器），
+            而 LoadedModManager.ApplyPatches 遍历的是 runningMods —— 顺序就是
+            ModsConfig.xml 的 activeMods。loadAfter 的作用只是**告诉排序器该往后放**。
+            换机器、或手动改过顺序之后，要确认本模组确实排在 disroom.mashiro 之后。
+          ⚠ 2026-10-13 复审纠正：上面这段**不要**外推到 Patches/VFEPianoFirepitRestore.xml。
+            那个补丁补的是「VFE 自己的 PatchOperationFindMod 被中文显示名挡掉」而没生效的
+            几条家具效果（详见该文件开头的说明），与 disroom 无关 ——
+            disroom 排第 1110 位、VFECore 排第 692 位，执行更晚，不可能连累它。
+
+         （2026-10-05 查清。） -->
+    <li>disroom.mashiro</li>
+
+    <!-- 乱伦许可（worldie.allowconsensualincest，本机位次 1111）：
+
+         它的 Compatibility\Sexperience_Ideology\Patches\IncestPreceptPatch.xml
+         用 PatchOperationRemove 删掉了
+             PreceptDef[defName="Incestuos_Disapproved_CloseOnly"]/issue
+         而那个 Def 的 <preceptClass> 为空（原定义在 RJW-文化-淫秽文化），
+         空 preceptClass 实例化成基类 RimWorld.Precept，基类
+             Precept.DrawIcon → GUI.DrawTexture(rect, def.issue.Icon)
+         issue 为 null 就在这一行抛 NullReferenceException。
+         后果是打开文化界面时含该戒律的文化全部刷红字（实测 350 次/会话），
+         本机 10 个 .rid 引用了它。
+
+         我们的 Patches/IncestuosCloseOnlyIssueRestore.xml 负责把 <issue> 补回，
+         属于「补丁打补丁」，**必须**排在它之后应用，否则补完又被删掉。
+         （2026-10-18 定位；与 disroom.mashiro 那条同属硬约束型 loadAfter。） -->
+    <li>worldie.allowconsensualincest</li>
+    <!-- [OWL] NMM Combined Edition（dord.nuditymattersmore，「裸体评价」，本地 Mods 目录）：
+         它的 1.7\Patches\Races_Humanlike_Patch_Comps.xml 会给 BasePawn/comps 追加
+         10 个旧架构的 CompProperties_*（BugsTracker / CoverBody / … / Fixation），
+         而 1.7 的 dll 里那 10 个类型**全都不存在**（作者已重构成单一 CompProperties_NMM）
+         → comps 是整表解析 → 344 个 ThingDef 被丢弃（含 Human 本人）。
+
+         我们的 Patches/NMM_StaleCompCleanup.xml 负责删掉那 10 个死引用。
+         **只删、不补任何类型** —— v1.4.25 曾在这里顺手补过一个 CompProperties_NMM，
+         而用旧版 NMM 的玩家那一版 dll 里没有这个类型，BasePawn 整表解析失败，
+         所有 pawn 的 def 全被丢弃、模组被游戏禁用（v1.4.27 已删掉那个 Add）。
+         这是**补丁打补丁**，属硬约束：排到它前面就会变成「我们先删、它再加回来」。
+
+         （2026-11-07 加入；完整排错与证据见 docs\RimWorld-日志排错报告-20261107.md） -->
+    <li>dord.nuditymattersmore</li>
+  </loadAfter>
+  <!--
+    排序说明（2026-10-04 更正）：
+
+    这里原先写着「brrainz 那三个模组的 packageId 都写着 brrainz.harmony，
+    作者整个系列共用一个 ID」，并据此把三个 ID 删掉了 —— **这个判断是错的**。
+    用 RimCrow 元数据核对：Achtung! = brrainz.achtung（工坊 730936602）、
+    Camera+ = brrainz.cameraplus（工坊 867467808）、
+    Visual Exceptions = brrainz.visualexceptions（工坊 2538411704），
+    三家各有独立 packageId，而且本机都已启用。
+    当初误判的原因很具体：只在本机 Mods\ 目录里搜过 About.xml，
+    而这三家装在工坊目录（workshop\content\294100\）下，自然搜不到。
+    现在三个 ID 都已写回。
+  -->
+</ModMetaData>
