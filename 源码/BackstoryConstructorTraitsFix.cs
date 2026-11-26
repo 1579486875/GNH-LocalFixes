@@ -165,6 +165,9 @@ namespace GNH.LocalFixes
                         // 这是唯一能可靠改到「方法体真正读到的那个对象」的路径。
                         windowTemplateField = AccessTools.Field(windowType, "backstoryTemplate");
 
+                        // 替代实现要读窗口上的 cache 字段（截断文本用），拿不到就退化
+                        BackstoryTraitsRenderer.BindWindow(windowType);
+
                         LocalFixesMod.HarmonyInstance.Patch(
                             draw,
                             prefix: new HarmonyMethod(typeof(BackstoryConstructorTraitsFix)
@@ -264,7 +267,26 @@ namespace GNH.LocalFixes
         /// 不依赖 Harmony 能否写回形参。
         /// </para>
         /// </summary>
-        private static void DrawTraitsPrefix()
+        private static bool DrawTraitsPrefix(ref float height, float width, string labelKey,
+                                               List<string> first, List<string> second)
+        {
+            // ── 【70】最终方案：整栏改由我们自己的实现绘制 ─────────────────
+            // 作者那段在 505 项特性目录上必崩（实机 line 301），
+            // 前面四版兜底都只能「不崩但画不出来」。这里直接接管：
+            // 返回 false 让原方法不执行，改画一份同样观感、全程判空的版本。
+            try
+            {
+                BackstoryTraitsRenderer.Draw(ref height, width, labelKey, first, second);
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("[GNH LocalFixes] 【70】替代绘制入口出错（这一栏跳过）：" + ex);
+            }
+            return false;   // 跳过原方法
+        }
+
+        /// <summary>原诊断逻辑，保留作参考（当前不再执行）。</summary>
+        private static void LegacyDiagnostics()
         {
             SanitizeTraitCatalog();       // 目录清洗与模板字段无关，先做掉
             EnsureTemplateLists();        // 关键：把 null 字段补成空列表
