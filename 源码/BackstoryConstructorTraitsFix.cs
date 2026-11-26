@@ -275,6 +275,7 @@ namespace GNH.LocalFixes
             {
                 firstDrawLogged = true;
                 string state = "模板字段无法读取";
+                string traitsState = "Utility.Traits 无法读取";
                 try
                 {
                     object template = windowTemplateField == null ? null : windowTemplateField.GetValue(null);
@@ -289,7 +290,36 @@ namespace GNH.LocalFixes
                     }
                 }
                 catch { }
-                Log.Message("[GNH LocalFixes] 【70】背景故事编辑器首次绘制，补丁已生效。当前模板：" + state);
+                try
+                {
+                    // IL 里 DrawBackstoryTraits 有一段是
+                    //     ldsfld Utility.Traits
+                    //     callvirt GetEnumerator
+                    // **中间没有判空**。如果 Traits 是 null，点 + 时必崩。
+                    // 这里先把它的真实状态打出来，省得再猜。
+                    if (utilityTraitsField == null)
+                    {
+                        traitsState = "utilityTraitsField 反射失败（Utility 类型或字段名对不上）";
+                    }
+                    else
+                    {
+                        object tv = utilityTraitsField.GetValue(null);
+                        if (tv == null)
+                        {
+                            traitsState = "Utility.Traits 是 **null** —— 作者的 cctor 可能没跑到赋值那行";
+                        }
+                        else
+                        {
+                            traitsState = "Utility.Traits=" + DescribeList(tv);
+                        }
+                    }
+                }
+                catch (Exception ex2)
+                {
+                    traitsState = "读 Utility.Traits 抛异常：" + ex2.GetType().Name;
+                }
+                Log.Message("[GNH LocalFixes] 【70】背景故事编辑器首次绘制，补丁已生效。当前模板：" + state
+                    + "  ｜ " + traitsState);
             }
         }
 
