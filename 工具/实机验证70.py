@@ -138,8 +138,11 @@ def main():
         r = b.request('tools/call', {'name': 'rimworld/open_window_by_type',
                                      'arguments': {'windowType': WS}})
         res = r.get('result') or {}
-        check('2. 打开编辑器', bool(res.get('success')) and (res.get('windowCountDelta') or 0) >= 1,
-              'windowCountDelta=%s' % res.get('windowCountDelta'))
+        # delta=0 有两种情况：① 窗口本来就没开过（异常）；② 上次验证没关窗口（正常）。
+        # 用「surface 里有没有 Window_BackstoryConstructor」来区分，避免误判。
+        already = any('Backstory' in (s.get('type') or '') for s in (layout(b).get('surfaces') or []))
+        check('2. 打开编辑器', bool(res.get('success')) and ((res.get('windowCountDelta') or 0) >= 1 or already),
+              'windowCountDelta=%s%s' % (res.get('windowCountDelta'), '（窗口已开着）' if already else ''))
 
         time.sleep(1)
         res = layout(b)
@@ -167,7 +170,7 @@ def main():
         check('5. 编辑区已渲染（元素 > 100）', el > 100, '元素 %d / 可点 %d' % (el, act))
 
         # ── 5. 我们的诊断日志 ─────────────────────────────
-        n70 = count_in_log('【70】背景故事编辑器首次绘制')
+        n70 = count_in_log('【70】特性栏替代实现已接管绘制')
         last70 = ''
         for line in reversed(tail_lines(400)):
             if '【70】' in line:
@@ -182,6 +185,16 @@ def main():
         check('8. 无 Finalizer 兜底告警', nfinal == 0, '告警计数 %d' % nfinal)
 
         # ── 7. 点「+」，看是否弹出候选列表 ────────────────
+        # 点之前先把可能残留的弹窗关掉 —— 否则「本来就有 FloatMenu」会让
+        # 「新增 surface」判成 0 个，误报成「点了没反应」。
+        for _ in range(3):
+            if any(('FloatMenu' in (s.get('type') or '')) or ('Dialog_' in (s.get('type') or ''))
+                   for s in (layout(b).get('surfaces') or [])):
+                b.request('tools/call', {'name': 'rimworld/press_key', 'arguments': {'key': 'Escape'}})
+                time.sleep(0.4)
+            else:
+                break
+
         tid_plus = find_target(b, '+')
         if tid_plus:
             before = {t for t, _, _, _ in surfaces(layout(b))}
