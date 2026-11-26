@@ -32,6 +32,29 @@ RimBridgeServer（`brrainz.rimbridgeserver`）在游戏里跑了一个 TCP 服�
     events/subscribe / events/unsubscribe
     attention/current / attention/ack
 
+## RimBridge 注册了哪些工具（反编译 `ResolveExecutionKind` 得到的）
+
+**脚本执行 —— 关键能力，能跑任意游戏内代码**：
+
+    rimbridge/run_script        rimbridge/run_lua
+    rimbridge/run_lua_file      rimbridge/compile_lua
+    rimbridge/compile_lua_file  rimbridge/get_lua_reference
+    rimbridge/get_script_reference
+
+**UI 操作 —— 能读布局、点控件、截图**：
+
+    rimworld/get_ui_layout      rimworld/click_ui_target
+    rimworld/take_screenshot    rimworld/set_text_field
+    rimworld/press_key          rimworld/scroll_ui_target
+    rimworld/set_hover_target   rimworld/clear_hover_target
+    rimworld/open_context_menu  rimworld/go_to_main_menu
+
+**生命周期**：
+
+    rimworld/start_debug_game   rimworld/load_game
+    rimworld/list_saves         rimworld/switch_language
+    rimworld/play_for           rimworld/step_game_ticks
+
 ## 桥的端口与 token 从哪来
 
 游戏日志里有两行：
@@ -43,7 +66,9 @@ RimBridgeServer（`brrainz.rimbridgeserver`）在游戏里跑了一个 TCP 服�
 
 ## 用法
 
-    python 桥客户端.py                    # 列工具
+    python 桥客户端.py                          # 列工具
+    python 桥客户端.py --lua-ref                # 拉 Lua API 文档
+    python 桥客户端.py --lua 'return 1+1'       # 执行一段 Lua
     python 桥客户端.py --call <工具名> --args '{"k":"v"}'
 """
 import argparse
@@ -141,6 +166,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--call', default=None, help='要调用的工具名')
     ap.add_argument('--args', default='{}', help='工具参数（JSON）')
+    ap.add_argument('--lua', default=None, help='直接执行一段 Lua')
+    ap.add_argument('--lua-ref', action='store_true', help='拉取 Lua API 文档')
     a = ap.parse_args()
 
     port, token = find_bridge()
@@ -169,7 +196,16 @@ def main():
         print('   可用事件: %s' % (caps.get('Events') or [])[:6])
         print()
 
-        if a.call:
+        if a.lua_ref:
+            r2 = b.request('tools/call', {'name': 'rimbridge/get_lua_reference', 'arguments': {}})
+            print('=== Lua API 文档 ===')
+            print(json.dumps(r2.get('result'), ensure_ascii=False, indent=2)[:8000])
+        elif a.lua:
+            r2 = b.request('tools/call', {'name': 'rimbridge/run_lua',
+                                          'arguments': {'script': a.lua}})
+            print('=== run_lua 结果 ===')
+            print(json.dumps(r2, ensure_ascii=False, indent=2)[:4000])
+        elif a.call:
             args = json.loads(a.args)
             r2 = b.request('tools/call', {'name': a.call, 'arguments': args})
             print('=== tools/call %s ===' % a.call)
