@@ -89,6 +89,12 @@ namespace GNH.LocalFixes
         /// <summary><c>BackstoryConstructor.Utility.Traits</c> —— 点「+」时列出来的可选特性目录。</summary>
         private static FieldInfo utilityTraitsField;
 
+        /// <summary>
+        /// <c>Window_BackstoryConstructor.backstoryTemplate</c>（private static）。
+        /// 绘制前要顺着它拿当前模板，把 null 的列表字段补掉 —— 见 DrawTraitsPrefix 的注释。
+        /// </summary>
+        private static FieldInfo windowTemplateField;
+
         /// <summary>目录清洗只做一次：第一次绘制前扫一遍就够了。</summary>
         private static bool traitsSanitized;
 
@@ -155,10 +161,17 @@ namespace GNH.LocalFixes
                     MethodInfo draw = AccessTools.Method(windowType, "DrawBackstoryTraits");
                     if (draw != null)
                     {
+                        // 顺着 private static 的 backstoryTemplate 拿当前模板 ——
+                        // 这是唯一能可靠改到「方法体真正读到的那个对象」的路径。
+                        windowTemplateField = AccessTools.Field(windowType, "backstoryTemplate");
+
                         LocalFixesMod.HarmonyInstance.Patch(
                             draw,
                             prefix: new HarmonyMethod(typeof(BackstoryConstructorTraitsFix)
                                 .GetMethod(nameof(DrawTraitsPrefix),
+                                    BindingFlags.Static | BindingFlags.NonPublic)),
+                            finalizer: new HarmonyMethod(typeof(BackstoryConstructorTraitsFix)
+                                .GetMethod(nameof(DrawTraitsFinalizer),
                                     BindingFlags.Static | BindingFlags.NonPublic)));
                         any = true;
                     }
@@ -213,18 +226,102 @@ namespace GNH.LocalFixes
         }
 
         /// <summary>
-        /// 绘制前做两件事：把 null 的列表参数换成静态空列表；顺手清洗 <c>Utility.Traits</c>。
+        /// 绘制前把模板的两个特性列表补成空列表，并清洗特性目录。
         /// <para>
-        /// 参数名必须与原方法一致（<c>first</c> / <c>second</c>），
-        /// Harmony 靠名字绑定；加 <c>ref</c> 才能真正改掉传进去的引用。
+        /// 【为什么必须改字段而不是改参数 —— 2026-11-26 实机取证】
+        /// </para>
+        /// <para>
+        /// 上一版用的是 <c>Prefix(ref List&lt;string&gt; first, ref List&lt;string&gt; second)</c>，
+        /// 以为能改掉传进去的引用。日志证明**无效**：
+        /// </para>
+        /// <code>
+        /// - PREFIX gnh.cn.cys.localfixes: ...DrawBackstoryTraits
+        ///          &lt;- DrawTraitsPrefix(List`1&amp; first, ...)
+        /// System.NullReferenceException at DrawBackstoryTraits(...)
+        /// </code>
+        /// <para>
+        /// 原因：**Harmony 的 <c>ref</c> 参数只在原方法参数本身是 <c>ref</c>/<c>out</c> 时才写回**。
+        /// 作者的 <c>DrawBackstoryTraits(..., List&lt;string&gt; first, List&lt;string&gt; second)</c>
+        /// 是普通值传递，所以前缀里改的只是形参副本，方法体拿到的仍是 null。
+        /// </para>
+        /// <para>
+        /// 【为什么「Disallowed 不崩、Forced 崩」—— 短路求值】
+        /// </para>
+        /// <code>
+        /// if (!first.Contains(traitInfo) &amp;&amp; !second.Contains(traitInfo))
+        /// </code>
+        /// <list type="bullet">
+        /// <item>第一次（Disallowed）：first = disallowedTraits（非 null）→ 不崩，
+        ///       &amp;&amp; 直接短路，second 根本不求值</item>
+        /// <item>第二次（Forced）：first = forcedTraits（**null**）→ first.Contains 崩</item>
+        /// </list>
+        /// <para>
+        /// 所以真凶是 **forcedTraits 为 null**，而 Disallowed 那一趟被短路保护了。
+        /// </para>
+        /// <para>
+        /// 【修法】直接改 <c>Window_BackstoryConstructor.backstoryTemplate</c>
+        /// （private static 字段）所指对象上的两个 List —— 这样参数传进来时就已经非 null，
+        /// 不依赖 Harmony 能否写回形参。
         /// </para>
         /// </summary>
-        private static void DrawTraitsPrefix(ref List<string> first, ref List<string> second)
+        private static void DrawTraitsPrefix()
         {
-            if (first == null) first = EmptyTraits;
-            if (second == null) second = EmptyTraits;
-            SanitizeTraitCatalog();
+            SanitizeTraitCatalog();       // 目录清洗与模板字段无关，先做掉
+            EnsureTemplateLists();        // 关键：把 null 字段补成空列表
         }
+
+        /// <summary>
+        /// 把 <c>backstoryTemplate</c> 上的 <c>forcedTraits</c> / <c>disallowedTraits</c>
+        /// 补成空列表（若为 null）。这个对象是 static 字段指向的，绘制期间一直有效。
+        /// </summary>
+        private static void EnsureTemplateLists()
+        {
+            try
+            {
+                if (windowTemplateField == null) return;
+                object template = windowTemplateField.GetValue(null);
+                if (template == null) return;
+
+                if (forcedTraitsField != null && forcedTraitsField.GetValue(template) == null)
+                {
+                    forcedTraitsField.SetValue(template, new List<string>());
+                }
+                if (disallowedTraitsField != null && disallowedTraitsField.GetValue(template) == null)
+                {
+                    disallowedTraitsField.SetValue(template, new List<string>());
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("[GNH LocalFixes] 背景故事模板特性字段补齐失败（本次绘制跳过）：" + ex);
+            }
+        }
+
+        /// <summary>
+        /// 兜底：即使前面两道防线都没拦住，也不让整个编辑窗口被这一个方法掀翻。
+        /// <para>
+        /// 返回 null = 吞掉异常。代价是这一栏当帧画不出来（与崩溃时一样），
+        /// 但**窗口本身还能用**，玩家至少能继续编辑别的字段、能保存。
+        /// </para>
+        /// <para>
+        /// 同一条异常只报一次（用 HashSet 去重），避免每帧刷屏。
+        /// </para>
+        /// </summary>
+        private static Exception DrawTraitsFinalizer(Exception __exception)
+        {
+            if (__exception == null) return null;
+
+            string key = __exception.GetType().Name + "|" + (__exception.StackTrace ?? "");
+            if (reportedExceptions.Add(key))
+            {
+                Log.Warning("[GNH LocalFixes] 背景故事创建器的特性栏绘制出错，已拦下以避免整个窗口崩掉"
+                    + "（这一栏当帧画不出来，其它字段仍可编辑）：" + __exception);
+            }
+            return null;
+        }
+
+        /// <summary>已经报过的异常指纹，防止每帧刷同一条。</summary>
+        private static readonly HashSet<string> reportedExceptions = new HashSet<string>();
 
         /// <summary>
         /// 清洗 <c>BackstoryConstructor.Utility.Traits</c>，只留下「真能被作者那段代码解析」的项。
