@@ -4,6 +4,66 @@
 // AI-assisted: written with DeepSeek Niang · Xi Lan (AI);
 // designed, reviewed and validated by the human author.
 // ---------------------------------------------------------------------------
+//
+// ==========================================================================
+// 【70】Cybranian - Backstory Constructor（DimonSever000.BackstoryConstructor.Specific）
+//      编辑器里「禁用特性 / 绑定特性」两栏的加号按钮点不开
+// ==========================================================================
+//
+// 【症状】
+//   打开「背景故事创建器」后点「+」，窗口整片报错甚至崩掉；日志原文（实机）：
+//
+//     ERROR Exception filling window for BackstoryConstructor.Window_BackstoryConstructor:
+//       System.NullReferenceException
+//         at BackstoryConstructor.Window_BackstoryConstructor.DrawBackstoryTraits(...)
+//         at ...DrawBackstoryDisallowedTraits(...)  line 347
+//         at ...DrawMainRect(Rect parent)           line 485
+//
+//   玩家感受就是「那两栏点不开、特性加不进去」。
+//
+// 【根因】反编译 1.7/Assemblies/BackstoryConstructor.dll（MVID e0e4b3d6…）
+//   作者的 DrawBackstoryTraits 在点「+」之后这样反解特性目录：
+//
+//     string text = traitInfo.Split('~')[0].Trim();
+//     int.TryParse(traitInfo.Split('[').Last().Split(']')[0], ref degree);
+//     TraitDef val3 = TraitDef.Named(text);
+//     TraitDegreeData val4 = val3.degreeDatas.Find(x => x.degree == degree);
+//     val2.Add(new DebugMenuOption(val4.LabelCap + " (" + val3.modContentPack.Name + ")", ...));
+//
+//   而目录由 Utility..cctor 用 $"{defName} ~ ({label}) [{degree}]" 拼成。
+//   实机取证：Utility.Traits = List(505 项)、first/second 都是 List(0 项)、
+//   两者都**不是** null，可仍在 line 301 崩 —— 说明崩点在这段**一处判空都没有**的
+//   反解链上：505 项里只要有一项在当前加载顺序下拿不到 TraitDef 或对应 degree，
+//   val3/val4 就是 null，val4.LabelCap 直接 NRE。
+//
+//   ⚠ 前面试过四版「外围兜底」全部被实机推翻：
+//     v1 兜 first/second 为 null      → 实机两个都是 List(0 项)
+//     v2 直接改 backstoryTemplate 字段 → 字段补上了，仍然 NRE
+//     v3 清洗 Utility.Traits          → 实机是 List(505 项)，不是 null
+//     v4 加 Finalizer 兜异常          → 兜住了，但那一栏永远画不出来
+//   所以本文件不再兜底，改成**整栏接管**。
+//
+// 【修法】Prefix 返回 false 让原方法根本不执行，改由 Draw() 自己画：
+//   · 标题行：同原版（Translate(labelKey) + 黄色；反射取 Utility.YellowColor，
+//     取不到退化 Color.yellow —— 少一次反射失败就崩一个窗口不值得）
+//   · 「+」按钮：点击时**自己构建候选**，逐项验证 TraitDef.Named + degreeDatas.Find，
+//     坏项跳过并计数写日志；不再像作者那样在 label 拼装时踩 null
+//   · 已选列表：自己排两列（列宽 (width-10)/2、高 25、行距 5，与原版一致）
+//   · 高度累加：height = y + 15f，与原来的 += drawn.height + 15f 等价，
+//     保证后面栏位（Possessions）的位置不变
+//
+//   **为什么不用 Transpiler**：那要改作者方法体里的 IL，
+//   任何一次作者更新都会让锚点失配、静默失效，风险比自绘高。
+//   **为什么不用 Finalizer 吞异常**：吞掉之后这一栏仍然是空白，
+//   玩家依旧点不开 —— 只是不崩，等于没修。
+//
+// 【自动让路】
+//   · 目标模组没装 / 版本里没有 Window_BackstoryConstructor ⟶ 反射拿不到类型，
+//     Install 直接返回，本文件任何方法都不会被调用（见 BackstoryConstructorTraitsFix.Install）
+//   · 设置界面开关 backstoryTraitsNullGuard 关掉 ⟶ 不挂 Harmony 补丁
+//   · 本文件内部每一步都自带 try/catch：单个小方块画不出来只跳过那一块，
+//     不会连带掀翻窗口
+// ==========================================================================
 
 using System;
 using System.Collections;

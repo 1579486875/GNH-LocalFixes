@@ -5,6 +5,54 @@
 // designed, reviewed and validated by the human author.
 // ---------------------------------------------------------------------------
 
+//
+// ==========================================================================
+// 【70】Cybranian - Backstory Constructor（DimonSever000.BackstoryConstructor.Specific）
+//      编辑器一打开就抛 NRE，「禁用特性 / 绑定特性」两栏画不出来也点不动
+// ==========================================================================
+//
+// 【症状】
+//   ERROR Exception filling window for BackstoryConstructor.Window_BackstoryConstructor:
+//     System.NullReferenceException
+//       at ...DrawBackstoryTraits(Single& height, Single width, String labelKey,
+//                                List`1 first, List`1 second)   line 301
+//       at ...DrawBackstoryDisallowedTraits(...)                line 347
+//       at ...DrawMainRect(Rect parent)                         line 485
+//   玩家看到的就是那两栏空白、加号点不开。
+//
+// 【根因】反编译 1.7/Assemblies/BackstoryConstructor.dll（MVID e0e4b3d6…）取证：
+//   · BackstoryTemplate 的构造函数是空的（public BackstoryTemplate() { }），
+//     两个 List<string> 字段初值是 null；
+//   · Utility..cctor 用 $"{defName} ~ ({label}) [{degree}]" 拼出 505 项的目录；
+//   · DrawBackstoryTraits 点「+」后按同样格式反解，
+//     对 TraitDef.Named / degreeDatas.Find / modContentPack **一处判空都没有**。
+//   实机取证（2026-11-26 21:28:28）：
+//     forcedTraits=List(0 项)  disallowedTraits=List(0 项)  ｜ Utility.Traits=List(505 项)
+//   **三个候选全非 null 却仍在 line 301 崩** —— 崩点在那段无判空的反解链上。
+//
+//   ⚠ 订正留痕（§3.2.2 纪律 ③）：本文件早期版本以为「字段为 null」是根因，
+//     连写四版外围兜底（兜参数 null → 改 backstoryTemplate 字段 → 清洗 Utility.Traits
+//     → Finalizer 吞异常），每一版都被实机推翻。现在的判定是：**兜底救不了它**，
+//     必须整栏接管（见同目录 背景故事特性栏替代实现.cs）。
+//
+// 【修法】本文件只保留三件**不碰绘制**的活，绘制全部交给替代实现：
+//   ① ExposeDataPostfix：读盘后把 null 的 forcedTraits / disallowedTraits 补成空列表
+//      （治本：让后续任何读这两字段的代码都不会踩 null）；
+//   ② DrawTraitsPrefix（返回 bool）：打磨目录 + 兜字段，然后转交替代实现并返回 false，
+//      让作者的 DrawBackstoryTraits **根本不执行**；
+//   ③ DrawTraitsFinalizer：万一替代实现自己出问题，兜住异常不让整个窗口崩。
+//
+//   **为什么不再用 ref 参数改传入引用**：Harmony 的 ref 只在原方法参数本身是
+//   ref/out 时才写回；作者的 first/second 是普通值传递，前缀改的只是形参副本 ——
+//   这一条被实机日志直接证实（PREFIX 挂上了、签名也对，方法体拿到的仍是 null）。
+//
+// 【自动让路】
+//   · 反射拿不到 BackstoryConstructor.Window_BackstoryConstructor ⟶ Install 直接返回；
+//   · 设置开关 backstoryTraitsNullGuard 关掉 ⟶ 不挂补丁；
+//   · requiresModById 已登记目标 packageId，设置界面会标「目标模组未启用」；
+//   · 每个补丁方法自带 try/catch，单点失败不连锁。
+// ==========================================================================
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
