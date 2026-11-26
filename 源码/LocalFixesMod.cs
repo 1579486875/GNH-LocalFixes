@@ -160,8 +160,43 @@ namespace GNH.LocalFixes
             }
         }
 
+        /// <summary>
+        /// 构造函数是否已经跑过一次。**这是整套补丁的幂等总闸。**
+        /// <para>
+        /// 【为什么要它 —— 2026-11-27 按模板 §4 补上】
+        /// </para>
+        /// <para>
+        /// 反编译 `Verse.LoadedModManager` 可见：`CreateModClasses()` 自带
+        /// `if (!runningModClasses.ContainsKey(type))` 去重，所以**构造函数成功返回的模组不会被重复构造**。
+        /// 但有一条真实的重入路径：**构造函数抛异常 → 那条记录没写进 `runningModClasses`
+        /// → 之后任何一次重入都会再构造一遍**。Harmony 补丁是**叠加**的，
+        /// 第二次构造会在同一方法上再套一层 Prefix/Postfix，表现为「越操作越卡」直到卡死。
+        /// </para>
+        /// <para>
+        /// 本构造函数里每一步都已 try/catch（尽量不抛），但「绝不抛」这种保证
+        /// 不能建立在「下游每一处都做对了」之上 —— `base(content)` 本身、
+        /// 以及将来有人加的 try 块外代码都可能抛。所以按模板要求补一个静态闸：
+        /// **只要跑过一遍，后续任何重入都直接返回。**
+        /// </para>
+        /// <para>
+        /// ⚠ 与 §4 的另一条配合理解：**「反复开关游戏内模组管理器」不能用来验幂等**
+        /// （那个界面不走 `CreateModClasses`）。真正能落到证据上的判据是
+        /// ① 本处这个静态守卫；② 运行时看安装日志有没有重复。
+        /// </para>
+        private static bool constructorRan;
+
         public LocalFixesMod(ModContentPack content) : base(content)
         {
+            // ── 幂等总闸 ────────────────────────────────────────────
+            // 放在构造函数体第一行（base(content) 之后）：
+            // 一旦本构造函数曾经跑完过，任何重入都直接返回，绝不重复挂补丁。
+            if (constructorRan)
+            {
+                SafeLogWarning("[GNH LocalFixes] 构造函数被重入，已按幂等闸跳过（不会重复挂补丁）。");
+                return;
+            }
+            constructorRan = true;
+
             // 先把模组设置读进来（也就是那个开关的当前状态），再装补丁。
             //
             // 这一步同样**不能抛异常**：本类的构造函数一旦抛出，游戏那张
