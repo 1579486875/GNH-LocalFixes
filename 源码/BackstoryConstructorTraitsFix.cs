@@ -268,6 +268,29 @@ namespace GNH.LocalFixes
         {
             SanitizeTraitCatalog();       // 目录清洗与模板字段无关，先做掉
             EnsureTemplateLists();        // 关键：把 null 字段补成空列表
+
+            // 第一次进绘制时打一条自证日志 —— 用户「点开了编辑器」这件事
+            // 从我们这边是看不到的，只有这条能证明补丁真的跑到了。
+            if (!firstDrawLogged)
+            {
+                firstDrawLogged = true;
+                string state = "模板字段无法读取";
+                try
+                {
+                    object template = windowTemplateField == null ? null : windowTemplateField.GetValue(null);
+                    if (template == null)
+                    {
+                        state = "backstoryTemplate 为 null";
+                    }
+                    else
+                    {
+                        state = "forcedTraits=" + DescribeList(forcedTraitsField == null ? null : forcedTraitsField.GetValue(template))
+                              + "  disallowedTraits=" + DescribeList(disallowedTraitsField == null ? null : disallowedTraitsField.GetValue(template));
+                    }
+                }
+                catch { }
+                Log.Message("[GNH LocalFixes] 【70】背景故事编辑器首次绘制，补丁已生效。当前模板：" + state);
+            }
         }
 
         /// <summary>
@@ -307,18 +330,48 @@ namespace GNH.LocalFixes
         /// 同一条异常只报一次（用 HashSet 去重），避免每帧刷屏。
         /// </para>
         /// </summary>
-        private static Exception DrawTraitsFinalizer(Exception __exception)
+        private static Exception DrawTraitsFinalizer(Exception __exception, object[] __args)
         {
             if (__exception == null) return null;
 
             string key = __exception.GetType().Name + "|" + (__exception.StackTrace ?? "");
             if (reportedExceptions.Add(key))
             {
+                // 把四个参数的实际状态一并打出来 —— 万一三保险仍没拦住，
+                // 这一行就能告诉我们是「字段没补上」还是「崩在别处」。
+                // 参数顺序：0=ref float height, 1=float width, 2=string labelKey,
+                //           3=List<string> first, 4=List<string> second
+                string argState = "参数无法读取";
+                try
+                {
+                    if (__args != null && __args.Length >= 5)
+                    {
+                        argState = "labelKey=" + (__args[2] as string)
+                            + "  first=" + DescribeList(__args[3])
+                            + "  second=" + DescribeList(__args[4]);
+                    }
+                }
+                catch { /* 诊断失败不影响兜底 */ }
+
                 Log.Warning("[GNH LocalFixes] 背景故事创建器的特性栏绘制出错，已拦下以避免整个窗口崩掉"
-                    + "（这一栏当帧画不出来，其它字段仍可编辑）：" + __exception);
+                    + "（这一栏当帧画不出来，其它字段仍可编辑）。"
+                    + "\n  " + argState
+                    + "\n  异常：" + __exception);
             }
             return null;
         }
+
+        /// <summary>把一个参数描述成「null」或「N 项」，用于诊断输出。</summary>
+        private static string DescribeList(object o)
+        {
+            if (o == null) return "null";
+            List<string> list = o as List<string>;
+            if (list != null) return "List(" + list.Count + " 项)";
+            return o.GetType().Name;
+        }
+
+        /// <summary>是否已经打过「首次绘制」的自证日志。</summary>
+        private static bool firstDrawLogged;
 
         /// <summary>已经报过的异常指纹，防止每帧刷同一条。</summary>
         private static readonly HashSet<string> reportedExceptions = new HashSet<string>();
