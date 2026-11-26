@@ -325,6 +325,42 @@ namespace GNH.LocalFixes
             try
             {
                 BackstoryTraitsRenderer.Draw(ref height, width, labelKey, first, second);
+
+                // 首次绘制打一条自证 —— 「玩家点开了编辑器」这件事我们这边看不到，
+                // 只有这条能证明 Prefix 真的跑到了（否则只能像上几轮那样靠猜）。
+                // ⚠ 2026-11-26 实机教训：这条原先被挪进 LegacyDiagnostics()，
+                //   而那个方法已不再被调用，于是日志里一直没有【70】的痕迹，
+                //   验证时误判成「补丁没生效」。现在放回主路径。
+                if (!firstDrawLogged)
+                {
+                    firstDrawLogged = true;
+                    string state = "模板字段无法读取";
+                    string traitsState = "Utility.Traits 无法读取";
+                    try
+                    {
+                        object template = windowTemplateField == null ? null : windowTemplateField.GetValue(null);
+                        if (template == null)
+                        {
+                            state = "backstoryTemplate 为 null";
+                        }
+                        else
+                        {
+                            state = "forcedTraits=" + DescribeList(forcedTraitsField == null ? null : forcedTraitsField.GetValue(template))
+                                  + "  disallowedTraits=" + DescribeList(disallowedTraitsField == null ? null : disallowedTraitsField.GetValue(template));
+                        }
+                    }
+                    catch { }
+                    try
+                    {
+                        object tv = utilityTraitsField == null ? null : utilityTraitsField.GetValue(null);
+                        traitsState = (tv == null)
+                            ? "Utility.Traits 是 null"
+                            : ("Utility.Traits=" + DescribeList(tv));
+                    }
+                    catch { }
+                    Log.Message("[GNH LocalFixes] 【70】特性栏替代实现已接管绘制（" + labelKey + "）。当前模板："
+                        + state + "  ｜ " + traitsState);
+                }
             }
             catch (Exception ex)
             {

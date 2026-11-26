@@ -83,21 +83,34 @@ def count_in_log(pattern):
         return -1
 
 
-def find_target(b, label, want_actionable=True):
-    """在编辑器 surface 里按 label 找可点元素的 targetId（编辑器元素在分页末尾）。"""
+def surface_element_page(b, want_type):
+    """按 surface 的累积 offset 精确读出该 surface 的元素。
+
+    ⚠ 不能用「从 total 往前翻」的写法：编辑器只有 8 个元素，
+    而它前面的 EditWindow_Log 有 3026 个 —— 往前翻几页全落在日志窗口里，一条也搜不到。
+    正确做法是把各 surface 的 elementCount 累加，得到它的起始 offset。
+    """
     res = layout(b)
-    total = (res.get('page') or {}).get('total') or 0
-    for back in range(0, 8):
-        off = max(0, total - 150 * (back + 1))
-        r = layout(b, off)
-        for s in r.get('surfaces') or []:
-            if 'Backstory' not in (s.get('type') or ''):
-                continue
-            for e in s.get('elements') or []:
-                if want_actionable and not e.get('actionable'):
-                    continue
-                if (e.get('label') or '').strip() == label:
-                    return e.get('targetId')
+    off = 0
+    for s in res.get('surfaces') or []:
+        n = s.get('elementCount') or 0
+        if want_type in (s.get('type') or ''):
+            r = layout(b, off)
+            for s2 in r.get('surfaces') or []:
+                if want_type in (s2.get('type') or ''):
+                    return s2.get('elements') or []
+            return []
+        off += n
+    return []
+
+
+def find_target(b, label, want_actionable=True):
+    """在编辑器 surface 里按 label 找可点元素的 targetId。"""
+    for e in surface_element_page(b, 'Backstory'):
+        if want_actionable and not e.get('actionable'):
+            continue
+        if (e.get('label') or '').strip() == label:
+            return e.get('targetId')
     return None
 
 
