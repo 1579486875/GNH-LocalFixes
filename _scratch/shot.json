@@ -1,0 +1,156 @@
+{
+  "type": "response",
+  "result": {
+    "success": true,
+    "path": "C:\\Users\\asus\\AppData\\LocalLow\\Ludeon Studios\\RimWorld by Ludeon Studios\\Screenshots\\rimbridge_20261126_151506.png",
+    "fileName": "rimbridge_20261126_151506",
+    "requestedFileName": "rimbridge_20261126_151506",
+    "saveDataFolder": "C:\\Users\\asus\\AppData\\LocalLow\\Ludeon Studios\\RimWorld by Ludeon Studios",
+    "screenshotFolder": "C:\\Users\\asus\\AppData\\LocalLow\\Ludeon Studios\\RimWorld by Ludeon Studios\\Screenshots",
+    "sizeBytes": 4234520,
+    "capturedAtUtc": "2026-11-26T07:15:06.3893092Z",
+    "suppressMessage": true,
+    "clipped": false,
+    "clipPadding": 0,
+    "screenTargets": {
+      "capturedAtUtc": "2026-11-26T07:15:06.179141Z",
+      "uiState": {
+        "programState": "Entry",
+        "inEntryScene": true,
+        "hasCurrentGame": false,
+        "windowCount": 4,
+        "floatMenuOpen": true,
+        "nonImmediateDialogWindowOpen": true,
+        "mainTabOpen": false,
+        "focusedWindowType": "Verse.FloatMenu",
+        "topWindowType": "Verse.FloatMenu"
+      },
+      "selectedPawns": [],
+      "windows": [
+        {
+          "kind": "window",
+          "index": 0,
+          "id": -1593759361,
+          "type": "Verse.ImmediateWindow",
+          "layer": "GameUI",
+          "isTopWindow": false,
+          "isFocusedWindow": false,
+          "getsInput": true,
+          "windowTargetId": "window:-1593759361:Verse.ImmediateWindow",
+          "rect": {
+            "x": 1054.0,
+            "y": 3.0,
+            "width": 168.0,
+            "height": 25.0
+          }
+        },
+        {
+          "kind": "window",
+          "index": 1,
+          "id": 0,
+          "type": "LudeonTK.EditWindow_Log",
+          "title": "Debug log",
+          "layer": "Dialog",
+          "isTopWindow": false,
+          "isFocusedWindow": false,
+          "getsInput": true,
+          "windowTargetId": "window:0:LudeonTK.EditWindow_Log",
+          "dismissTargetId": "window-dismiss:0:LudeonTK.EditWindow_Log",
+          "rect": {
+            "x": 569.0,
+            "y": 355.0,
+            "width": 1138.0,
+            "height": 711.0
+          }
+        },
+        {
+          "kind": "window",
+          "index": 2,
+          "id": 3,
+          "type": "BackstoryConstructor.Window_BackstoryConstructor",
+          "layer": "Dialog",
+          "isTopWindow": false,
+          "isFocusedWindow": false,
+          "getsInput": true,
+          "windowTargetId": "window:3:BackstoryConstructor.Window_BackstoryConstructor",
+          "dismissTargetId": "window-dismiss:3:BackstoryConstructor.Window_BackstoryConstructor",
+          "rect": {
+            "x": 738.0,
+            "y": 0.0,
+            "width": 800.0,
+            "height": 1422.0
+          }
+        },
+        {
+          "kind": "window",
+          "index": 3,
+          "id": 4,
+          "type": "Verse.FloatMenu",
+          "layer": "Super",
+          "isTopWindow": true,
+          "isFocusedWindow": true,
+          "getsInput": true,
+          "windowTargetId": "window:4:Verse.FloatMenu",
+          "dismissTargetId": "window-dismiss:4:Verse.FloatMenu",
+          "rect": {
+            "x": 3.0,
+            "y": 1392.0,
+            "width": 162.0,
+            "height": 30.0
+          }
+        }
+      ],
+      "contextMenu": {
+        "kind": "context_menu",
+        "menuId": 1,
+        "windowTargetId": "window:4:Verse.FloatMenu",
+        "dismissTargetId": "window-dismiss:4:Verse.FloatMenu",
+        "provider": "ui-click",
+        "clickCell": {
+          "x": -1000,
+          "z": -1000
+        },
+        "menuRect": {
+          "x": 3.0,
+          "y": 1392.0,
+          "width": 162.0,
+          "height": 30.0
+        },
+        "columnCount": 1,
+        "usingScrollbar": false,
+        "optionCount": 1,
+        "options": [
+          {
+            "kind": "context_menu_option",
+            "targetId": "context-menu-option:1:1",
+            "index": 1,
+            "label": "添加人物名称文本模板",
+            "disabled": false,
+            "hasAction": true,
+            "priority": "Default",
+            "orderInPriority": 0,
+            "rect": {
+              "x": 3.0,
+              "y": 1392.0,
+              "width": 162.0,
+              "height": 30.0
+            }
+          }
+        ]
+      }
+    },
+    "operation": {
+      "OperationId": "op_f97fd2801d75411784c1a01e0c199aea",
+      "Status": "Completed",
+      "Success": true,
+      "DurationMs": 302
+    },
+    "state": {
+      "programState": "Entry",
+      "hasCurrentGame": false
+    }
+  },
+  "error": null,
+  "v": "gabp/1",
+  "id": "5358e36c-ee3b-46c5-b40c-5a878bdfc35b"
+}

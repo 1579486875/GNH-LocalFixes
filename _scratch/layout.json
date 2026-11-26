@@ -1,0 +1,2075 @@
+{
+  "type": "response",
+  "result": {
+    "success": true,
+    "captureId": 4,
+    "capturedFrame": 487728,
+    "surfaceCount": 4,
+    "page": {
+      "offset": 0,
+      "returned": 144,
+      "total": 3297,
+      "nextOffset": 144,
+      "hint": "Partial result to stay within the response size budget; call again with offset=144 for the next page."
+    },
+    "surfaces": [
+      {
+        "captureTargetId": "ui-surface:4:1",
+        "surfaceTargetId": "main-tab:VisualExceptionsTab",
+        "surfaceKind": "main_tab",
+        "type": "VisualExceptions.ExceptionInspector",
+        "label": "视觉异常",
+        "screenRect": {
+          "x": 0.0,
+          "y": 787.0,
+          "width": 600.0,
+          "height": 600.0
+        },
+        "elementCount": 255,
+        "actionableElementCount": 86,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": [
+          {
+            "targetId": "ui-element:4:1:1",
+            "kind": "icon_button",
+            "source": "widgets.button_image",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 578.0,
+              "y": 791.0,
+              "width": 18.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:2",
+            "kind": "group",
+            "source": "widgets.begin_group",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 795.0,
+              "width": 584.0,
+              "height": 584.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:3",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Visual Exceptions",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 12.0,
+              "y": 795.0,
+              "width": 556.0,
+              "height": 22.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:4",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "视觉异常",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 12.0,
+              "y": 795.0,
+              "width": 556.0,
+              "height": 22.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:5",
+            "kind": "scroll_view",
+            "source": "widgets.begin_scroll_view",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 825.0,
+              "width": 584.0,
+              "height": 554.0
+            },
+            "scroll": {
+              "offsetX": 0.0,
+              "offsetY": 0.0,
+              "maxOffsetX": 0.0,
+              "maxOffsetY": 2486.0,
+              "canScrollX": false,
+              "canScrollY": true,
+              "atLeft": true,
+              "atRight": true,
+              "atTop": true,
+              "atBottom": false,
+              "viewportRect": {
+                "x": 0.0,
+                "y": 30.0,
+                "width": 584.0,
+                "height": 554.0
+              },
+              "viewportScreenRect": {
+                "x": 8.0,
+                "y": 824.6667,
+                "width": 584.0,
+                "height": 554.00006
+              },
+              "contentRect": {
+                "x": 0.0,
+                "y": 0.0,
+                "width": 568.0,
+                "height": 3040.0
+              }
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:6",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 825.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:7",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "1",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 825.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:8",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref FB9DF2E8] System.ArgumentException: An item with the same key has already been added. Key: Combat_RangedDamage.rulePack.rulesStrings",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 825.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:9",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref FB9DF2E8] System.ArgumentException: 已添加具有相同键的项。键: Combat_RangedDamage.rulePack.rulesStrings",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 825.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:10",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 833.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:11",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 862.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:12",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 901.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:13",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "1",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 901.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:14",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 780A7668] System.Xml.XmlException: 'flirt' is an unexpected token. The expected token is '='. Line 7, position 37.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 901.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:15",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 780A7668] System.Xml.XmlException: “flirt”是意外的标记。预期标记是“=”。行 7，位置 37。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 901.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:16",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 909.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:17",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 938.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:18",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 977.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:19",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "1",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 977.0,
+              "width": 528.0,
+              "height": 48.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:20",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref BB831E9B] System.Xml.XmlException: The 'FP_VeteranRecallChance' start tag on line 19 position 4 does not match the end tag of 'FP_RecallChance'. Line 19, position 41.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 977.0,
+              "width": 491.0,
+              "height": 48.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:21",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref BB831E9B] System.Xml.XmlException: 第 19 行第 4 位置的起始标记“FP_VeteranRecallChance”与结束标记“FP_RecallChance”不匹配。第 19 行，第 41 位置。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 977.0,
+              "width": 491.0,
+              "height": 48.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:22",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 993.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:23",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1029.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:24",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1068.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:25",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "1",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1068.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:26",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 49CBE247] System.Xml.XmlException: The '，' character, hexadecimal value 0xFF0C, cannot be included in a name. Line 10, position 10.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1068.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:27",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 49CBE247] System.Xml.XmlException: 字符“，”（十六进制值 0xFF0C）不能包含在名称中。第 10 行，第 10 位置。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1068.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:28",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1076.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:29",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1105.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:30",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1144.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:31",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "36",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1144.0,
+              "width": 528.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:32",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 361E32D3] System.Xml.XmlException: Data at the root level is invalid. Line 1, position 1.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 67.0,
+              "y": 1144.0,
+              "width": 485.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:33",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 361E32D3] System.Xml.XmlException: 根级别上的数据无效。第 1 行，第 1 位置。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 67.0,
+              "y": 1144.0,
+              "width": 485.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:34",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1145.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:35",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1166.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:36",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1205.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:37",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "33",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1205.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:38",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 665C7DFE] System.ArgumentException: An item with the same key has already been added. Key: WandererJoins.questDescriptionRules.rulesStrings",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 67.0,
+              "y": 1205.0,
+              "width": 485.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:39",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 665C7DFE] System.ArgumentException: 已添加具有相同键的项。键: WandererJoins.questDescriptionRules.rulesStrings",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 67.0,
+              "y": 1205.0,
+              "width": 485.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:40",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1213.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:41",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1242.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:42",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1281.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:43",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "1",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1281.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:44",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref D1C9B60F] System.Xml.XmlException: Unexpected XML declaration. The XML declaration must be the first node in the document, and no whitespace characters are allowed to appear before it. Line 1, position 4.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1281.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:45",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref D1C9B60F] System.Xml.XmlException：意外的 XML 声明。XML 声明必须是文档中的第一个节点，且其前面不允许出现任何空白字符。行 1，位置 4。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1281.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:46",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1289.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:47",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1318.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:48",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1357.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:49",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "1",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1357.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:50",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 64E4D50F] System.Xml.XmlException: ' ' is an unexpected token. The expected token is '<!--' or '<[CDATA['. Line 4, position 5.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1357.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:51",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 64E4D50F] System.Xml.XmlException：' ' 是一个意外的标记。预期的标记是 '<!--' 或 '<[CDATA['。第 4 行，位置 5。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1357.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:52",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1365.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:53",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1394.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:54",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1433.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:55",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "4",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1433.0,
+              "width": 528.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:56",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 94434B77] System.Xml.XmlException: Data at the root level is invalid. Line 179, position 16.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1433.0,
+              "width": 491.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:57",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 94434B77] System.Xml.XmlException: 根级别数据无效。行 179，位置 16。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1433.0,
+              "width": 491.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:58",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1434.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:59",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1455.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:60",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1494.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:61",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "1",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1494.0,
+              "width": 528.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:62",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 8EBB895C] System.Xml.XmlException: Unexpected end tag. Line 48, position 18.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1494.0,
+              "width": 491.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:63",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 8EBB895C] System.Xml.XmlException: 意外的结束标记。行 48，位置 18。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1494.0,
+              "width": 491.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:64",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1495.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:65",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1516.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:66",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1555.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:67",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "5",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1555.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:68",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 3375D546] System.Xml.XmlException: The '=' character, hexadecimal value 0x3D, cannot be included in a name. Line 7, position 136.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1555.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:69",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 3375D546] System.Xml.XmlException: '=' 字符（十六进制值 0x3D）不能包含在名称中。行 7，位置 136。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1555.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:70",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1563.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:71",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1592.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:72",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1631.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:73",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "4",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1631.0,
+              "width": 528.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:74",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref F69B9F93] System.Xml.XmlException: Data at the root level is invalid. Line 1, position 1.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1631.0,
+              "width": 491.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:75",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref F69B9F93] System.Xml.XmlException: 根级别的数据无效。行 1，位置 1。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1631.0,
+              "width": 491.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:76",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1632.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:77",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1653.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:78",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1692.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:79",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "1063",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1692.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:80",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref B4D8DD28] System.InvalidOperationException: None of the list elements have a handle named Left_eye.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 80.0,
+              "y": 1692.0,
+              "width": 472.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:81",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref B4D8DD28] System.InvalidOperationException: 列表元素均没有名为 Left_eye 的句柄。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 80.0,
+              "y": 1692.0,
+              "width": 472.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:82",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1700.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:83",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1729.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:84",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1768.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:85",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "4",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1768.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:86",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 1AAAFBD8] System.InvalidOperationException: Tried to use index on null list at Turn_Gene_HerdMentality.customEffectDescriptions.0",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1768.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:87",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 1AAAFBD8] System.InvalidOperationException: 尝试在空列表上使用索引，位于 Turn_Gene_HerdMentality.customEffectDescriptions.0",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 1768.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:88",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1776.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:89",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1805.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:90",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1844.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:91",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "128",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1844.0,
+              "width": 528.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:92",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref B8EA3BC6] System.InvalidOperationException: Index out of bounds (max index is 0)",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 74.0,
+              "y": 1844.0,
+              "width": 478.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:93",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref B8EA3BC6] System.InvalidOperationException: 索引超出范围(最大索引为 0)",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 74.0,
+              "y": 1844.0,
+              "width": 478.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:94",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1845.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:95",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1866.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:96",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1905.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:97",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "1436",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1905.0,
+              "width": 528.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:98",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref D3ECC816] System.InvalidOperationException: Field or TKey tools does not exist.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 80.0,
+              "y": 1905.0,
+              "width": 472.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:99",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref D3ECC816] System.InvalidOperationException: 字段或 TKey 工具不存在。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 80.0,
+              "y": 1905.0,
+              "width": 472.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:100",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1906.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:101",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1927.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:102",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 1966.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:103",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "12",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 1966.0,
+              "width": 528.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:104",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref B8D6818B] System.NullReferenceException: Object reference not set to an instance of an object.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 67.0,
+              "y": 1966.0,
+              "width": 485.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:105",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref B8D6818B] System.NullReferenceException：对象引用未设置为对象的实例。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 67.0,
+              "y": 1966.0,
+              "width": 485.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:106",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 1967.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:107",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 1988.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:108",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 2027.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:109",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "228",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 2027.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:110",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref E863B54F] System.InvalidOperationException: Field description does not exist in type Verse.HediffStage.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 74.0,
+              "y": 2027.0,
+              "width": 478.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:111",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref E863B54F] System.InvalidOperationException：类型 Verse.HediffStage 中不存在字段描述。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 74.0,
+              "y": 2027.0,
+              "width": 478.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:112",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 2035.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:113",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 2064.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:114",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 2103.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:115",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "618",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 2103.0,
+              "width": 528.0,
+              "height": 48.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:116",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 66D0932A] System.InvalidOperationException: Trying to translate RimWorld.InteractionDef.Bestiality_Rimming.logRulesInitiator.rulesStrings.1 at index 1 but the list only has 1 entries (so max index is 0).",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 74.0,
+              "y": 2103.0,
+              "width": 478.0,
+              "height": 48.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:117",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 2119.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:118",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 2155.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:119",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 2194.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:120",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "381",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 2194.0,
+              "width": 528.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:121",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 454BFC4E] System.NullReferenceException: Object reference not set to an instance of an object.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 74.0,
+              "y": 2194.0,
+              "width": 478.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:122",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 454BFC4E] System.NullReferenceException：对象引用未设置为对象的实例。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 74.0,
+              "y": 2194.0,
+              "width": 478.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:123",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 2195.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:124",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 2216.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:125",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 2255.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:126",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "2",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 2255.0,
+              "width": 528.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:127",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref 5EE15F1C] System.InvalidOperationException: None of the list elements have a handle named description.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 2255.0,
+              "width": 491.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:128",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref 5EE15F1C] System.InvalidOperationException：列表元素中没有名为 description 的句柄。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 2255.0,
+              "width": 491.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:129",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 2256.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:130",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 2277.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:131",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 2316.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:132",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "12",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 2316.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:133",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref F9ADB3BB] System.InvalidOperationException: Tried to access handle ate_cum[1], but there are only 1 handles matching this name.",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 67.0,
+              "y": 2316.0,
+              "width": 485.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:134",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref F9ADB3BB] System.InvalidOperationException: 尝试访问 ate_cum[1] 句柄，但只有 1 个句柄匹配此名称。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 67.0,
+              "y": 2316.0,
+              "width": 485.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:135",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 2324.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:136",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 2353.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:137",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 2392.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:138",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "4",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 2392.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:139",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "[Ref C8CE29B3] System.InvalidOperationException: Tried to use index on non-list (missing 'Item' property).",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 2392.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:140",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[Ref C8CE29B3] System.InvalidOperationException：尝试在非列表上使用索引（缺少“Item”属性）。",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 61.0,
+              "y": 2392.0,
+              "width": 491.0,
+              "height": 33.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:141",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 552.0,
+              "y": 2400.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:142",
+            "kind": "label",
+            "source": "widgets.label",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 32.0,
+              "y": 2429.0,
+              "width": 536.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:143",
+            "kind": "button",
+            "source": "widgets.button_invisible",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 8.0,
+              "y": 2468.0,
+              "width": 16.0,
+              "height": 16.0
+            }
+          },
+          {
+            "targetId": "ui-element:4:1:144",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "2",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 40.0,
+              "y": 2468.0,
+              "width": 528.0,
+              "height": 33.0
+            }
+          }
+        ]
+      },
+      {
+        "captureTargetId": "ui-surface:4:2",
+        "surfaceTargetId": "window:-1593759361:Verse.ImmediateWindow",
+        "surfaceKind": "window",
+        "type": "Verse.ImmediateWindow",
+        "screenRect": {
+          "x": 1054.0,
+          "y": 3.0,
+          "width": 168.0,
+          "height": 25.0
+        },
+        "elementCount": 8,
+        "actionableElementCount": 7,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": []
+      },
+      {
+        "captureTargetId": "ui-surface:4:3",
+        "surfaceTargetId": "window:0:LudeonTK.EditWindow_Log",
+        "surfaceKind": "window",
+        "type": "LudeonTK.EditWindow_Log",
+        "title": "Debug log",
+        "screenRect": {
+          "x": 569.0,
+          "y": 355.0,
+          "width": 1138.0,
+          "height": 711.0
+        },
+        "elementCount": 3026,
+        "actionableElementCount": 1017,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": []
+      },
+      {
+        "captureTargetId": "ui-surface:4:4",
+        "surfaceTargetId": "window:2:BackstoryConstructor.Window_BackstoryConstructor",
+        "surfaceKind": "window",
+        "type": "BackstoryConstructor.Window_BackstoryConstructor",
+        "screenRect": {
+          "x": 738.0,
+          "y": 0.0,
+          "width": 800.0,
+          "height": 1422.0
+        },
+        "elementCount": 8,
+        "actionableElementCount": 6,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": []
+      }
+    ],
+    "operation": {
+      "OperationId": "op_c15268e75fd6403fbb508ea1473d36b5",
+      "Status": "Completed",
+      "Success": true,
+      "DurationMs": 133
+    },
+    "state": {
+      "programState": "Entry",
+      "hasCurrentGame": false
+    }
+  },
+  "error": null,
+  "v": "gabp/1",
+  "id": "5745d590-54bf-4fe2-bb5f-02e14261afbf"
+}

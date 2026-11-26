@@ -1,0 +1,281 @@
+{
+  "type": "response",
+  "result": {
+    "success": true,
+    "captureId": 11,
+    "capturedFrame": 488402,
+    "surfaceCount": 3,
+    "page": {
+      "offset": 3030,
+      "returned": 12,
+      "total": 3042
+    },
+    "surfaces": [
+      {
+        "captureTargetId": "ui-surface:11:1",
+        "surfaceTargetId": "window:-1593759361:Verse.ImmediateWindow",
+        "surfaceKind": "window",
+        "type": "Verse.ImmediateWindow",
+        "screenRect": {
+          "x": 1054.0,
+          "y": 3.0,
+          "width": 168.0,
+          "height": 25.0
+        },
+        "elementCount": 8,
+        "actionableElementCount": 7,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": []
+      },
+      {
+        "captureTargetId": "ui-surface:11:2",
+        "surfaceTargetId": "window:0:LudeonTK.EditWindow_Log",
+        "surfaceKind": "window",
+        "type": "LudeonTK.EditWindow_Log",
+        "title": "Debug log",
+        "screenRect": {
+          "x": 569.0,
+          "y": 355.0,
+          "width": 1138.0,
+          "height": 711.0
+        },
+        "elementCount": 3026,
+        "actionableElementCount": 1017,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": [
+          {
+            "targetId": "ui-element:11:2:3023",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "1",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 580.0,
+              "y": 24835.0,
+              "width": 28.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:2:3024",
+            "kind": "button",
+            "source": "gui.button",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 605.0,
+              "y": 24835.0,
+              "width": 1078.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:2:3025",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "[15:09:29] [AutoTranslationCore] 模型请求汇总（最近 1 分钟）发起 3，返回 3，失败 0，取消 0，进行中 0",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 604.0,
+              "y": 24835.0,
+              "width": 1079.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:2:3026",
+            "kind": "icon_button",
+            "source": "widgets.button_image",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 1683.0,
+              "y": 1042.0,
+              "width": 24.0,
+              "height": 24.0
+            }
+          }
+        ]
+      },
+      {
+        "captureTargetId": "ui-surface:11:3",
+        "surfaceTargetId": "window:3:BackstoryConstructor.Window_BackstoryConstructor",
+        "surfaceKind": "window",
+        "type": "BackstoryConstructor.Window_BackstoryConstructor",
+        "screenRect": {
+          "x": 738.0,
+          "y": 0.0,
+          "width": 800.0,
+          "height": 1422.0
+        },
+        "elementCount": 8,
+        "actionableElementCount": 6,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": [
+          {
+            "targetId": "ui-element:11:3:1",
+            "kind": "icon_button",
+            "source": "widgets.button_image",
+            "actionable": true,
+            "depth": 0,
+            "screenRect": {
+              "x": 1516.0,
+              "y": 4.0,
+              "width": 18.0,
+              "height": 18.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:3:2",
+            "kind": "group",
+            "source": "widgets.begin_group",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 756.0,
+              "y": 18.0,
+              "width": 764.0,
+              "height": 1386.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:3:3",
+            "kind": "button",
+            "source": "widgets.button_text",
+            "label": "创建新的背景故事",
+            "actionable": true,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 756.0,
+              "y": 28.0,
+              "width": 145.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:3:4",
+            "kind": "button",
+            "source": "widgets.button_text",
+            "label": "编辑背景故事",
+            "actionable": true,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 910.0,
+              "y": 28.0,
+              "width": 145.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:3:5",
+            "kind": "button",
+            "source": "widgets.button_text",
+            "label": "保存修改",
+            "actionable": true,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1065.0,
+              "y": 28.0,
+              "width": 145.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:3:6",
+            "kind": "button",
+            "source": "widgets.button_text",
+            "label": "删除背景故事",
+            "actionable": true,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1220.0,
+              "y": 28.0,
+              "width": 145.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:3:7",
+            "kind": "button",
+            "source": "widgets.button_text",
+            "label": "删除所有背景故事",
+            "actionable": true,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1375.0,
+              "y": 28.0,
+              "width": 145.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:11:3:8",
+            "kind": "scroll_view",
+            "source": "widgets.begin_scroll_view",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 766.0,
+              "y": 78.0,
+              "width": 739.0,
+              "height": 1316.0
+            },
+            "scroll": {
+              "offsetX": 0.0,
+              "offsetY": 0.0,
+              "maxOffsetX": 0.0,
+              "maxOffsetY": 0.0,
+              "canScrollX": false,
+              "canScrollY": false,
+              "atLeft": true,
+              "atRight": true,
+              "atTop": true,
+              "atBottom": true,
+              "viewportRect": {
+                "x": 10.0,
+                "y": 60.0,
+                "width": 739.0,
+                "height": 1316.0
+              },
+              "viewportScreenRect": {
+                "x": 765.55554,
+                "y": 77.77778,
+                "width": 739.0,
+                "height": 1316.0
+              },
+              "contentRect": {
+                "x": 0.0,
+                "y": 0.0,
+                "width": 719.0,
+                "height": 0.0
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "operation": {
+      "OperationId": "op_8a3f9e749ada4b98b8eb4b0a825054eb",
+      "Status": "Completed",
+      "Success": true,
+      "DurationMs": 111
+    },
+    "state": {
+      "programState": "Entry",
+      "hasCurrentGame": false
+    }
+  },
+  "error": null,
+  "v": "gabp/1",
+  "id": "38358905-277d-4193-aa41-ce2fa93b4136"
+}

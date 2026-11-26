@@ -101,6 +101,19 @@ def find_bridge():
     return port, token
 
 
+def dump(obj, out_path, title):
+    """打印并可选把完整 JSON 写到文件（响应可能上万字符，head 会截断）。"""
+    text = json.dumps(obj, ensure_ascii=False, indent=2)
+    if out_path:
+        with open(out_path, 'w', encoding='utf-8') as f:
+            f.write(text)
+        print('%s\n  完整响应已写入 %s（%d 字符）' % (title, out_path, len(text)))
+        print(text[:1200] + ('\n  …（其余见文件）' if len(text) > 1200 else ''))
+    else:
+        print(title)
+        print(text[:4000] + ('\n  …（被截断，用 --out 存全文）' if len(text) > 4000 else ''))
+
+
 class Bridge:
     def __init__(self, host, port, token, timeout=10.0):
         self.sock = socket.create_connection((host, port), timeout=timeout)
@@ -168,6 +181,7 @@ def main():
     ap.add_argument('--args', default='{}', help='工具参数（JSON）')
     ap.add_argument('--lua', default=None, help='直接执行一段 Lua')
     ap.add_argument('--lua-ref', action='store_true', help='拉取 Lua API 文档')
+    ap.add_argument('--out', default=None, help='把完整响应写到这个文件（不截断）')
     a = ap.parse_args()
 
     port, token = find_bridge()
@@ -198,18 +212,15 @@ def main():
 
         if a.lua_ref:
             r2 = b.request('tools/call', {'name': 'rimbridge/get_lua_reference', 'arguments': {}})
-            print('=== Lua API 文档 ===')
-            print(json.dumps(r2.get('result'), ensure_ascii=False, indent=2)[:8000])
+            dump(r2, a.out, '=== Lua API 文档 ===')
         elif a.lua:
             r2 = b.request('tools/call', {'name': 'rimbridge/run_lua',
                                           'arguments': {'script': a.lua}})
-            print('=== run_lua 结果 ===')
-            print(json.dumps(r2, ensure_ascii=False, indent=2)[:4000])
+            dump(r2, a.out, '=== run_lua 结果 ===')
         elif a.call:
             args = json.loads(a.args)
             r2 = b.request('tools/call', {'name': a.call, 'arguments': args})
-            print('=== tools/call %s ===' % a.call)
-            print(json.dumps(r2, ensure_ascii=False, indent=2)[:4000])
+            dump(r2, a.out, '=== tools/call %s ===' % a.call)
         else:
             r2 = b.request('tools/list', {})
             tools = ((r2.get('result') or {}).get('tools')

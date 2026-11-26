@@ -1,0 +1,81 @@
+{
+  "type": "response",
+  "result": {
+    "success": true,
+    "captureId": 10,
+    "capturedFrame": 488343,
+    "surfaceCount": 3,
+    "page": {
+      "offset": 3042,
+      "returned": 0,
+      "total": 3042
+    },
+    "surfaces": [
+      {
+        "captureTargetId": "ui-surface:10:1",
+        "surfaceTargetId": "window:-1593759361:Verse.ImmediateWindow",
+        "surfaceKind": "window",
+        "type": "Verse.ImmediateWindow",
+        "screenRect": {
+          "x": 1054.0,
+          "y": 3.0,
+          "width": 168.0,
+          "height": 25.0
+        },
+        "elementCount": 8,
+        "actionableElementCount": 7,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": []
+      },
+      {
+        "captureTargetId": "ui-surface:10:2",
+        "surfaceTargetId": "window:0:LudeonTK.EditWindow_Log",
+        "surfaceKind": "window",
+        "type": "LudeonTK.EditWindow_Log",
+        "title": "Debug log",
+        "screenRect": {
+          "x": 569.0,
+          "y": 355.0,
+          "width": 1138.0,
+          "height": 711.0
+        },
+        "elementCount": 3026,
+        "actionableElementCount": 1017,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": []
+      },
+      {
+        "captureTargetId": "ui-surface:10:3",
+        "surfaceTargetId": "window:3:BackstoryConstructor.Window_BackstoryConstructor",
+        "surfaceKind": "window",
+        "type": "BackstoryConstructor.Window_BackstoryConstructor",
+        "screenRect": {
+          "x": 738.0,
+          "y": 0.0,
+          "width": 800.0,
+          "height": 1422.0
+        },
+        "elementCount": 8,
+        "actionableElementCount": 6,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": []
+      }
+    ],
+    "operation": {
+      "OperationId": "op_cd109fa4350142e4958cafd84c568327",
+      "Status": "Completed",
+      "Success": true,
+      "DurationMs": 192
+    },
+    "state": {
+      "programState": "Entry",
+      "hasCurrentGame": false
+    }
+  },
+  "error": null,
+  "v": "gabp/1",
+  "id": "e7aa539c-6244-472f-96b6-412394db254d"
+}

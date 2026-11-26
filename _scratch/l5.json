@@ -1,0 +1,2315 @@
+{
+  "type": "response",
+  "result": {
+    "success": true,
+    "captureId": 13,
+    "capturedFrame": 488669,
+    "surfaceCount": 3,
+    "page": {
+      "offset": 3042,
+      "returned": 155,
+      "total": 4471,
+      "nextOffset": 3197,
+      "hint": "Partial result to stay within the response size budget; call again with offset=3197 for the next page."
+    },
+    "surfaces": [
+      {
+        "captureTargetId": "ui-surface:13:1",
+        "surfaceTargetId": "window:-1593759361:Verse.ImmediateWindow",
+        "surfaceKind": "window",
+        "type": "Verse.ImmediateWindow",
+        "screenRect": {
+          "x": 1054.0,
+          "y": 3.0,
+          "width": 168.0,
+          "height": 25.0
+        },
+        "elementCount": 8,
+        "actionableElementCount": 7,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": []
+      },
+      {
+        "captureTargetId": "ui-surface:13:2",
+        "surfaceTargetId": "window:0:LudeonTK.EditWindow_Log",
+        "surfaceKind": "window",
+        "type": "LudeonTK.EditWindow_Log",
+        "title": "Debug log",
+        "screenRect": {
+          "x": 569.0,
+          "y": 355.0,
+          "width": 1138.0,
+          "height": 711.0
+        },
+        "elementCount": 3026,
+        "actionableElementCount": 1017,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": []
+      },
+      {
+        "captureTargetId": "ui-surface:13:3",
+        "surfaceTargetId": "window:3:BackstoryConstructor.Window_BackstoryConstructor",
+        "surfaceKind": "window",
+        "type": "BackstoryConstructor.Window_BackstoryConstructor",
+        "screenRect": {
+          "x": 738.0,
+          "y": 0.0,
+          "width": 800.0,
+          "height": 1422.0
+        },
+        "elementCount": 1437,
+        "actionableElementCount": 537,
+        "offscreenElementCount": 0,
+        "omittedLayoutFillerCount": 0,
+        "elements": [
+          {
+            "targetId": "ui-element:13:3:9",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "<color=#E6E64CFF>名称</color>",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 88.0,
+              "width": 349.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:10",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "<color=#E6E64CFF>女性名称</color>",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1125.0,
+              "y": 88.0,
+              "width": 350.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:11",
+            "kind": "text_field",
+            "source": "gui.text_field",
+            "valueText": "待编辑",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 113.0,
+              "width": 349.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:12",
+            "kind": "text_field",
+            "source": "gui.text_field",
+            "valueText": "待编辑",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1125.0,
+              "y": 113.0,
+              "width": 350.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:13",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "<color=#E6E64CFF>描述</color>",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 153.0,
+              "width": 709.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:14",
+            "kind": "button",
+            "source": "widgets.button_text",
+            "label": "+",
+            "actionable": true,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1449.0,
+              "y": 150.0,
+              "width": 25.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:15",
+            "kind": "button",
+            "source": "widgets.button_text",
+            "label": "年龄档: 成年",
+            "actionable": true,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 253.0,
+              "width": 709.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:16",
+            "kind": "button",
+            "source": "widgets.button_text",
+            "label": "男性身材: 不绑定身材",
+            "actionable": true,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 293.0,
+              "width": 709.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:17",
+            "kind": "button",
+            "source": "widgets.button_text",
+            "label": "女性身材: 不绑定身材",
+            "actionable": true,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 333.0,
+              "width": 709.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:18",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "<color=#E6E64CFF>技能加成</color>",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 378.0,
+              "width": 709.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:19",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "射击",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 408.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:20",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "格斗",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 408.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:21",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "建造",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 408.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:22",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "采矿",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 408.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:23",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "烹饪",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 438.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:24",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "种植",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 438.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:25",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "驯兽",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 438.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:26",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "手工",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 438.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:27",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "艺术",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 468.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:28",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "医疗",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 468.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:29",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "社交",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 468.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:30",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "智识",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 468.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:31",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "性",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 498.0,
+              "width": 130.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:32",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "<color=#E6E64CFF>禁用工作</color>",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 538.0,
+              "width": 709.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:33",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 571.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:34",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "简易工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 568.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:35",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 571.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:36",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "专业工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 568.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:37",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 571.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:38",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "暴力行为",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 568.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:39",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 571.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:40",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "医疗工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 568.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:41",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 601.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:42",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "社交工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 598.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:43",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 601.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:44",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "常见工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 598.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:45",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 601.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:46",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "智识工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 598.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:47",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 601.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:48",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "驯兽工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 598.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:49",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 631.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:50",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "艺术工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 628.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:51",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 631.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:52",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "手工工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 628.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:53",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 631.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:54",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "烹饪工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 628.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:55",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 631.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:56",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "灭火",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 628.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:57",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 661.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:58",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "清洁工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 658.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:59",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 661.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:60",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "搬运工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 658.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:61",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 661.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:62",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "种植工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 658.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:63",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 661.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:64",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "采矿工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 658.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:65",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 691.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:66",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "狩猎工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 688.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:67",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 691.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:68",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "建造工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 688.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:69",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 691.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:70",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "射击",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 688.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:71",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 691.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:72",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "所有工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 688.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:73",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "<color=#E6E64CFF>绑定工作</color>",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 728.0,
+              "width": 709.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:74",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 761.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:75",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "简易工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 758.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:76",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 761.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:77",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "专业工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 758.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:78",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 761.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:79",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "暴力行为",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 758.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:80",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 761.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:81",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "医疗工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 758.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:82",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 791.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:83",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "社交工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 788.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:84",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 791.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:85",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "常见工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 788.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:86",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 791.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:87",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "智识工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 788.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:88",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 791.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:89",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "驯兽工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 788.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:90",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 821.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:91",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "艺术工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 818.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:92",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 821.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:93",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "手工工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 818.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:94",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 821.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:95",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "烹饪工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 818.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:96",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 821.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:97",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "灭火",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 818.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:98",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 851.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:99",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "清洁工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 848.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:100",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 851.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:101",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "搬运工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 848.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:102",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 851.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:103",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "种植工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 848.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:104",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 851.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:105",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "采矿工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 848.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:106",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 881.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:107",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "狩猎工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 878.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:108",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 881.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:109",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "建造工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 878.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:110",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 881.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:111",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "射击",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 878.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:112",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 881.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:113",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "所有工作",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 878.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:114",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "<color=#E6E64CFF>适用类型</color>",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 765.0,
+              "y": 918.0,
+              "width": 709.0,
+              "height": 30.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:115",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 951.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:116",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "InsectsRelated",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 948.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:117",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "昆虫相关",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 948.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:118",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 951.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:119",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Offworld",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 948.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:120",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "异星人",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 948.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:121",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 951.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:122",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Scientist",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 948.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:123",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "科学家",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 948.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:124",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 951.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:125",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Researcher",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 948.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:126",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "研究员",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 948.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:127",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 981.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:128",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Pirate",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 978.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:129",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "海盗",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 978.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:130",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 981.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:131",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Farmer",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 978.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:132",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "农民",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 978.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:133",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 981.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:134",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Cult",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 978.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:135",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "邪教",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 978.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:136",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 981.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:137",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "ImperialCommon",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 978.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:138",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "帝国平民",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 978.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:139",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 1011.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:140",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Outlander",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 1008.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:141",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "外来者",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 1008.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:142",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 1011.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:143",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Madman",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 1008.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:144",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "狂人",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 1008.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:145",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 1011.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:146",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Miner",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 1008.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:147",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "矿工",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 1008.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:148",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 1011.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:149",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Hunter",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 1008.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:150",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "猎人",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 1008.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:151",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 1041.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:152",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Logger",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 1038.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:153",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "伐木工",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 775.0,
+              "y": 1038.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:154",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1093.0,
+              "y": 1041.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:155",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "ImperialFighter",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 1038.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:156",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "帝国战士",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 955.0,
+              "y": 1038.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:157",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1273.0,
+              "y": 1041.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:158",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Vatgrown",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 1038.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:159",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "缸中培育",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1135.0,
+              "y": 1038.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:160",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1452.0,
+              "y": 1041.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:161",
+            "kind": "label",
+            "source": "widgets.label",
+            "label": "Outsider",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 1038.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:162",
+            "kind": "label",
+            "source": "gui.label",
+            "label": "外来者",
+            "actionable": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 1315.0,
+              "y": 1038.0,
+              "width": 133.0,
+              "height": 25.0
+            }
+          },
+          {
+            "targetId": "ui-element:13:3:163",
+            "kind": "checkbox",
+            "source": "widgets.checkbox",
+            "actionable": true,
+            "isChecked": false,
+            "disabled": false,
+            "depth": 0,
+            "screenRect": {
+              "x": 913.0,
+              "y": 1071.0,
+              "width": 19.0,
+              "height": 19.0
+            }
+          }
+        ]
+      }
+    ],
+    "operation": {
+      "OperationId": "op_2446a89b4b974d58b3f4c482739c11f8",
+      "Status": "Completed",
+      "Success": true,
+      "DurationMs": 94
+    },
+    "state": {
+      "programState": "Entry",
+      "hasCurrentGame": false
+    }
+  },
+  "error": null,
+  "v": "gabp/1",
+  "id": "3ab23809-f5e4-4c41-94a6-e9ac5eaa52bd"
+}
