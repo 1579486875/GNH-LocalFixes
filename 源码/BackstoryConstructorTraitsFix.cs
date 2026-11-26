@@ -10,6 +10,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
+using RimWorld;
 using Verse;
 
 namespace GNH.LocalFixes
@@ -85,6 +86,12 @@ namespace GNH.LocalFixes
         private static FieldInfo forcedTraitsField;
         private static FieldInfo disallowedTraitsField;
 
+        /// <summary><c>BackstoryConstructor.Utility.Traits</c> —— 点「+」时列出来的可选特性目录。</summary>
+        private static FieldInfo utilityTraitsField;
+
+        /// <summary>目录清洗只做一次：第一次绘制前扫一遍就够了。</summary>
+        private static bool traitsSanitized;
+
         /// <summary>绘制侧的第二道防线用的静态空列表（只读，绝不往里写）。</summary>
         private static readonly List<string> EmptyTraits = new List<string>();
 
@@ -137,6 +144,14 @@ namespace GNH.LocalFixes
                 // ── 第二道防线：绘制时把 null 换成空列表 ──────────────────────
                 if (windowType != null)
                 {
+                    // Utility.Traits 是「点 + 时能选什么」的来源，绘制前要清洗它，
+                    // 所以先把字段反射到手（类型不在场就留 null，清洗时自动跳过）。
+                    Type utilityType = AccessTools.TypeByName("BackstoryConstructor.Utility");
+                    if (utilityType != null)
+                    {
+                        utilityTraitsField = AccessTools.Field(utilityType, "Traits");
+                    }
+
                     MethodInfo draw = AccessTools.Method(windowType, "DrawBackstoryTraits");
                     if (draw != null)
                     {
@@ -198,7 +213,7 @@ namespace GNH.LocalFixes
         }
 
         /// <summary>
-        /// 绘制前把 null 的列表参数换成静态空列表。
+        /// 绘制前做两件事：把 null 的列表参数换成静态空列表；顺手清洗 <c>Utility.Traits</c>。
         /// <para>
         /// 参数名必须与原方法一致（<c>first</c> / <c>second</c>），
         /// Harmony 靠名字绑定；加 <c>ref</c> 才能真正改掉传进去的引用。
@@ -208,6 +223,106 @@ namespace GNH.LocalFixes
         {
             if (first == null) first = EmptyTraits;
             if (second == null) second = EmptyTraits;
+            SanitizeTraitCatalog();
+        }
+
+        /// <summary>
+        /// 清洗 <c>BackstoryConstructor.Utility.Traits</c>，只留下「真能被作者那段代码解析」的项。
+        /// <para>
+        /// 【为什么必须做这一步 —— 2026-11-26 实机取证】
+        /// </para>
+        /// <para>
+        /// 作者在点「+」之后的循环里这样写（反编译还原）：
+        /// </para>
+        /// <code>
+        /// string traitInfo = enumerator.Current;
+        /// if (!first.Contains(traitInfo) &amp;&amp; !second.Contains(traitInfo))
+        /// {
+        ///     string text = traitInfo.Split('~')[0].Trim();
+        ///     int.TryParse(traitInfo.Split('[').Last().Split(']')[0], ref degree);
+        ///     TraitDef val3 = TraitDef.Named(text);                              // ← 可能 null
+        ///     TraitDegreeData val4 = val3.degreeDatas.Find(x => x.degree == degree);  // ← 可能 null
+        ///     val2.Add(new DebugMenuOption(val4.LabelCap + ...));               // ← NRE 在这里
+        /// }
+        /// </code>
+        /// <para>
+        /// 目录项的格式是 <c>"{defName} ~ ({label}) [{degree}]"</c>，
+        /// 而 <c>Split('[').Last().Split(']')[0]</c> 只要标签里自己带了方括号
+        /// （模组特性标签常写成「[OO] 某某」这种），解析出来的就不是数字，
+        /// <c>degree</c> 保持上一次的值 → <c>Find</c> 找不到同 degree 的档位 → 返回 null → 崩。
+        /// </para>
+        /// <para>
+        /// 我们没法改作者的方法体，但可以**在进循环之前把不能解析的项摘掉** ——
+        /// 效果等价于「这个特性本来就不该出现在可选列表里」，而不会让整个窗口崩掉。
+        /// 清洗只做一次（静态标志），代价是一次 O(n) 遍历。
+        /// </para>
+        /// </summary>
+        private static void SanitizeTraitCatalog()
+        {
+            if (traitsSanitized) return;
+            traitsSanitized = true;
+
+            try
+            {
+                if (utilityTraitsField == null) return;
+                List<string> raw = utilityTraitsField.GetValue(null) as List<string>;
+                if (raw == null || raw.Count == 0) return;
+
+                // 逐项按作者的解析方式重演一遍，保留「两边都不为 null」的项
+                List<string> kept = new List<string>(raw.Count);
+                int dropped = 0;
+                for (int i = 0; i < raw.Count; i++)
+                {
+                    string item = raw[i];
+                    if (string.IsNullOrEmpty(item)) { dropped++; continue; }
+                    if (CanAuthorResolve(item)) kept.Add(item);
+                    else dropped++;
+                }
+
+                if (dropped > 0)
+                {
+                    raw.Clear();
+                    raw.AddRange(kept);
+                    Log.Message("[GNH LocalFixes] 背景故事创建器：特性目录里有 " + dropped
+                        + " 项按作者的解析方式拿不到 TraitDef 或对应档位（多半是标签里带了方括号），"
+                        + "已从可选列表剔除，剩 " + kept.Count + " 项。"
+                        + "这份列表只是「点 + 时能选什么」，不影响任何既有模板数据。");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("[GNH LocalFixes] 特性目录清洗失败（不影响其它功能，"
+                    + "但点「+」仍可能报空引用）：" + ex);
+            }
+        }
+
+        /// <summary>
+        /// 按作者那段代码的解析方式，判断某一项目录项能否解析出 TraitDef 与对应档位。
+        /// </summary>
+        private static bool CanAuthorResolve(string traitInfo)
+        {
+            try
+            {
+                string name = traitInfo.Split('~')[0].Trim();
+                if (name.Length == 0) return false;
+
+                // 复刻作者的两段 Split（故意与他的写法保持一致，才能预测他的结果）
+                string[] byOpen = traitInfo.Split('[');
+                string[] byClose = byOpen[byOpen.Length - 1].Split(']');
+                int degree;
+                if (!int.TryParse(byClose[0], out degree)) return false;
+
+                TraitDef def = TraitDef.Named(name);
+                if (def == null) return false;
+                if (def.degreeDatas == null) return false;
+
+                TraitDegreeData data = def.degreeDatas.Find(x => x.degree == degree);
+                return data != null;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
