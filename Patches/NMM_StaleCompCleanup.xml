@@ -28,7 +28,7 @@
 
     ═══════════════════════════════════════════════════════════════════
 
-    ── 症状（2026-11-07 实测，完整排错见 docs\RimWorld-日志排错报告-20261107.md）──
+    ── 症状（2026-11-07 实测，完整排错见 文档\RimWorld-日志排错报告-20261107.md）──
 
       Exception loading def from file Races_Humanlike.xml: System.ArgumentException:
       Could not find type named NudityMattersMore.CompProperties_BugsTracker

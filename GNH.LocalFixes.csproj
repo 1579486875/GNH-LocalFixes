@@ -8,7 +8,7 @@
            UnityEngine 引用由引擎 remap 到 UnityStubs）；而本源码【零改动】
            也能直接编为 net10.0（实测：0 错误，仅 1 条 SYSLIB0050
            —— SteamWorkshopHookFix.cs:406 的 FormatterServices 过时警告，可用）。
-         · ⚠ refs\0Harmony.dll 仍是 v2.4.1.0，而实际运行时用的是
+         · ⚠ 引用\0Harmony.dll 仍是 v2.4.1.0，而实际运行时用的是
            工坊那份 1.6 的 v2.4.3.0（以及 1.7 的 v3.0）。因两者均非强命名、
            且本模组用到的 Harmony API 在 3.0 里全部存在，目前不致故障；
            但下次同步 refs 时应一并升到当前版本。 -->
@@ -51,10 +51,10 @@
 
   <!--
     ══════════════════════════════════════════════════════════════════════════
-      refs\ 目录是什么，以及 ⚠ 游戏更新后必须做的事
+      引用\ 目录是什么，以及 ⚠ 游戏更新后必须做的事
     ══════════════════════════════════════════════════════════════════════════
 
-      本工程编译时用到的程序集全部放在 refs\ 里：
+      本工程编译时用到的程序集全部放在 引用\ 里：
 
         Assembly-CSharp.dll          ← 游戏本体（15.7 MB）
         UnityEngine.dll              ← Unity
@@ -67,14 +67,14 @@
         ElToro_BAddon.dll            ← 第三方模组（本模组要重写它的一个类）
         RJW.dll                      ← 第三方模组
 
-      为什么用 refs\ 而不是直接指向游戏安装目录：
+      为什么用 引用\ 而不是直接指向游戏安装目录：
       最后两个 dll 不在游戏目录里，它们躺在工坊目录下、路径随工坊 ID 变化，
-      写死路径换台机器就编不过。所以统一放一份进 refs\。
+      写死路径换台机器就编不过。所以统一放一份进 引用\。
 
       ⚠ **本工程【有意】把 Assembly-CSharp.dll 钉在 1.6（2026-11-17 明确）**
 
         实测（2026-11-17）：
-            refs\Assembly-CSharp.dll                    1.6.9676.17735  5cf1b5be…  15,777,280 B
+            引用\Assembly-CSharp.dll                    1.6.9676.17735  5cf1b5be…  15,777,280 B
             D:\RimWorld-1.6\…\Managed\Assembly-CSharp.dll  1.6.9676.17735  5cf1b5be…  15,777,280 B  ← 完全一致
             D:\steam\…\RimWorld\Assembly-CSharp.dll      1.7.9816.739   7fbce7a5…  15,637,504 B  ← **不同，且不应同步**
 
@@ -89,21 +89,21 @@
             ☑ 先确认新程序集里用到的每个 API 在 **1.6 的副本里也存在**；
             ☑ 最好两边同时编一遍，1.6 那份能过才允许换。
 
-        闸门：tools/check-refs-baseline.py 会核对「refs 与 1.6 引擎副本逐哈希一致」，
+        闸门：工具/check-refs-baseline.py 会核对「refs 与 1.6 引擎副本逐哈希一致」，
         不一致就报错 —— 防止有人顺手跑 sync-refs.ps1 把它升到 1.7 而破坏 1.6 兼容。
 
       ⚠⚠ 这里有个必须记住的坑 ⚠⚠
 
-        refs\Assembly-CSharp.dll 是**游戏程序集在某个时刻的快照**。
+        引用\Assembly-CSharp.dll 是**游戏程序集在某个时刻的快照**。
         游戏本体更新之后，它不会自动跟着变 —— 你会拿着**旧版 API** 编译，
         编出来的 dll 在当前游戏里可能一加载就 MissingMethodException / TypeLoadException。
         这种错在编译期完全看不出来，只在装上之后才炸，而且报错信息离根因很远。
 
-        所以：**每次游戏本体更新后，先重新同步 refs\，再编译。**
+        所以：**每次游戏本体更新后，先重新同步 引用\，再编译。**
 
         同步命令（推荐）：
-            powershell -ExecutionPolicy Bypass -File tools\sync-refs.ps1
-        或者手动把下面这些从游戏目录拷进 refs\：
+            powershell -ExecutionPolicy Bypass -File 工具\sync-refs.ps1
+        或者手动把下面这些从游戏目录拷进 引用\：
             RimWorldWin64_Data\Managed\Assembly-CSharp.dll
             RimWorldWin64_Data\Managed\UnityEngine.dll
             RimWorldWin64_Data\Managed\UnityEngine.CoreModule.dll
@@ -113,7 +113,7 @@
         ⚠ 2026-10-13 实测订正：以下原本写的「比较修改时间」判据
         已被证伪，请改用内容哈希。
 
-          实测（2026-10-13）：refs\Assembly-CSharp.dll 的 mtime 是 2026/7/1 20:48，
+          实测（2026-10-13）：引用\Assembly-CSharp.dll 的 mtime 是 2026/7/1 20:48，
           而游戏目录那份是 2026/10/13 11:06 —— 时间戳差了三个月，
           但 SHA256 完全相同（5CF1B5BE399D5B1C9C56CA72…）。5 个 Unity 程序集同此。
           原因：Steam 会校验并重写游戏文件 —— 内容未变、mtime 被刷新。
@@ -123,13 +123,13 @@
           而漏报的后果正是上面告警的「拿旧 API 编译、装上才炸」。
 
           正确判据（内容哈希）：
-            Get-FileHash refs\Assembly-CSharp.dll -Algorithm SHA256
+            Get-FileHash 引用\Assembly-CSharp.dll -Algorithm SHA256
             Get-FileHash "<RimWorldDir>\RimWorldWin64_Data\Managed\Assembly-CSharp.dll" -Algorithm SHA256
-          两个哈希相同 = 已同步。tools\sync-refs.ps1 同样改用哈希。
+          两个哈希相同 = 已同步。工具\sync-refs.ps1 同样改用哈希。
 
       （为什么不在本文件里自动比对时间戳：MSBuild 的属性函数有白名单，
         System.IO.File.GetLastWriteTimeUtc 不在其中，会直接报 MSB4185 编译失败。
-        所以这件事交给 tools\sync-refs.ps1，它顺带也能把 refs 拷好。）
+        所以这件事交给 工具\sync-refs.ps1，它顺带也能把 refs 拷好。）
   -->
   <PropertyGroup>
     <RimWorldDir Condition="'$(RimWorldDir)' == ''">D:\steam\steamapps\common\RimWorld</RimWorldDir>
@@ -144,25 +144,25 @@
   </PropertyGroup>
 
   <!-- 编译前只做「文件在不在」的检查（Exists 是 MSBuild 内置函数，任何版本都支持）。
-       时间戳一致性交给 tools\sync-refs.ps1，见上面那段说明。 -->
+       时间戳一致性交给 工具\sync-refs.ps1，见上面那段说明。 -->
   <Target Name="GNHValidateRefs" BeforeTargets="ResolveAssemblyReferences">
-    <Error Condition="!Exists('refs\Assembly-CSharp.dll')"
-           Text="缺少 refs\Assembly-CSharp.dll，编译无法进行。请运行 powershell -ExecutionPolicy Bypass -File tools\sync-refs.ps1 从游戏目录同步。" />
-    <Error Condition="!Exists('refs\UnityEngine.IMGUIModule.dll')"
-           Text="缺少 refs\UnityEngine.IMGUIModule.dll（模组设置界面用到的 GUI 类型在里面）。请运行 powershell -ExecutionPolicy Bypass -File tools\sync-refs.ps1 从游戏目录同步。" />
+    <Error Condition="!Exists('引用\Assembly-CSharp.dll')"
+           Text="缺少 引用\Assembly-CSharp.dll，编译无法进行。请运行 powershell -ExecutionPolicy Bypass -File 工具\sync-refs.ps1 从游戏目录同步。" />
+    <Error Condition="!Exists('引用\UnityEngine.IMGUIModule.dll')"
+           Text="缺少 引用\UnityEngine.IMGUIModule.dll（模组设置界面用到的 GUI 类型在里面）。请运行 powershell -ExecutionPolicy Bypass -File 工具\sync-refs.ps1 从游戏目录同步。" />
     <Warning Condition="!Exists('$(ManagedDir)\Assembly-CSharp.dll')"
-             Text="没找到游戏程序集（$(ManagedDir)\Assembly-CSharp.dll），本次无法核对 refs\ 是否与当前游戏版本一致。换机器请加 -p:RimWorldDir=&quot;你的 RimWorld 目录&quot;。" />
+             Text="没找到游戏程序集（$(ManagedDir)\Assembly-CSharp.dll），本次无法核对 引用\ 是否与当前游戏版本一致。换机器请加 -p:RimWorldDir=&quot;你的 RimWorld 目录&quot;。" />
   </Target>
 
   <ItemGroup>
-    <Compile Include="src\**\*.cs" />
+    <Compile Include="源码\**\*.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="About\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Patches\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="README.md" CopyToOutputDirectory="PreserveNewest" />
     <!-- 2026-10-12 复审补：Languages\ 也要复制到 bin\<配置>\。
-         在此之前只有 tools\deploy.ps1 单独从工程根复制它，后果是
+         在此之前只有 工具\deploy.ps1 单独从工程根复制它，后果是
          「bin\Release 里根本没有翻译文件」—— 直接用 bin\Release 部署
          （或绕过 deploy.ps1）就会丢掉模组设置界面的中/英翻译。
          不会崩（代码里有写死的中文兜底），但英文环境会被显示成中文。
@@ -170,21 +170,21 @@
     <None Include="Languages\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="Assembly-CSharp"><HintPath>refs\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="0Harmony"><HintPath>refs\0Harmony.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="ElToro_BAddon"><HintPath>refs\ElToro_BAddon.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="RJW"><HintPath>refs\RJW.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="UnityEngine"><HintPath>refs\UnityEngine.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="UnityEngine.CoreModule"><HintPath>refs\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="UnityEngine.IMGUIModule"><HintPath>refs\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
-    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>refs\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Assembly-CSharp"><HintPath>引用\Assembly-CSharp.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="0Harmony"><HintPath>引用\0Harmony.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="ElToro_BAddon"><HintPath>引用\ElToro_BAddon.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="RJW"><HintPath>引用\RJW.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>引用\UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>引用\UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.IMGUIModule"><HintPath>引用\UnityEngine.IMGUIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>引用\UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
     <!-- 1.7 才有（Waylith 引擎的 Unity 替身）。里面是 Unity.Mathematics / Unity.Jobs 的托管实现。
          程序集引用是惰性解析：1.6 下只要不碰这些类型就不会报错，所以【38】的
          NormalizeFloat2(float2) 在 1.6 分支永远不会被 JIT，引用它安全。
          ⚠ 必须给 Aliases —— 这个 dll 把 UnityEngine.Rect / Vector2 等也实现了一遍，
             不加别名会和 UnityEngine.CoreModule 撞类型（CS0433）。 -->
     <Reference Include="UnityStubs">
-      <HintPath>refs\UnityStubs.dll</HintPath>
+      <HintPath>引用\UnityStubs.dll</HintPath>
       <Private>false</Private>
       <Aliases>unitystubs</Aliases>
     </Reference>

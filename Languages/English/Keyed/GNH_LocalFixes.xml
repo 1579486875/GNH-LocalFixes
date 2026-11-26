@@ -207,4 +207,12 @@ The fixes are still in effect - the cache holds the post-patch result. Changing 
 
   <GNH_LocalFixes_Toggle_allDiagnostics>Turn on all diagnostics at once (master switch, off by default)</GNH_LocalFixes_Toggle_allDiagnostics>
   <GNH_LocalFixes_Toggle_allDiagnostics_Desc>Four read-only evidence tools live in this group (RJW orgasm probe / transpiler-conflict survey / worldgen death probe / Parsed-as-int locator). You often need two or three of them at once, so this master switch saves the clicking. It does NOT replace the individual switches: turning it off puts the four back to "each on its own", and their previous checkbox states are left untouched. It is also off by default - nothing should be added to the log when nobody is investigating.</GNH_LocalFixes_Toggle_allDiagnostics_Desc>
+  <GNH_LocalFixes_Toggle_backstoryTraitsNullGuard>Backstory Constructor: opening the editor throws a null reference, trait columns vanish (【70】)</GNH_LocalFixes_Toggle_backstoryTraitsNullGuard>
+  <GNH_LocalFixes_Toggle_backstoryTraitsNullGuard_Desc>The BackstoryConstructor editor window (Workshop 2907131508) throws a NullReferenceException the moment it opens, so the "Disallowed traits" and "Forced traits" columns never render and the "+" buttons do nothing.
+
+Three author-side defects stack up: (1) the template constructor is empty, so both trait lists start as null; (2) ExposeData passes the ctor argument array where a default value would be needed, so a config file lacking that key leaves the field null; (3) the draw routine calls Contains on the list without a null check. On this machine all 1,074 templates in the config lack both keys.
+
+This fix replaces any remaining null list with an empty one right after loading (the real fix - the game then writes the keys back itself) and adds a second guard before drawing. An empty list means exactly the same as "no disallowed/forced traits", so no existing data is altered.
+
+If the mod is absent, this is skipped silently.</GNH_LocalFixes_Toggle_backstoryTraitsNullGuard_Desc>
 </LanguageData>

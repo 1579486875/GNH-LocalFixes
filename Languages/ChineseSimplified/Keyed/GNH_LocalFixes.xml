@@ -206,4 +206,12 @@
 
   <GNH_LocalFixes_Toggle_allDiagnostics>全部诊断一起开（总控，默认关闭）</GNH_LocalFixes_Toggle_allDiagnostics>
   <GNH_LocalFixes_Toggle_allDiagnostics_Desc>本组四个只读取证工具（RJW 高潮取证 / 详细错误勘探 / 世界生成期死亡取证 / Parsed 定位）排查时常常要同时开两三个，这个总控省那几下。它不替代各自的开关：关掉它，那四个回到各看各的，原来的勾选状态不会被改动。它自己也默认关闭 —— 不排查时不该让日志多出任何一行。</GNH_LocalFixes_Toggle_allDiagnostics_Desc>
+  <GNH_LocalFixes_Toggle_backstoryTraitsNullGuard>背景故事创建器一打开就报空引用、特性栏画不出来（【70】）</GNH_LocalFixes_Toggle_backstoryTraitsNullGuard>
+  <GNH_LocalFixes_Toggle_backstoryTraitsNullGuard_Desc>「背景故事创建器」（BackstoryConstructor，工坊 2907131508）的编辑器窗口一打开就抛 NullReferenceException，表现是「禁用特性」与「绑定特性」两栏整个画不出来、加号点不动。
+
+根因是作者那边三个缺陷叠在一起：① 模板类的构造函数是空的，两个特性列表初值是 null；② 读盘时不写默认值，配置文件里没有这个键就保持 null；③ 绘制函数里对列表调 Contains 却没判空。实测本机配置里 1,074 个模板一个都没有这两个键。
+
+本项读完盘后把仍是 null 的列表补成空列表（治本，之后游戏自己写盘就会把键写进去），绘制前再兜一层。空列表与「没有禁用/绑定特性」语义完全一致，不改动任何既有数据。
+
+找不到这个模组就安静跳过，不影响其它功能。</GNH_LocalFixes_Toggle_backstoryTraitsNullGuard_Desc>
 </LanguageData>

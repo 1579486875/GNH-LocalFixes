@@ -43,6 +43,7 @@
 <!--   已存在就原样保留（别人若已修过，以别人的为准）。 -->
 <Patch>
   <Operation Class="PatchOperationFindMod">
+        <success>Always</success>
     <mods>
       <li>[OA]Ratkin Faction: Oberonia aurea</li>
     </mods>

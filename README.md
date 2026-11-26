@@ -2,7 +2,7 @@
 
 > **多项针对性修复 —— 每一项都对应一次真实故障，每一项都独立生效。**
 
-> **当前版本：1.4.64** · 共 70 项修复，**76 个独立开关**（每一条都能在游戏设置里单独关；准确条数以设置界面顶部汇总为准）。`Patches\` 下 22 个 XML 补丁自 v1.4.10 起也各有开关。完整版本变迁见《技术说明.md》。
+> **当前版本：1.4.64** · 共 71 项修复，**77 个独立开关**（每一条都能在游戏设置里单独关；准确条数以设置界面顶部汇总为准）。`Patches\` 下 22 个 XML 补丁自 v1.4.10 起也各有开关。完整版本变迁见《技术说明.md》。
 
 | 项目 | 说明 |
 |---|---|
@@ -20,7 +20,7 @@
 ## ⚠ 收工必跑：新增修复项的适配检查
 
 ```bash
-python tools/check-newfix.py         # 必须 0 报错才能发版
+python 工具/check-newfix.py         # 必须 0 报错才能发版
 ```
 
 **为什么有这一条**：2026-11-09 用户报「【43】明明没装 NMM，界面却不标『目标模组未启用』」。
@@ -40,7 +40,7 @@ python tools/check-newfix.py         # 必须 0 报错才能发版
 | 6 | `About`/`README`/工坊简介/清单图条数 | 交给 `docstats.py` |
 
 **「有没有单一目标模组」是人工判断**，脚本判不出来。所以用
-`tools/no-single-target.json` 白名单：**确认没有目标的项连理由一起记下来**。
+`工具/no-single-target.json` 白名单：**确认没有目标的项连理由一起记下来**。
 新增修复项时忘了登记 → 检查报错；「刻意不登记」→ 有据可查。
 
 > 判据一句话：**它有明确的目标模组吗？有就登记 packageId；没有就进白名单写理由。**
@@ -50,7 +50,7 @@ python tools/check-newfix.py         # 必须 0 报错才能发版
 ## ⚠ 收工必跑：高危类型引用审计
 
 ```bash
-python tools/audit-type-refs.py      # 必须 0 HIGH 才能发版
+python 工具/audit-type-refs.py      # 必须 0 HIGH 才能发版
 ```
 
 **为什么有这一条**：2026-11-09 的 v1.4.26 因为【43】里两条无守卫的
@@ -97,7 +97,7 @@ gh pr    list --repo 1579486875/GNH-LocalFixes --state all
 **别留一堆「已回复但开着」的 issue** —— 后来的人会以为问题还没处理。
 
 回复要**耐心、客气、像人写的**：先谢再答、用他给的数字说话、承认自己那边的错。
-「什么算 AI 味」的对照表和三段示例在 [`docs/维护-对外沟通规范.md`](docs/维护-对外沟通规范.md)。
+「什么算 AI 味」的对照表和三段示例在 [`文档/维护-对外沟通规范.md`](文档/维护-对外沟通规范.md)。
 
 ⚠ 这条不是建议：2026-11-19 有一条 issue 因为「回复了但没关」被用户点名，
 还发现它被提交人点过「重新打开」（`stateReason: REOPENED`），open 状态下很容易让人误解。
@@ -105,7 +105,7 @@ gh pr    list --repo 1579486875/GNH-LocalFixes --state all
 ## ⚠ 收工必跑：一键全量回归
 
 ```bash
-python tools/full-regression.py      # 必须「失败 0」才能发版
+python 工具/full-regression.py      # 必须「失败 0」才能发版
 ```
 
 **为什么有这一条**：闸门一多，就一定会漏跑某一个 —— 这一条把「该跑哪些」变成
@@ -133,7 +133,7 @@ python tools/full-regression.py      # 必须「失败 0」才能发版
   `SyntaxWarning`。不影响功能，但污染闸门输出，且 Python 3.12+ 会逐步收紧成 `SyntaxError`。
 
 **失败怎么处理**：先看它报的那一行，再**怀疑脚本自己** —— 本轮 23 道闸门里，
-有 5 次「报不通过」最后查明是判据口径错了（详见 `docs/口径教训-第三轮.md`），
+有 5 次「报不通过」最后查明是判据口径错了（详见 `文档/口径教训-第三轮.md`），
 照着第一版结论去改会把正确的东西改坏。
 
 ## 📖 这是什么？（不懂技术也能读）
@@ -204,7 +204,7 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 
 **不用做任何事。** 装好、启用、进游戏，它就自动开始工作了。
 
-### 76 个设置项（每一项都能单独关）
+### 77 个设置项（每一项都能单独关）
 
 **选项 → 模组设置 → 多模组红字修复补丁**
 
@@ -215,14 +215,14 @@ About.xml 里已经写好了 `loadAfter`，游戏的自动排序基本能处理�
 > 开关右侧会对**异常状态**做标注（正常项不标 —— 没标就是好的）：
 > 灰色「已关闭」= 你关掉了；暗黄「目标模组未启用」= 这一项要修的模组不在场（没装、或者装了没勾选，都算），它在空转。
 
-> ✅ **76 个开关覆盖全部 69 条编号**（编号与开关**不是严格一一对应**，两个方向都有）：
+> ✅ **77 个开关覆盖全部 70 条编号**（编号与开关**不是严格一一对应**，两个方向都有）：
 > - `xmlPatchGate` 本身不修任何问题、只是让 XML 补丁能单独关掉，所以它**不占编号**；
 > - 一条修复可能占两个开关（「乐器分组」「telanda 争用」各拆成两条，方便单独排查）；
 > - 一个开关也可能覆盖多条 —— 「配置自检噪音」这一个 XML 文件里装着 **7 节**彼此独立的小修复
 >   （文件内用 A~G 编号，避免与全局修复编号撞车），关掉它就是那 7 节一起关。
 >
-> ⚠ 上面这些数字由 `tools/docstats.py` 从源码数出来；`tools/check-about-list.py`、
-> `tools/check-lang-numbers.py`、`tools/check-default-off.py` 分别盯「About 速览 ↔ 实现」
+> ⚠ 上面这些数字由 `工具/docstats.py` 从源码数出来；`工具/check-about-list.py`、
+> `工具/check-lang-numbers.py`、`工具/check-default-off.py` 分别盯「About 速览 ↔ 实现」
 > 「三份语言文件的标题编号 ↔ 实现」「自称默认关闭的项是否真的默认关闭」。
 > **不要手改这些数字**；hand-edit 一定会和实现失同步（本仓库已经踩过两次）。
 > 「坏程序集不再拖垮整批补丁」的实现虽然不是 `[HarmonyPatch]` 类（它是给 `Assembly.GetTypes()`
@@ -623,8 +623,8 @@ IL_0015: ret
 [GNH LocalFixes] InstrumentSpace probe: probe unavailable (InvalidOperationException: …) — probe could not answer, so this fix conservatively stays active.
 ```
 
-判据本身的正确性有一组**离线测试**兜着（`tools\test-instrument-probe\`）：它直接编译
-`src\InstrumentSpaceProbe.cs` 这一份源文件，拿 10 个已知答案的小方法跑一遍，
+判据本身的正确性有一组**离线测试**兜着（`工具\test-instrument-probe\`）：它直接编译
+`源码\InstrumentSpaceProbe.cs` 这一份源文件，拿 10 个已知答案的小方法跑一遍，
 其中包含「用 `Reflection.Emit` 逐条复刻上面那段真实 IL」的用例 —— 10/10 通过才算数。
 
 ---
@@ -691,11 +691,11 @@ IL_0015: ret
       GNH.LocalFixes.dll             ← 编译器在根目录留的那一份，RimWorld 不读它，可无视
 
 > ⚠ 有**两份文档**不在构建输出里：`LICENSE` 与 `技术说明.md`。
-> 它们不参与游戏运行，所以缺了也不影响功能；`tools\deploy.ps1` 会额外从**工程根目录**
+> 它们不参与游戏运行，所以缺了也不影响功能；`工具\deploy.ps1` 会额外从**工程根目录**
 > 把它们一起复制过去（见该脚本里的 `$rf` 循环）。若你手工复制 `bin\Release\`，
 > 记得自己补上这两份。
 
-整体复制到 `RimWorld\Mods\模组兼容修复补丁\` 即可。也可以直接用 `tools\deploy.ps1`
+整体复制到 `RimWorld\Mods\模组兼容修复补丁\` 即可。也可以直接用 `工具\deploy.ps1`
 （备份旧文件后复制，并会先检查游戏是否正在运行）。
 
 > **`Assemblies\` 那一层不能少。** RimWorld 不读模组根目录下的 dll ——
@@ -704,18 +704,18 @@ IL_0015: ret
 > （dll 落在 `bin\Release\` 根下），现已由 csproj 里的 `GNHStageAssembliesFolder`
 > 这个 Target 补齐。
 
-`refs\` 下的引用 DLL 不会进入产物（所有 `<Reference>` 都有 `<Private>false</Private>`）；
+`引用\` 下的引用 DLL 不会进入产物（所有 `<Reference>` 都有 `<Private>false</Private>`）；
 `EnableDefaultNoneItems=false` 用于防止把 refs 误打包进模组。
 
-> 从 1.3.15 起 `refs\` 里多了两个 Unity 模块（`UnityEngine.IMGUIModule.dll`、
+> 从 1.3.15 起 `引用\` 里多了两个 Unity 模块（`UnityEngine.IMGUIModule.dll`、
 > `UnityEngine.TextRenderingModule.dll`）—— 模组设置界面用到 `Widgets` 与 `Listing_Standard`，
-> 它们的签名里出现 `GUIContent`，少这两个就编不过。`tools\sync-refs.ps1` 已经把它们
+> 它们的签名里出现 `GUIContent`，少这两个就编不过。`工具\sync-refs.ps1` 已经把它们
 > 一起同步，csproj 里也加了「缺了就报错」的前置检查。
 
 ## 修复清单
 
-六十九项互相独立，均为最小侵入。**代码侧 53 个开关 + XML 补丁 23 个开关**（诊断 5 + 崩溃 19 + 刷屏 16 + 兼容 9 + 行为 3 + 剖析 1 + XML 23 = 76）都能在设置界面里逐项开关
-（**76 个开关覆盖 69 条编号里的 68 条** —— 唯一没有独立开关的是【1】：它是给 ElToro 补一个任务类型，类型必须编进 dll 才能被解析，运行时关不掉，删掉 `Assemblies\` 目录它就跟着没了。其余 59 条每一条都能单独关。编号与开关不是严格一一对应，详见上文第 152 行那段说明）。
+七十项互相独立，均为最小侵入。**代码侧 54 个开关 + XML 补丁 23 个开关**（诊断 5 + 崩溃 20 + 刷屏 16 + 兼容 9 + 行为 3 + 剖析 1 + XML 23 = 77）都能在设置界面里逐项开关
+（**77 个开关覆盖 70 条编号里的 69 条** —— 唯一没有独立开关的是【1】：它是给 ElToro 补一个任务类型，类型必须编进 dll 才能被解析，运行时关不掉，删掉 `Assemblies\` 目录它就跟着没了。其余 59 条每一条都能单独关。编号与开关不是严格一一对应，详见上文第 152 行那段说明）。
 
 > 最新的版本变化见《技术说明.md》开头的版本章节；下面这段起是**按版本倒序**保留的历史记录。
 
@@ -798,7 +798,7 @@ IL_0015: ret
 >   所以必须让类型**真的不存在**。
 > 
 > · **修法（三步）**：
->   1. **删掉** `src\RaceGeneDefCompat.cs`（那份兜底类型定义）—— 类型不再存在；
+>   1. **删掉** `源码\RaceGeneDefCompat.cs`（那份兜底类型定义）—— 类型不再存在；
 >   2. `Patch_GenTypes_PreferTelanda` 只保留「telanda 在场时定向到它的类型」，
 >      telanda 缺席时**不兜底**，交还原版逻辑；
 >   3. `Patch_LoadModXML_FilterTelandaGenes` 扩成两种场景 ——
@@ -1011,27 +1011,27 @@ IL_0015: ret
 
 | # | 内容 | 承载 |
 | --- | --- | --- |
-| 1 | ElToro「观看」任务类缺失（`JobDriver_BestialityInvite_Watching`） | `src/JobDriver_BestialityInvite_Watching.cs` |
-| 2 | CeleTech 智能切换武器在容器武器上取射程导致 NRE | `src/Patch_VerbProperties_AdjustedRange.cs` |
+| 1 | ElToro「观看」任务类缺失（`JobDriver_BestialityInvite_Watching`） | `源码/JobDriver_BestialityInvite_Watching.cs` |
+| 2 | CeleTech 智能切换武器在容器武器上取射程导致 NRE | `源码/Patch_VerbProperties_AdjustedRange.cs` |
 | 3 | VFE Empire 爵位层级缺 `RoyalTitleDefExtension` | `Patches/VFEE_RoyalTitleExtFix.xml` |
-| 4 | Vehicle Framework 开发者面板的「查不到就报错」兜底 | `src/VehicleFrameworkDebugFix.cs` |
-| 5 | VFE Empire「乐器空间」静态构造崩溃 | `src/VFEEInstrumentSpaceFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
-| 6 | **打开游戏「模组」页面即崩溃**（brrainz CrossPromotion 调用已废弃的 Steam API） | `src/CrossPromotionUnpatch.cs` + `src/SteamWorkshopHookFix.cs` |
+| 4 | Vehicle Framework 开发者面板的「查不到就报错」兜底 | `源码/VehicleFrameworkDebugFix.cs` |
+| 5 | VFE Empire「乐器空间」静态构造崩溃 | `源码/VFEEInstrumentSpaceFix.cs`（由 `源码/LocalFixesMod.cs` 安装） |
+| 6 | **打开游戏「模组」页面即崩溃**（brrainz CrossPromotion 调用已废弃的 Steam API） | `源码/CrossPromotionUnpatch.cs` + `源码/SteamWorkshopHookFix.cs` |
 | 7 | RJW 动物动画对 Rotti 的悬空引用 | `Patches/ElToroAnimsRottiRefFix.xml` |
 | 8 | 补做被「显示名守卫」挡掉的 VFE 功能 | `Patches/VFEPianoFirepitRestore.xml` |
-| 9 | CCOE 月经结算的 `TargetException`（`?.` 保护错了对象） | `src/CcoeReflectionFix.cs` |
-| 10 | 原版植入体生成的「0 权重」空引用崩溃（**两层**：前缀预判 + 收尾器兜底） | `src/TechHediffsZeroBudgetFix.cs` |
-| 11 | **每帧 `InvalidCastException`**：非乐器混进「乐器」分组（游戏被拖到约 2fps）；同时拦下「挂着配方却不是工作台」的脏对象 | `src/MusicManagerFadeoutFix.cs` |
-| 12 | **中文环境下 `<li>Royalty</li>` 永远匹配不上（原版路径）** —— 官方 DLC 的显示名会被语言包翻译，导致多个模组的补丁整块静默失效 | `src/FindModLanguageFix.cs` |
+| 9 | CCOE 月经结算的 `TargetException`（`?.` 保护错了对象） | `源码/CcoeReflectionFix.cs` |
+| 10 | 原版植入体生成的「0 权重」空引用崩溃（**两层**：前缀预判 + 收尾器兜底） | `源码/TechHediffsZeroBudgetFix.cs` |
+| 11 | **每帧 `InvalidCastException`**：非乐器混进「乐器」分组（游戏被拖到约 2fps）；同时拦下「挂着配方却不是工作台」的脏对象 | `源码/MusicManagerFadeoutFix.cs` |
+| 12 | **中文环境下 `<li>Royalty</li>` 永远匹配不上（原版路径）** —— 官方 DLC 的显示名会被语言包翻译，导致多个模组的补丁整块静默失效 | `源码/FindModLanguageFix.cs` |
 | 13 | 天鹰溪谷联邦往炮塔 Def 塞入 VFE Security 1.6 已删除的类型，导致整个 Def 加载失败、一批炮塔消失 | `Patches/FixTY2ValleyLongRangeArtillery.xml` |
-| 14 | **XmlExtensions 的 `FindMod` 同样败给翻译**（另一条独立路径）：它自己遍历 `RunningMods` 比名字，中文下判定 DLC 恒为 false，而且**连一句红字都不留** | `src/XmlExtensionsFindModFix.cs` |
-| 15 | **领袖头衔定好了会自己变回去**：改模因 / 点「随机符号」时，`IdeoFoundation.GenerateLeaderTitle()` 会把 `Ideo.leaderTitleMale` 无条件重新掷骰子；`<nameLocked>` 管不到它 | `src/Patch_IdeoFoundation_KeepLeaderTitle.cs` + `src/GNHLocalFixesSettings.cs` |
-| 16 | **同一进程里连续开新局会卡死在殖民者生成**：`NudityMattersMore.CoverBody.UpdateIdeo` 的 tracker 参数被调用方写死传成 `null`，而它自己的静态字典跨局不清空、撞上同号残留后直接空引用（越开越容易炸） | `src/NmmIdeoTrackerNullFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
-| 17 | **Onahole 的 mimic 生成器刷「Could not find any RuleDef」**：模组把「1×1 小格子四边各内缩 2 格」得到的空矩形推给 `mimicSpawner` 符号，而 resolver 要求宽高 ≥ 1，于是必然拒绝。警告的字面意思（找不到 RuleDef）是误导的 —— 规则一直都在 | `src/BaseGenMimicSpawnerQuietFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
+| 14 | **XmlExtensions 的 `FindMod` 同样败给翻译**（另一条独立路径）：它自己遍历 `RunningMods` 比名字，中文下判定 DLC 恒为 false，而且**连一句红字都不留** | `源码/XmlExtensionsFindModFix.cs` |
+| 15 | **领袖头衔定好了会自己变回去**：改模因 / 点「随机符号」时，`IdeoFoundation.GenerateLeaderTitle()` 会把 `Ideo.leaderTitleMale` 无条件重新掷骰子；`<nameLocked>` 管不到它 | `源码/Patch_IdeoFoundation_KeepLeaderTitle.cs` + `源码/GNHLocalFixesSettings.cs` |
+| 16 | **同一进程里连续开新局会卡死在殖民者生成**：`NudityMattersMore.CoverBody.UpdateIdeo` 的 tracker 参数被调用方写死传成 `null`，而它自己的静态字典跨局不清空、撞上同号残留后直接空引用（越开越容易炸） | `源码/NmmIdeoTrackerNullFix.cs`（由 `源码/LocalFixesMod.cs` 安装） |
+| 17 | **Onahole 的 mimic 生成器刷「Could not find any RuleDef」**：模组把「1×1 小格子四边各内缩 2 格」得到的空矩形推给 `mimicSpawner` 符号，而 resolver 要求宽高 ≥ 1，于是必然拒绝。警告的字面意思（找不到 RuleDef）是误导的 —— 规则一直都在 | `源码/BaseGenMimicSpawnerQuietFix.cs`（由 `源码/LocalFixesMod.cs` 安装） |
 | 18 | **金鸢尾兰「某不知名的沙皇」生成后变成智人**：`OASFC_BasePawn` 只写了 `race=Ratkin`、没有 `xenotypeSet`，生成时回退成默认的 Baseliner，鼠耳与尾巴全没了 | `Patches/OASFC_TsarXenotypeFix.xml` |
 | 19 | **打开「意识形态」页面刷 `Could not load Texture2D` + NRE**：雪兔纹身 `SR_HuoShu_Tattoo_Slot1` 的 `iconPath` 写成大写 `S`，磁盘上却是小写 `s`；RimWorld 查贴图走的是启动时建的内存字典、精确匹配字符串，**不看文件系统**，所以大小写不一致照样 miss | `Patches/SnowRabbitTattooIconFix.xml` |
-| 20 | **刷 `Exception ticking ...: NullReferenceException`**：`Allies are Helpful`（盟友来帮忙）的 `PawnTendAndRescuePatch.Postfix` 里，`Job val = __instance.jobs?.curJob;` 之后的守卫写成 `val?.def != null` —— 「角色当前没有工作」（`curJob` 为 `null`）时它算出来是 `false`、**不会提前返回**，代码继续往下走，在后文直接读 `val.def`，于是抛空引用并中断该角色那一次 `TickRare` | `src/AlliesAreHelpfulCurJobNullFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
-| 21 | **日志被 `[RJW-Genes] multipreg checks` 刷爆**：开发者模式下这一句打印了 **31,415 次**（占整份日志的 65%、约 1.4 MB），每行还各带一次磁盘写入 | `src/RjwGenesSpamQuietFix.cs`（由 `src/LocalFixesMod.cs` 安装） |
+| 20 | **刷 `Exception ticking ...: NullReferenceException`**：`Allies are Helpful`（盟友来帮忙）的 `PawnTendAndRescuePatch.Postfix` 里，`Job val = __instance.jobs?.curJob;` 之后的守卫写成 `val?.def != null` —— 「角色当前没有工作」（`curJob` 为 `null`）时它算出来是 `false`、**不会提前返回**，代码继续往下走，在后文直接读 `val.def`，于是抛空引用并中断该角色那一次 `TickRare` | `源码/AlliesAreHelpfulCurJobNullFix.cs`（由 `源码/LocalFixesMod.cs` 安装） |
+| 21 | **日志被 `[RJW-Genes] multipreg checks` 刷爆**：开发者模式下这一句打印了 **31,415 次**（占整份日志的 65%、约 1.4 MB），每行还各带一次磁盘写入 | `源码/RjwGenesSpamQuietFix.cs`（由 `源码/LocalFixesMod.cs` 安装） |
 
 ### 第 16 项：同一进程里连续开新局会卡死在殖民者生成（2026-10-06）
 
@@ -1302,7 +1302,7 @@ NRE 发生在 `partsMoney -= thingDef.BaseMarketValue`（`thingDef` 为 null）�
   命中的是同一个 ThingDef 里**另一个**不含 layers 的兄弟节点，等于往重复字段上写值。
   四条证据：磁盘 XML 实际内容、运行时 `apparel.layers` 非空（无补丁时的快照）、
   日志堆栈来自 Character Editor 主菜单而非意识形态页面、它声称修好的那个 NRE 至今仍在。
-  （误删可从 `_backup\` 取回。）
+  （误删可从 `备份\` 取回。）
 - **`LoadAllTypesTolerantly` 的兜底空洞**：原先遇到非 `ReflectionTypeLoadException`
   就返回 null，会让**所有**补丁一个都不装 —— 正是它想避免的「被拖死」。
   已改为退化到「按已知类名逐个取」，单个类坏掉不再拖垮整包。
@@ -1321,20 +1321,20 @@ NRE 发生在 `partsMoney -= thingDef.BaseMarketValue`（`thingDef` 为 null）�
 
 ### 构建与工具
 
-- **`tools/sync-refs.ps1`**：原先只同步 3 个文件，而 csproj 硬性检查
+- **`工具/sync-refs.ps1`**：原先只同步 3 个文件，而 csproj 硬性检查
   `UnityEngine.IMGUIModule.dll`，报错文案还指向这个补不齐的脚本 —— 叠加 `.gitignore`
-  忽略 `refs\`，全新克隆会陷入「脚本补不齐 → 编译失败 → 报错又让你跑这个脚本」的死循环。
+  忽略 `引用\`，全新克隆会陷入「脚本补不齐 → 编译失败 → 报错又让你跑这个脚本」的死循环。
   已补齐 5 个游戏文件，并为 3 个模组来源文件加了缺失检查与出处提示。实测通过。
-- **`tools/deploy.ps1`**：补上目标目录残留文件清理（避免「bin 里删了、部署目录还留着」）、
+- **`工具/deploy.ps1`**：补上目标目录残留文件清理（避免「bin 里删了、部署目录还留着」）、
   退出码区分「没部署」与「部署了但哈希不符」、同秒重复备份的套娃问题、`-Configuration` 传错提示。
-- **csproj**：`src\*.cs` → `src\**\*.cs`（子目录不再静默漏编译）；
+- **csproj**：`源码\*.cs` → `源码\**\*.cs`（子目录不再静默漏编译）；
   `LangVersion` 从 `latest` 钉死为 `9.0`（不再随 SDK 漂移）。
 
 ### 审计通过项（未改动）
 
 > ⚠ **下面是 2026-10-06 那一轮审计的记录，数字是当时的（7 个 XML 补丁、8 个 refs DLL）。现在是 22 个 XML 补丁 —— 这里保留原样是为了留档，不代表当前状态。**
 
-`refs\` 8 个 DLL 与游戏本体 **SHA256 全部一致**；7 个 XML 补丁的语法 / 编码 / 启停保护 /
+`引用\` 8 个 DLL 与游戏本体 **SHA256 全部一致**；7 个 XML 补丁的语法 / 编码 / 启停保护 /
 部署一致性全部通过；**27 条 def/类型引用检查在 1.6 加载集内逐一确认可用**（注意：这是
 2026-10-06 审计的「检查条数」，与上面《修复清单》里的「第 27 项修复」不是同一套编号）（含 `Rotti` 只在 1.5、
 `VFESecurity.CompProperties_LongRangeArtillery` 只在 1.4/1.5 这类「按全版本扫会误判」的项）；
@@ -1392,7 +1392,7 @@ BaseGen.symbolStack.Push("mimicSpawner", resolveParams);
 
 ### 处理
 
-新增 `src/BaseGenMimicSpawnerQuietFix.cs`，在 `BaseGen.Resolve` 之前拦一道：
+新增 `源码/BaseGenMimicSpawnerQuietFix.cs`，在 `BaseGen.Resolve` 之前拦一道：
 **只拦「symbol 是 `mimicSpawner` 且矩形宽或高小于 1」的请求**。
 
 这种请求原版本来就会拒绝、而且什么都不做，所以跳过它与原版**完全等价**，只是不再刷警告；
@@ -1448,7 +1448,7 @@ API 可见性、Harmony 真装补丁并读回账本、前缀决策表（该拦 5
 | 幂等性 | 检查 9 个安装点的守卫 | 全部达标（`HashSet` + `lock` + 先立标记） |
 | 注释 | 16 个文件逐一核对文件头、根因说明、交叉引用 | 16/16 有文件头；密度 33%~79% |
 | 翻译 | 检查新增内容是否含玩家可见文本 | 无需 `Languages\`（新增的 `RuleDef` 无 label） |
-| 构建配置 | `csproj` / `tools\*.ps1` 结构与 BOM | 规范 |
+| 构建配置 | `csproj` / `工具\*.ps1` 结构与 BOM | 规范 |
 
 ### 极端场景实测（20 条 xpath × 4 种极端输入）
 
@@ -1521,7 +1521,7 @@ API 可见性、Harmony 真装补丁并读回账本、前缀决策表（该拦 5
 
 | 项目 | 方法 | 结论 |
 |---|---|---|
-| **`refs\` 快照是否过期** | 8 个 DLL 与实际游戏/模组文件逐一比 SHA256 | **全部一致**（`Assembly-CSharp` 15777280 B；`0Harmony` 2.4.1.0，位于 `2009463077\Current\Assemblies\`；`ElToro_BAddon` 与 `RJW` 均为 1.6 版） |
+| **`引用\` 快照是否过期** | 8 个 DLL 与实际游戏/模组文件逐一比 SHA256 | **全部一致**（`Assembly-CSharp` 15777280 B；`0Harmony` 2.4.1.0，位于 `2009463077\Current\Assemblies\`；`ElToro_BAddon` 与 `RJW` 均为 1.6 版） |
 | **运行时是否真的装上** | 从两份日志提取 `[GNH LocalFixes]` | **14 个安装点全部成功、0 失败** |
 | **加载顺序** | 7 个补丁的目标 Def × 全库定义者 × `loadAfter` | 除上述 1 处外全部齐备 |
 | **翻译策略** | 查设置界面文本与其注释 | 已改为**走语言键**（简中 / 繁中 / 英文三份，各 86 键）；目录名用不带括号的 legacy 名，反编译 `LoadedLanguage` 已确认可加载 —— 早期「有意写死中文」的结论已作废 |
@@ -1555,7 +1555,7 @@ API 可见性、Harmony 真装补丁并读回账本、前缀决策表（该拦 5
    `if (installed) return; installed = true;`
 
    **v1.3.10 起不再用 `Harmony.PatchAll` 一把梭**，改为「逐类隔离安装」
-   （见 `src/LocalFixesMod.cs` 里的 `InstallAllPatchClasses`）。改的原因有两条：
+   （见 `源码/LocalFixesMod.cs` 里的 `InstallAllPatchClasses`）。改的原因有两条：
 
    - `PatchAll` 内部第一步是 `GetTypes()`，而本程序集里有一个类在**编译期**引用了
      `ElToro_BAddon.dll` 与 `RJW.dll`。用户一旦禁用这两个模组，`GetTypes()` 就会抛
@@ -1595,7 +1595,7 @@ API 可见性、Harmony 真装补丁并读回账本、前缀决策表（该拦 5
 - **v1.2.1**：加 `installed` 静态守卫（`LocalFixesMod` 与 `VFEEInstrumentSpaceFix` 双重），
   并将 `AccessTools.Method` 的 `generics` 改为 `null`。
 - **v1.3.15 期间踩到的两个坑**（都不在运行逻辑里，但都会让人白折腾半天）：
-  1. **`HarmonyLib.Priority` 的数值方向很容易记反。** 实测真值（从 `refs\0Harmony.dll`
+  1. **`HarmonyLib.Priority` 的数值方向很容易记反。** 实测真值（从 `引用\0Harmony.dll`
      反射读出）是**数值越大越先执行**：
      `First=800, VeryHigh=700, High=600, HigherThanNormal=500, Normal=400,
      LowerThanNormal=300, Low=200, VeryLow=100, Last=0`。
@@ -1607,10 +1607,10 @@ API 可见性、Harmony 真装补丁并读回账本、前缀决策表（该拦 5
      本工程所有 `.cs` 一直都是无 BOM 的。
   3. **部署备份绝不能留在 `Mods\` 目录里。** RimWorld 与 RimCrow 的扫法都是
      「`Mods\` 下每个子目录，只要有 `About\About.xml` 就算一个模组」。
-     `tools\deploy.ps1` 的第一版把旧版本备份成
+     `工具\deploy.ps1` 的第一版把旧版本备份成
      `Mods\GNH-本地修复补丁.backup-<时间戳>\` —— 于是凭空多出一个**同 packageId 的
      第二个副本**，RimCrow 的「处理重复模组」界面立刻报冲突（一份 1.3.15 已启用、
-     一份 1.3.14 未启用），还得手工去清。现已改为备份到工程目录下的 `_backup\`，
+     一份 1.3.14 未启用），还得手工去清。现已改为备份到工程目录下的 `备份\`，
      并加进 `.gitignore`。
 
 ---
@@ -1619,7 +1619,7 @@ API 可见性、Harmony 真装补丁并读回账本、前缀决策表（该拦 5
 
 **许可**：[MIT](LICENSE)
 
-**编译需自备 `refs\`**：本工程的 `<Reference>` 指向 `refs\` 下的程序集 —— 那些是游戏本体与第三方模组的 DLL，
+**编译需自备 `引用\`**：本工程的 `<Reference>` 指向 `引用\` 下的程序集 —— 那些是游戏本体与第三方模组的 DLL，
 版权不属于本项目，因此不纳入仓库。编译前请自行准备：
 
 | 需要的 DLL | 来源 |
