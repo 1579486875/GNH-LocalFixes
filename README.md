@@ -496,18 +496,18 @@ C:\Users\<你的用户名>\AppData\LocalLow\Ludeon Studios\RimWorld by Ludeon St
 | 47 | 淫妻与公牛：一个 JobDef 指向不存在的类 | 那个职业的 `driverClass` 写成了程序集里根本没有的类 | 改指向真实存在的那个类 —— 定义保留、存档安全、日志也不再报「找不到类型」 |
 | 48 | RJW 的 Sex 技能缺排序扩展 | 「角色编辑器 - 技能排序修复」要求每个技能都带排序扩展，否则那条技能根本不进它的排序表；RJW 的性技能没有，于是每次启动刷一条红字、技能列表错位 | 按它自己的格式补一条，排在所有原版技能之后 |
 | 49 | 无限精液工坊：两个储液桶写了不存在的组件 | 配置检查每次都报「找不到组件」 | 把那两条引用摘掉；桶本身照常能用 |
-| 50 | RJW 生成失败被放大成世界生成崩溃 | RJW 给「生成小人」挂的后处理没判空：上游重试上百次后只能返回空，它照样对空对象动手，当场抛空引用；而这一抛发生在世界生成的派系步骤里 —— 轻则该派系没领袖，重则整个新档建不出来 | 在那一段外面套一层兜底：空引用吞掉、其余照常 |
+| 50 | RJW 生成失败被放大成世界生成崩溃 | RJW 给「生成角色」挂的后处理没判空：上游重试上百次后只能返回空，它照样对空对象动手，当场抛空引用；而这一抛发生在世界生成的派系步骤里 —— 轻则该派系没领袖，重则整个新档建不出来 | 在那一段外面套一层兜底：空引用吞掉、其余照常 |
 | 51 | 机械师带宽面板每帧刷屏 | 带宽超过一百多之后排版会算出越界的格子，每帧往日志写一条错；不崩，但一直刷 —— 而引擎累计一万条后会把整个日志关掉，之后别人的报错你都看不到 | 把格子数钳在安全范围内，并把重复报错合并成一条 |
 | 52 | 米莉拉服装贴图表里有重复条目 | 同一件衣服被登记两次，贴图加载会落到错的那条 | 摘掉重复的那一条，只留第一条 |
 | 53 | 边缘仙路配方补丁在 DefOf 就绪前必崩 | 它用 try/catch 包住了逻辑，但收尾的 finally 里又去解引用同一个还没初始化的 DefOf 字段 —— finally 不归 catch 管，异常直接逃出去把玩法数据加载打断 | 在它前面加一道守卫：那个字段还是 null 时整段跳过 |
-| 54 | 世界生成期装义体被误判死亡 | 原版装义体时有一句「恢复这个部位」，它默认会顺手做一次死亡判定；装配还没做完就判，于是领袖连生 120 次全败、顺带刷 720 条红字 | 只在「这只小人正在生成」时关掉那次多余判定（依据是引擎作者自己在装假体那条路径上就传了 `checkStateChange: false`） |
+| 54 | 世界生成期装义体被误判死亡 | 原版装义体时有一句「恢复这个部位」，它默认会顺手做一次死亡判定；装配还没做完就判，于是领袖连生 120 次全败、顺带刷 720 条红字 | 只在「这只角色正在生成」时关掉那次多余判定（依据是引擎作者自己在装假体那条路径上就传了 `checkStateChange: false`） |
 | 55 | 贞操科技的核心组件从来没被创建 | 构造函数写成无参形式，而引擎统一按「给你一个 Game 对象」去创建它 —— 参数对不上，创建失败，引擎 catch 掉只打一行红字；整套「高潮许可挑战」从此一天都没运行过 | 在引擎建完所有组件之后用作者那种无参构造补进去，并做幂等检查 |
 | 56 | 帝国头衔生成时背景校验器崩了一次 | 它一边遍历集合、一边改动同一个集合，抛「Collection was modified」；上层把它 catch 掉记成一条，游戏继续跑 | 只摘这一种异常并合并成一条提示；别的异常原样上抛 |
 | 57 | 世界生成刷 720 条「找不到玩家派系」 | 那句话是**引擎自己**打的：`Faction.OfPlayer` 的 getter 在找不到玩家派系时会打一条 Error，而世界生成时玩家派系本来就还没建立 —— 这是正常中间状态 | 在「还没进地图且确实没有玩家派系」时走引擎自带的静默版本；返回值与原先完全一致 |
 | 58 | 餐厅前哨还在产已被上游合并掉的 8 种寿司 | 上游把 8 种寿司合并成 4 种并删了旧名，官方迁移定义只管存档引用、管不到模组 XML 之间的引用 | 按上游给出的合并关系把 8 条换成 4 条，数值照抄原文件 |
 | 59 | 涅瓦莲两件收藏品显示成紫白方块 | 附加包自己不带任何贴图，贴图由本体提供，而它写的 texPath 比本体自己用的少了中间那一层目录 | 把两条 texPath 补全成真正存在的那一条（用的就是本体那份原件） |
 | 60 | 一个整数字段被写成了小数 | 「第几天触发」在引擎里是**整数**字段，被写成 0.5；引擎不报错、截断成 0 再打一条警告，而那条补丁加在所有叙事者的父类上，于是每次加载刷 38 条 | 把那个值写成显式整数 0 —— 行为一点没变（它本来就被截断成 0） |
-| 61 | UFC 派系的世界生成领袖一个都生不出来（那个派系开局没领袖） | 「[Kit] Just A Flesh Wound」重做了致命伤害：它把每条 MissingBodyPart 按「该部位最大生命值」折算成伤害、四肢还有倍率，从一份「韧性」里扣、扣光就判死。而**装义体本身就会产生一批 MissingBodyPart**（BionicLeg 替代原腿，引擎把原腿及其子部位标成缺失）——于是 UFC 那种全身义体化打手一次装 4 件义体，36 个部位变缺失、韧性当场扣光。 | 只在「这只小人正在被生成」时跳过它那一次重算；游戏内真实受伤与断肢时作者的逻辑一点不改。★ 依据：取证探头抓到 InjurySum=0、阈值 150，原版算法本该返回 false 而它返回 true，顺这条矛盾反编译到 JustAFleshWound 的 Postfix 里写着 `current is Hediff_MissingPart ? part.def.hitPoints * healthScale : Severity`。 |
+| 61 | UFC 派系的世界生成领袖一个都生不出来（那个派系开局没领袖） | 「[Kit] Just A Flesh Wound」重做了致命伤害：它把每条 MissingBodyPart 按「该部位最大生命值」折算成伤害、四肢还有倍率，从一份「韧性」里扣、扣光就判死。而**装义体本身就会产生一批 MissingBodyPart**（BionicLeg 替代原腿，引擎把原腿及其子部位标成缺失）——于是 UFC 那种全身义体化打手一次装 4 件义体，36 个部位变缺失、韧性当场扣光。 | 只在「这只角色正在被生成」时跳过它那一次重算；游戏内真实受伤与断肢时作者的逻辑一点不改。★ 依据：取证探头抓到 InjurySum=0、阈值 150，原版算法本该返回 false 而它返回 true，顺这条矛盾反编译到 JustAFleshWound 的 Postfix 里写着 `current is Hediff_MissingPart ? part.def.hitPoints * healthScale : Severity`。 |
 | 64 | 发射井的「管子尺寸」与「开盖动画」一直是 0 | 「边缘弹道导弹:【地球科技】」把 141 个值写成了小数，而 `IRBM.SiloTube` 的 `size` 与 `coverMovementTicks` 都是 **Int32** —— 引擎用 `ParseIntPermissive` 悄悄截断成 0，再各打一条「Parsed 0.5 as int.」。`size` 默认是 1、`coverMovementTicks` 默认是 60，归一零就等于井盖不显示、开盖没动画。 | 按作者想表达的意思折算成整数：`size` 取 1（Int32 最小有效值=默认值），`coverMovementTicks` 按秒折算成 tick（0.5s→30、0.1s→6）。★ 每条 xpath 带值匹配，作者自己改对了就自动让路。 |
 | 65 | 雪兔的分层建筑上层一直显示成紫块 | 「SnowRabbit」（工坊 3643594275）把贴图加载放在 `Comp_LayeredBuildingRenderer.Initialize()` 里，而读档时这个方法跑在 ScribeLoader 的**异步线程**上——Unity 的 Texture2D 必须在主线程加载，所以必然失败；更麻烦的是它的 `PostSpawnSetup` 里那句补加载写成 `if (!respawningAfterLoad)`，读档时该值为 true，于是**永远不补**。 | 把加载挪到第一次 `PostDraw`（一定在主线程）：非主线程时跳过原调用、主线程里发现 `upperGraphic` 还是 null 就补一次。★ **作者的代码一行没改**，只是把加载时机挪到了它本来就该在的线程上。 |
 | 66 | 读档时仪式义务列表里可能少一条（`RitualObligation_0` 撞 ID） | 反编译 `RimWorld.RitualObligation`：`public int ID;` 默认就是 0，**只有带参数的构造函数**才调 `GetNextRitualObligationID()`，无参构造函数是空的。任何代码走无参构造 → ID 恒 0 → `GetUniqueLoadID()` 恒为 `RitualObligation_0` → `CrossRefHandler` 注册第二个时撞 ID、报错、拿不到引用。 | 在 `CrossRefHandler.ResolveAllCrossReferences` 的 Prefix 里扫一遍所有 Ideo 的 `activeObligations` / `completedObligations`，把 `ID <= 0` 的补成唯一 ID。★ 那是**注册前**的最后一站：更早拿不到完整的 IdeoManager，更晚报错已经发生。★ `ID` 本来就不该是 0，补它不改变任何游戏逻辑。 |
@@ -1226,14 +1226,14 @@ at RimWorld.PawnTechHediffsGenerator.GenerateTechHediffsFor (...) [0x001ac]
 ```
 
 于是把前缀改成「在候选里找一个**真正抽得中**的（市值 > 0、标签命中、未 disallow、
-非暴力件而小人又禁暴力）」，找不到才跳过。**结果还是不够** —— 反编译原方法后原因很清楚：
+非暴力件而角色又禁暴力）」，找不到才跳过。**结果还是不够** —— 反编译原方法后原因很清楚：
 
 ```csharp
 float partsMoney = pawn.kindDef.techHediffsMoney.RandomInRange;   // ← 每只 Pawn 随机抽一次
 ...
 IEnumerable<ThingDef> source = DefDatabase<ThingDef>.AllDefs.Where(x =>
     x.isTechHediff
-    && !tmpGeneratedTechHediffsList.Contains(x)      // ← 同一只小人装过的不要再挑
+    && !tmpGeneratedTechHediffsList.Contains(x)      // ← 同一只角色装过的不要再挑
     && x.BaseMarketValue <= partsMoney               // ← 用**抽到的**值做门槛
     && ...);
 if (source.Any()) {
