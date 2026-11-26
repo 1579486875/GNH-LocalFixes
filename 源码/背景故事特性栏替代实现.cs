@@ -195,19 +195,23 @@ namespace GNH.LocalFixes
                 // 自己排两列（与原版 `(width-10)/2` 一列宽、25 高、行距 5 一致），
                 // 不走 GenUI.DrawElementStack —— 那个要传 Verse 内部的委托类型，
                 // 在外部程序集里引用不到，也省得再踩它的边界情况。
-                float colW = (labelRect.width - 10f) / 2f;
-                const float rowH = 25f;
-                const float rowGap = 5f;
+                const float colW_BASE = 10f;   // 原版 `(labelRect.width - 10f) / 2f` 里的 10
+                const float rowH = 25f;        // 原版 DrawElementStack 的 rowHeight
+                const float rowGap = 5f;       // 原版 rowMargin
+                const float colGap = 10f;      // 原版 elementMargin
+                const float tailGap = 15f;     // 原版 `height += val5.height + 15f` 里的 15
+                const int maxChips = 400;      // 保险：列表异常长时不把窗口撑爆（正常最多几十项）
+
+                float colW = (labelRect.width - colW_BASE) / 2f;
+                int count = first.Count;
+                if (count > maxChips) count = maxChips;
+
                 float y = height;
                 int col = 0;
-                int drawnCount = 0;
-                for (int i = 0; i < first.Count; i++)
+                for (int i = 0; i < count; i++)
                 {
-                    // 保险：列表异常长时不把窗口撑爆（正常最多几十项）
-                    if (drawnCount >= 400) break;
-                    float x = (col == 0) ? 0f : colW + 10f;
+                    float x = (col == 0) ? 0f : colW + colGap;
                     DrawChip(new Rect(x, y, colW, rowH), first[i], first, labelRect);
-                    drawnCount++;
                     col++;
                     if (col >= 2)
                     {
@@ -215,9 +219,27 @@ namespace GNH.LocalFixes
                         y += rowH + rowGap;
                     }
                 }
-                if (col > 0) y += rowH + rowGap;
 
-                height = y + 15f;
+                // ── 高度必须与 GenUI.DrawElementStack 完全一致，否则后面的栏位会错位 ──
+                //
+                // 反编译 Verse.GenUI.DrawElementStack 的返回语句：
+                //     return new Rect(rect.x, rect.y, rect.width, num3 + rowHeight);
+                // 其中 num3 是**最后一次换行**的偏移（不含最后一行本身）。
+                // 所以：
+                //   · 空列表 → num3 = 0        → 返回 25   （**即使是空的也占一行高**）
+                //   · 1 行   → num3 = 0        → 返回 25
+                //   · 2 行   → num3 = 25+5=30  → 返回 55
+                //   · 3 行   → num3 = 60       → 返回 85
+                // 即 `(rows - 1) * (rowH + rowGap) + rowH`，其中 rows 最小为 1。
+                //
+                // ⚠ 这里曾经写错过一版：用「col 归零才加行高」的滚动写法，空列表和单行
+                //   都只加了 15（少了 25），三行以上又多 5 —— 会让「随身物品」整栏上下错位。
+                //   实测对照见 文档/【70】背景故事创建器-排查记录.md 的高度对照表。
+                int rows = (count + 1) / 2;
+                if (rows < 1) rows = 1;                      // 空列表也要占一行
+                float stackHeight = (rows - 1) * (rowH + rowGap) + rowH;
+
+                height += stackHeight + tailGap;
                 return false;   // 已自行绘制，原方法不再执行
             }
             catch (Exception ex)
