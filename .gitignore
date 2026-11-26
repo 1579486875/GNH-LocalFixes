@@ -43,3 +43,6 @@ __pycache__/
 
 # 临时备份（改名前的 _scratch-backup-*.xml）
 临时备份-*.xml
+
+# 临时工作目录（放截图/布局 dump 之类，不进版本控制）
+_scratch/
