@@ -43,6 +43,25 @@
 <!--   已存在就原样保留（别人若已修过，以别人的为准）。 -->
 <Patch>
   <Operation Class="PatchOperationFindMod">
+        <!--
+          ⚠ <success>Always</success> 的作用与理由（反编译 Verse.PatchOperationFindMod.ApplyWorker 核实）：
+
+          ApplyWorker 的逻辑是：
+              flag = 任一 mods 项在 ModLister.HasActiveModWithName 里命中
+              if (flag)        { if (match   != null) return match.Apply(xml); }
+              else if (nomatch != null)             return nomatch.Apply(xml);
+              return true;          ← 注意：无论命中与否，最后都返回 true
+
+          也就是说：
+            · 「没装 OA 鼠族 → 整个补丁不执行」这一点【与 success 无关】——
+              它由 flag=false 时不进 match 保证，下面那句『绝不会留下悬空引用』依然成立。
+            · success=Always 真正改变的是【返回值】：默认情况下 match.Apply 返回 false
+              （例如内层 PatchOperationConditional 因为找不到 def 而失败）会让整条补丁
+              报一条失败；加了 Always 之后，这条补丁【永远算成功】，不刷红字。
+
+          为什么需要它：本补丁是「装了金鸢尾兰但没装 OA 鼠族」时最容易触发 Conditional 失败，
+          而那种情况下它本来就无事可做 —— 报错只是噪音。故有意压掉。
+        -->
         <success>Always</success>
     <mods>
       <li>[OA]Ratkin Faction: Oberonia aurea</li>
