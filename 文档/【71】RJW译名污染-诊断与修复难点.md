@@ -1,0 +1,257 @@
+# 【71】RJW `RacePartDef.hediffName` 被汉化包误译 —— 诊断与修复难点
+
+**日期：2026-11-27**
+**状态**：**已完整定位根因与修复难点，但运行时修复连续 6 版未成功，已回退代码。下一轮可据此直接继续。**
+
+---
+
+## 1. 现象
+
+游戏日志 845 个 ERROR 里，**700 个（83%）是同一条模式**：
+
+```
+[RJW] Could not find a HediffDef named 肛门 referenced by RacePartDef named Anus.        × 200
+[RJW] Could not find a HediffDef named 乳房 referenced by RacePartDef named Breasts.     × 192
+[RJW] Could not find a HediffDef named 阴道 referenced by RacePartDef named Vagina.      × 104
+[RJW] Could not find a HediffDef named 阴茎 referenced by RacePartDef named Penis.       × 84
+[RJW] Could not find a HediffDef named 机械阴道 referenced by RacePartDef named MechVagina × 23
+[RJW] Could not find a HediffDef named 机械植入器 referenced by RacePartDef named MechImplanter × 22
+…（共 65 个 def 被污染）
+```
+
+---
+
+## 2. 根因（已确证，可直接复验）
+
+### 2.1 RJW 侧：`hediffName` 是 **defName 引用**
+
+反编译 `rjw.RacePartDef`（`RJW_核心_本体/1.7/Assemblies/RJW.dll`，MVID `83b5bb80…`）：
+
+```csharp
+public string hediffName;          // ← HediffDef 的 defName 引用，不是给人看的文本
+
+public bool TryGetHediffDef(out HediffDef hediffDef)
+{
+    hediffDef = DefDatabase<HediffDef>.GetNamedSilentFail(hediffName);
+    if (hediffDef == null)
+    {
+        ModLog.Error("Could not find a HediffDef named " + hediffName
+                   + " referenced by RacePartDef named " + base.defName + ".");
+        return false;
+    }
+    return true;
+}
+```
+
+RJW 本体 `1.7/Defs/RaceSupport/RacePartDefs.xml` 的写法：
+
+```xml
+<rjw.RacePartDef>
+    <defName>Anus</defName>
+    <hediffName>Anus</hediffName>     ← 作者原值就是 defName
+</rjw.RacePartDef>
+```
+
+**实测统计**：该文件 61 个 RacePartDef 里，**60 个 `hediffName` 与 `defName` 完全相同，0 个不同**。
+
+### 2.2 汉化包侧：把它当普通文本翻了
+
+```
+Mods/!Translation_AI_Pack/Languages/ChineseSimplified/DefInjected/rjw.RacePartDef/
+    rim_job_world_AutoTranslated.xml          60 条污染
+    castle_tentaclecults_AutoTranslated.xml    5 条污染
+```
+
+内容形如：
+
+```xml
+<Anus.hediffName>肛门</Anus.hediffName>
+<Breasts.hediffName>乳房</Breasts.hediffName>
+```
+
+**违反「边缘世界本地化翻译提示词」第 5 条**：defName 引用必须原样保留，绝不能译。
+
+译了之后 `GetNamedSilentFail("肛门")` 必然返回 null → 每个引用它的种族各报一次 → 700 条。
+
+### 2.3 不是 RJW 的 bug
+
+报错里 `referenced by RacePartDef named Anus` 仍是英文 —— 说明被污染的只有 `hediffName`，`defName` 没事。
+
+---
+
+## 3. 修复方案（已设计好，但实现踩了 6 个坑）
+
+**目标**：游戏启动时把查不到的 `hediffName` 还原成 `defName`。
+
+**为什么不改汉化包的文件**：
+- 那是别人的模组，模板 §0 明确「绝不去改别人模组目录里的东西」
+- 对方一更新就被覆盖
+- 我们运行时修，换任何汉化包都管用
+
+**安全性**：改之前先验证 `defName` 能查到真实 HediffDef，验证不过就保持原样（宁可留一条红字，也不静默改可能合法的数据 —— 模板 §3.1 反向要求）。
+
+`ResolveReferences()` 只处理 `fluidType`、**不缓存 `hediffName`**，所以运行时改字段立即生效。
+
+---
+
+## 4. 六个坑（这是本轮最有价值的部分）
+
+连续 6 版都没成功，每次都要重启游戏 40-70 分钟验证。**把每个坑记下来，下一轮别再踩。**
+
+### 坑 1：`DefDatabase<Def>.AllDefsListForReading` 永远是空表
+
+```csharp
+foreach (Def d in DefDatabase<Def>.AllDefsListForReading)   // ← 空
+```
+
+**这正是模板附录 A 第 33 条**。`DefDatabase<Def>`（**基类**那个泛型实例）的 `defsList` 从不被填充，游戏只往 `DefDatabase<TraitDef>` 这类**具体类型**里加。
+
+日志：`【71】没找到任何 RacePartDef，本项跳过。`
+
+### 坑 2：自己反射造 `DefDatabase<rjw.RacePartDef>` 也是空
+
+```csharp
+Type dbType = typeof(DefDatabase<>).MakeGenericType(racePartDefType);
+PropertyInfo p = dbType.GetProperty("AllDefsListForReading", ...);
+```
+
+**仍然空**。日志（12:08:06）：`DefDatabase<RacePartDef> 里没有任何条目`。
+
+### 坑 3：`GenDefDatabase.GetAllDefsInDatabaseForDef` 也是空
+
+反编译它的实现：
+
+```csharp
+return ((IEnumerable)GenGeneric.GetStaticPropertyOnGenericType(
+    typeof(DefDatabase<>), defType, "AllDefs")).Cast<Def>();
+```
+
+走的还是 `DefDatabase<T>`，**同样没被填充**。
+
+### 坑 4：真正的数据源是 `ModContentPack.AllDefs`（但时机不对）
+
+反编译 `DefDatabase<T>.AddAllInMods()`：
+
+```csharp
+foreach (T t in GenDefDatabase.DefsToGoInDatabase<T>(mod)) AddDef(t, sourceName);
+// 而 DefsToGoInDatabase<T>(mod) => mod.AllDefs.OfType<T>();
+```
+
+**所以 `mod.AllDefs` 才是源数据。** 改用它 —— 但**在 `Mod` 构造函数里读，仍然空**。
+
+### 坑 5：`Mod` 构造函数跑在 `AddAllInMods` **之前**
+
+反编译 `Verse.PlayDataLoader.DoPlayLoad`：
+
+```csharp
+LoadedModManager.LoadAllActiveMods();          // ① 跑 Mod 构造函数
+…
+Parallel.ForEach(typeof(Def).AllSubclasses(), defType =>
+    GenGeneric.InvokeStaticMethodOnGenericType(
+        typeof(DefDatabase<>), defType, "AddAllInMods"));   // ② 才填充 DefDatabase
+…
+LongEventHandler.ExecuteWhenFinished(delegate {
+    StaticConstructorOnStartupUtility.CallAll();            // ③ 最晚，def 早已就绪
+});
+```
+
+**`TryInstall` 在 `LocalFixesMod` 构造函数里调 → 属于阶段 ① → 读不到任何 def。**
+
+### 坑 6（**最隐蔽**）：`TryInstall` 引用那个类 → CLR 提前触发静态构造
+
+改成 `[StaticConstructorOnStartup]` 后仍然失败，日志显示**两次「读不到」只差 1 毫秒**。
+
+原因：
+
+```csharp
+// LocalFixesMod 构造函数里
+TryInstall("rjwRacePartHediffNameFix", "...", RjwRacePartHediffNameFix.Install);
+//                                              ↑ 一旦引用这个类，CLR 就在这里
+//                                                触发它的静态构造（阶段 ①）
+```
+
+于是静态构造在**阶段 ①** 就跑了一次（读不到 def，`done = true`）；
+之后 `CallAll()`（阶段 ③）再触发时，**CLR 保证静态构造只跑一次，不会再跑**。
+
+**这就是为什么改成 `[StaticConstructorOnStartup]` 也没用。**
+
+---
+
+## 5. 下一轮的正确做法
+
+**核心约束**：既要让闸门「开关接线」看到接线，又**不能让 `LocalFixesMod` 引用到 `RjwRacePartHediffNameFix` 这个类**。
+
+**方案**：`TryInstall` 传一个**空 lambda**：
+
+```csharp
+// LocalFixesMod 里
+TryInstall("rjwRacePartHediffNameFix", "RjwRacePartHediffNameFix", EmptyInstall);
+private static void EmptyInstall() { }
+```
+
+```csharp
+// RjwRacePartHediffNameFix.cs
+[StaticConstructorOnStartup]
+public static class RjwRacePartHediffNameFix
+{
+    static RjwRacePartHediffNameFix()
+    {
+        Install();
+        // 自己记账（因为不经过 TryInstall）
+        if (LocalFixesMod.IsFixEnabled("rjwRacePartHediffNameFix"))
+            FixReport.MarkLoaded("rjwRacePartHediffNameFix");
+    }
+    …
+}
+```
+
+**再加一条**：Entry 的 `patchClassName` 要传 `null`（缺省）—— 因为它不是 Harmony 补丁类，闸门会按 `PatchClass` 方式去查、查不到会报错。
+
+**这两条是第 7 版的做法，但因为回退前的脚本锚点没匹配上、改动没落地，尚未验证。**
+
+**下一轮验证要点**：看日志里是否出现
+
+```
+【71】已把 N 个 RacePartDef 的 hediffName 还原成 defName（…）
+```
+
+并且重启后 `Could not find a HediffDef named` 的计数应从 **700 降到 0**。
+
+---
+
+## 6. 本轮为什么回退
+
+- 6 次重启（每次 40-70 分钟）都没成功，继续盲试的时间成本已经高于收益
+- 回退到已验证全绿的 `e6b4a11`（1.4.65 / 77 开关 / 闸门 26/26），保证交付物是干净的
+- **根因、六个坑、第七版方案都已写在本文档里**，下一轮可以直接做，不用重新查
+
+---
+
+## 7. 顺带确认的两件事（与本文档主题无关，但同批查出来的）
+
+### 7.1 那条「我修复了大部分的报错」不是 bug
+
+```
+ERROR [Verse] 我修复了大部分的报错，但是我保留了一部分，我觉得保留了一部分红字，才知道你玩的是RIMWORLD
+当然，你可以在设置中关闭这条报错
+          ——Pa
+    at GodHandMod.FlavorErrorDisplayer+<>c.<.cctor>b__0_0()
+```
+
+来自 `GodHandMod` 的「风味错误显示」（`FlavorErrorDisplayer`），**是故意留的彩蛋**，设置里能关。
+
+### 7.2 其余 145 个 ERROR 的归属
+
+| 数量 | 来源 | 性质 |
+|---|---|---|
+| 3 | `SpaceTorpedoes` ThingCategoryDef 跨引用失败 | 某模组 def 引用 |
+| 6 | 外星人SA / Ratkin Gene Expand / Raven Race 的 Patch 失败 | 那三个模组自己的 xpath 没命中 |
+| 2 | `NiraRjwPatch` / `GenevaChecklistAchievements` | `ReflectionTypeLoadException` |
+| 1 | `Harvest_Organs_Post_Mortem` | 缺 `Autopsy.dll`（附录 B 的 P0 级，但是第三方的） |
+| 1 | `PurePatcher` | `BadImageFormatException` |
+| 1 | `AutoTranslationCore` | 翻译加载失败 |
+| 1 | `Teacher.UAP` | 重复 `InteractionDef` |
+| 2 | `Misconfigured PrefixCapturedVar` | 某模组 XML 写法 |
+| 其余 | `animal` RaceTagDef / `swimmers` ThingDef | 跨引用失败 |
+
+**我们的补丁：0 个 ERROR。**
