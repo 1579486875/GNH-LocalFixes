@@ -510,8 +510,32 @@ new Entry("deepProfilerQuiet", GroupAdvanced,
                 + "\n\n"
                 + "本项做两件事：读完盘后把仍是 null 的字段补成空列表（治本，之后游戏自己写盘就会把键写进去）；绘制前再把 null 参数换成空列表（第二道防线）。空列表与「没有禁用/绑定特性」语义完全一致，**不改动任何既有数据**。"
                 + "\n\n"
-                + "找不到这个模组就安静跳过，不影响其它功能。"
                 + "找不到这个模组就安静跳过，不影响其它功能。"),
+
+            // 【71】2026-11-27 加：汉化包把 RJW 的 RacePartDef.hediffName 当文本翻了。
+            // 那个字段是 **HediffDef 的 defName 引用**，按本地化规范绝不能译。
+            // 实测本机 65 条被误译（肛门/乳房/阴道/阴茎/机械阴道…），每条被多个种族引用，
+            // 合计刷 700 条「Could not find a HediffDef named 中文…」，占全部 ERROR 的 83%。
+            // 修法：运行时把 hediffName 还原成 defName（RJW 本体 61 个里 60 个两者相同、0 个不同）。
+            //
+            // ⚠ 这里**故意不填 patchClassName** —— 本项不是 Harmony 补丁类，
+            //   它的工作是 `[StaticConstructorOnStartup]` 静态构造里做的纯数据修正。
+            //   填了会让闸门按 PatchClass 方式去查、查不到就报错。
+            new Entry("rjwRacePartHediffNameFix", GroupCrash,
+                "RJW 的 RacePartDef 译名被汉化包翻错，刷 700 条红字（【71】）",
+                "日志里成片刷「[RJW] Could not find a HediffDef named 肛门 referenced by "
+                + "RacePartDef named Anus.」这类错误。\r\n\r\n"
+                + "根因**不是 RJW 的 bug**：`rjw.RacePartDef.hediffName` 存的是 HediffDef 的 "
+                + "**defName 引用**，而某个 AI 汉化包把它当成普通文本翻译了"
+                + "（`<Anus.hediffName>肛门</Anus.hediffName>`）。反编译确认 RJW 用 "
+                + "`DefDatabase<HediffDef>.GetNamedSilentFail(hediffName)` 查它，传中文必然返回 null，"
+                + "于是每个引用它的种族各报一次。\r\n\r\n"
+                + "本项在游戏启动时把那些查不到的 `hediffName` **还原成 `defName`** —— "
+                + "RJW 本体 61 个 RacePartDef 里 60 个两者完全相同、0 个不同，"
+                + "所以还原等价于恢复作者原值。\r\n\r\n"
+                + "⚠ 只改内存里的 Def 数据，**不动汉化包的文件**（那是别人的模组）；"
+                + "换任何汉化包都管用。改之前会先验证 `defName` 能查到真实 HediffDef，"
+                + "验证不过就保持原样（宁可留一条红字，也不静默改可能合法的数据）。"),
 
 
             new Entry("baseGenMimicSpawnerQuiet", GroupSpam,
@@ -1341,6 +1365,8 @@ new Entry("xmlVoeSushiMigration", GroupXmlPatches,
             //    单填一个会误报（填 SkillOrderFix 则 RJW 没装时也显示正常）。
             { "xmlHotwifeInverse", "betaforher.hotwiferjw" },
             { "xmlHotwifeJobDriver", "betaforher.hotwiferjw" },
+            // 【71】目标类型 rjw.RacePartDef 属于 RJW 本体（packageId rim.job.world）。
+            { "rjwRacePartHediffNameFix", "rim.job.world" },
         };
 
         /// <summary>

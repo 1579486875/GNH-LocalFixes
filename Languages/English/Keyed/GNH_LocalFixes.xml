@@ -215,4 +215,12 @@ Three author-side defects stack up: (1) the template constructor is empty, so bo
 This fix replaces any remaining null list with an empty one right after loading (the real fix - the game then writes the keys back itself) and adds a second guard before drawing. An empty list means exactly the same as "no disallowed/forced traits", so no existing data is altered.
 
 If the mod is absent, this is skipped silently.</GNH_LocalFixes_Toggle_backstoryTraitsNullGuard_Desc>
+<GNH_LocalFixes_Toggle_rjwRacePartHediffNameFix>RJW RacePartDef hediffName mistranslated by a localization pack; 700 red errors (【71】)</GNH_LocalFixes_Toggle_rjwRacePartHediffNameFix>
+<GNH_LocalFixes_Toggle_rjwRacePartHediffNameFix_Desc>The log is flooded with errors like "[RJW] Could not find a HediffDef named 肛门 referenced by RacePartDef named Anus."
+
+Root cause is NOT an RJW bug: `rjw.RacePartDef.hediffName` holds a HediffDef defName reference, but an AI translation pack translated it as plain text (`&lt;Anus.hediffName&gt;肛门&lt;/Anus.hediffName&gt;`).
+
+This fix restores those `hediffName` values back to `defName` at startup (60 of RJW's 61 RacePartDefs use identical values, 0 differ).
+
+⚠ Only in-memory Def data is touched; the translation pack files are left alone.</GNH_LocalFixes_Toggle_rjwRacePartHediffNameFix_Desc>
 </LanguageData>

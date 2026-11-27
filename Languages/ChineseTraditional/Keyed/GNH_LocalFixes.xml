@@ -215,4 +215,12 @@
 本項讀完盤後把仍是 null 的清單補成空清單（治本，之後遊戲自己寫盤就會把鍵寫進去），繪製前再兜一層。空清單與「沒有禁用/綁定特性」語意完全一致，不改動任何既有資料。
 
 找不到這個模組就安靜跳過，不影響其它功能。</GNH_LocalFixes_Toggle_backstoryTraitsNullGuard_Desc>
+<GNH_LocalFixes_Toggle_rjwRacePartHediffNameFix>RJW 的 RacePartDef 譯名被漢化包翻錯，刷 700 條紅字（【71】）</GNH_LocalFixes_Toggle_rjwRacePartHediffNameFix>
+<GNH_LocalFixes_Toggle_rjwRacePartHediffNameFix_Desc>日誌裡成片刷「[RJW] Could not find a HediffDef named 肛門 referenced by RacePartDef named Anus.」這類錯誤。
+
+根因**不是 RJW 的 bug**：`rjw.RacePartDef.hediffName` 存的是 HediffDef 的 defName 引用，而某個 AI 漢化包把它當成普通文本翻譯了（`&lt;Anus.hediffName&gt;肛門&lt;/Anus.hediffName&gt;`）。
+
+本項在遊戲啟動時把那些查不到的 `hediffName` 還原成 `defName` —— RJW 本體 61 個 RacePartDef 裡 60 個兩者完全相同、0 個不同。
+
+⚠ 只改記憶體裡的 Def 資料，不動漢化包的檔案；換任何漢化包都管用。</GNH_LocalFixes_Toggle_rjwRacePartHediffNameFix_Desc>
 </LanguageData>

@@ -606,6 +606,19 @@ namespace GNH.LocalFixes
             //   那种写法在本工程里没被触发（日志里一条都没有），
             //   改成从构造函数显式调用才当场生效。
             TryInstall("rjwOrgasmProbe", "RjwOrgasmDiagProbe", RjwOrgasmDiagProbe.Install);
+            // 【71】RacePartDef 译名还原 —— 实际扫描在 `RjwRacePartHediffNameFix` 的
+            // `[StaticConstructorOnStartup]` 静态构造里做，**不是这里**。
+            //
+            // ⚠ 这里**必须传 EmptyInstall（空方法），不能传 RjwRacePartHediffNameFix.Install** ——
+            //   2026-11-27 连错六版才查清：一旦在构造函数里**引用那个类**（传方法组也算），
+            //   CLR 就会在这一刻触发它的静态构造；而 Mod 构造函数跑在
+            //   `DefDatabase.AddAllInMods` **之前**（反编译 PlayDataLoader.DoPlayLoad 确认），
+            //   那时读不到任何 def、`done` 却被置位；之后 `CallAll()` 再触发静态构造时
+            //   **CLR 保证只跑一次，不会再跑** → 永远修不到。
+            //
+            //   传空方法是两头都满足：闸门「开关接线」看得到接线，又不引用那个类。
+            //   真正的「装上了」记账由静态构造自己调 FixReport.MarkLoaded 完成。
+            TryInstall("rjwRacePartHediffNameFix", "RjwRacePartHediffNameFix", EmptyInstall);
         }
 
         /// <summary>
@@ -1025,6 +1038,31 @@ namespace GNH.LocalFixes
         // 装一步补丁。toggleId 对应 FixToggles 里的一项；玩家在设置界面里关掉它，
         // 这一步就整段跳过，并且**在日志里留一条记录** ——
         // 「明明装了这个模组却没修」是排查时最费解的情形，必须能从日志一眼看出来是玩家自己关的。
+        /// <summary>
+        /// 空安装体：给那些**实际工作不在 Mod 构造函数里做**的开关占位用。
+        /// <para>
+        /// 目前只有【71】：它的扫描要等 `DefDatabase` 填充完，所以放在
+        /// `[StaticConstructorOnStartup]` 里；这里传空体是为了让闸门「开关接线」
+        /// 能看到接线，同时**不引用那个类**（一引用就会提前触发它的静态构造，详见调用处注释）。
+        /// </para>
+        private static void EmptyInstall() { }
+
+        /// <summary>
+        /// 装一个补丁项：先查开关，开着才执行 <paramref name="install"/>，并记账。
+        /// <para>
+        /// 这是**绝大多数**补丁项的入口 —— 它们在 <c>Mod</c> 构造函数里装 Harmony 补丁、
+        /// 或做一次性的初始化。少数项目（如【71】）的实际工作要在
+        /// <c>[StaticConstructorOnStartup]</c> 里做，则传 <see cref="EmptyInstall"/> 占位。
+        /// </para>
+        /// <para>
+        /// ⚠ 传进来的 <paramref name="install"/> **不能引用那个「延迟执行的类」**：
+        /// 一旦引用（哪怕只是传方法组），CLR 会立刻触发它的静态构造，
+        /// 而那时 <c>DefDatabase</c> 还没填充（详见【71】的调用处注释）。
+        /// </para>
+        /// </summary>
+        /// <param name="toggleId">设置界面那个开关的 id（<c>FixToggles</c> 里登记的）。</param>
+        /// <param name="name">日志里显示用的名字。</param>
+        /// <param name="install">真正干活的委托；不需要在构造期干活时传 <see cref="EmptyInstall"/>。</param>
         private static void TryInstall(string toggleId, string name, Action install)
         {
             if (!IsFixEnabled(toggleId))
