@@ -219,7 +219,95 @@ public static class RjwRacePartHediffNameFix
 
 ---
 
-## 6. 本轮为什么回退
+## 5b. 第 7 版实施记录（2026-11-27 下午，代码已落地）
+
+按 §5 的方案重建，针对六个坑逐个设防：
+
+| 坑 | 防护 |
+|---|---|
+| 1 `DefDatabase<Def>` 空表 | 不用它 |
+| 2 自己反射拿错实例 | 不用手写反射 |
+| 3 `GetAllDefsInDatabaseForDef` 空 | 只当**路径 A**，空了走 B |
+| 4 `AllDefs` 是真正的数据源 | 当**路径 B** 兜底 |
+| 5 `Mod` 构造函数早于 `AddAllInMods` | 扫描移到 `[StaticConstructorOnStartup]` |
+| 6 `TryInstall` 引用类 → 提前触发静态构造 | 传 `EmptyInstall` 空方法 |
+
+**代码结构**：
+
+```
+RjwRacePartHediffNameFix  [StaticConstructorOnStartup]
+  static ctor
+    → Install()
+        → CollectRacePartDefs(type)
+            路径 A: GenDefDatabase.GetAllDefsInDatabaseForDef(type)
+            路径 B: LoadedModManager.RunningModsListForReading 的 AllDefs
+        → 逐项：hediffName 查不到 HediffDef → 改回 defName（先验证 defName 能查到）
+    → FixReport.MarkLoaded("rjwRacePartHediffNameFix")
+```
+
+```
+LocalFixesMod ctor
+  TryInstall("rjwRacePartHediffNameFix", "RjwRacePartHediffNameFix", EmptyInstall);
+  private static void EmptyInstall() { }        ← 不引用那个类
+```
+
+**反编译验证（关键）**：
+
+| 检查 | 结果 |
+|---|---|
+| `RjwRacePartHediffNameFix` 带 `[StaticConstructorOnStartup]` | ✅ 在（`search_attributes` 查到） |
+| `RjwRacePartHediffNameFix` 在程序集里的**引用数** | **0 处**（`find_usages`）→ 静态构造只会在 `CallAll()` 触发一次 |
+
+**编译与闸门**：0 警告 0 错误；闸门 **26/26**；DLL 三处同 SHA256（`9ad697fe6f25`）。
+
+**版本与文档同步**：1.4.65 → **1.4.66**；开关 77 → **78**；About 速览 70 → **71 条**；
+README 全部数字、工坊简介三语（7,506 / 7,498 / 7,424 字节）、三语语言键（174 → 176）。
+
+**✅ 实机验证通过（2026-11-27 13:53:42）**：
+
+```
+INFO [GNH LocalFixes] 【71】已把 59 个 RacePartDef 的 hediffName 还原成 defName
+     （汉化包把 defName 引用当文本翻了，导致 RJW 刷「Could not find a HediffDef named 中文…」）。
+     样例：Anus（原值「肛门」）；ArchotechAnus（原值「超凡仿生肛门」）；
+           ArchotechBreasts（原值「超凡仿生乳房」）；ArchotechPenis（原值「超凡仿生阴茎」）；
+           ArchotechVagina（原值「超凡仿生阴道」）；BionicAnus（原值「仿生肛门」）
+
+WARN [GNH LocalFixes] 【71】另有 1 个 RacePartDef 的 hediffName 查不到对应 HediffDef，
+     且用 defName 也查不到 —— 那是那个 RacePartDef 本身指向了不存在的 HediffDef，
+     不是译名问题，按「拿不准不动」原则保持原样。
+```
+
+**效果对比（同一份 1.7 日志口径）**：
+
+| 指标 | 修复前 | 修复后 | 变化 |
+|---|---|---|---|
+| **ERROR 总数** | **846** | **144** | **−702（−83%）** |
+| **`Could not find a HediffDef named` 红字** | **700** | **0** | **全部消除** |
+| 其中被还原的 RacePartDef | — | **59 个** | — |
+| 按原则保留原样的 | — | **1 个** | 它本身指向不存在的 HediffDef |
+| 本补丁自身 ERROR | 0 | **0** | — |
+
+**剩下 144 个 ERROR 全部是第三方模组的**（与修复前那 145 个一一对应）：
+`SpaceTorpedoes` 跨引用 ×3、`GodHandMod` 彩蛋 ×1、外星人SA / Ratkin Gene Expand / Raven Race
+的 Patch 失败各 ×2、`PurePatcher` / `NiraRjwPatch` / `GenevaChecklistAchievements` /
+`Teacher.UAP` 各 ×1、`Misconfigured PrefixCapturedVar` ×2 等。
+
+**⚠ 注意一个观察口径的坑**：用 `grep 'Could not find a HediffDef named'` 全日志搜，
+会匹配到**本项自己的 INFO 日志**（因为那句日志里引用了报错原文），
+看起来像「还剩 1 条」。必须**限定 ERROR 级别**再数：
+
+```bash
+grep -E '^[0-9-]+ [0-9:.]+ +ERROR ' Player.log | grep -c 'Could not find a HediffDef named'
+# → 0
+```
+
+**另一个旁证**：【71】的日志出现在 13:53:42（启动后约 44 分钟），
+而不是像前几版那样在启动 1 分钟就出现 —— 这正说明这次**没有构造函数提前触发静态构造**，
+防护生效了。
+
+---
+
+## 6. 上一轮为什么回退（历史记录）
 
 - 6 次重启（每次 40-70 分钟）都没成功，继续盲试的时间成本已经高于收益
 - 回退到已验证全绿的 `e6b4a11`（1.4.65 / 77 开关 / 闸门 26/26），保证交付物是干净的
