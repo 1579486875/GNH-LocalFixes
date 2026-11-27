@@ -354,25 +354,44 @@ namespace GNH.LocalFixes
         {
             candidates.Clear();
 
-            List<string> raw = null;
-            try
+            // ── 候选来源：优先「实时」从 DefDatabase 构建，再退回作者的静态列表 ──
+            //
+            // 【为什么要实时构建 —— 2026-11-27 按用户提问补上】
+            //
+            // 作者的 `Utility..cctor` 在**游戏启动时**把 `DefDatabase<TraitDef>.AllDefs`
+            // 摊平成一个 `List<string>` 存进 `Utility.Traits`，**之后再也不更新**。
+            // 所以玩家如果在运行中热重载 / 动态增删特性模组（开发者模式），
+            // 那份静态列表就是**过期**的 —— 新加的特性看不到、删掉的还留着。
+            //
+            // 改成每次点「+」都从 `DefDatabase<TraitDef>.AllDefs` **现场重建**，
+            // 筛选逻辑与作者完全一致（只取 `degreeDatas` 非空的档位），
+            // 所以选出来的集合一模一样，只是**永远是最新的**。
+            //
+            // `Utility.Traits` 保留作**回退**：万一读 `DefDatabase` 出异常
+            // （比如其它模组把 def 表搞坏），至少还能用作者那份兜住。
+            List<string> raw = BuildTraitCatalogLive();
+            string source = "DefDatabase 实时";
+            if (raw == null || raw.Count == 0)
             {
-                Type utilityType = AccessTools.TypeByName("BackstoryConstructor.Utility");
-                if (utilityType != null)
-                {
-                    FieldInfo f = AccessTools.Field(utilityType, "Traits");
-                    if (f != null) raw = f.GetValue(null) as List<string>;
-                }
+                raw = ReadAuthorTraitCatalog();
+                source = "Utility.Traits 回退";
             }
-            catch (Exception ex)
+            else
             {
-                Log.Warning("[GNH LocalFixes] 【70】读 Utility.Traits 失败：" + ex);
+                // 作者那份与实时结果条数不同时记一笔 —— 这就是「运行中有变化」的直接证据
+                List<string> authorList = ReadAuthorTraitCatalog();
+                if (authorList != null && authorList.Count != raw.Count)
+                {
+                    Log.Message("[GNH LocalFixes] 【70】特性目录在运行中变了："
+                        + "作者启动时构建 " + authorList.Count + " 条，"
+                        + "现在实时 " + raw.Count + " 条 —— 已用实时结果（新装/移除的特性模组会立即反映）。");
+                }
             }
 
             if (raw == null || raw.Count == 0)
             {
-                Messages.Message("[GNH LocalFixes] 特性目录是空的（作者那边没构建出来），"
-                    + "暂时没有可选特性。其它字段仍可正常编辑。",
+                Messages.Message("[GNH LocalFixes] 特性目录是空的（既没从 DefDatabase 拿到、"
+                    + "作者那份也没构建出来），暂时没有可选特性。其它字段仍可正常编辑。",
                     MessageTypeDefOf.NeutralEvent, false);
                 return;
             }
@@ -393,7 +412,7 @@ namespace GNH.LocalFixes
             {
                 Log.Message("[GNH LocalFixes] 【70】特性候选里跳过了 " + skipped
                     + " 项（拿不到 TraitDef 或对应档位，多半是那个模组已停用/改版），"
-                    + "可用 " + candidates.Count + " 项。");
+                    + "可用 " + candidates.Count + " 项。来源：" + source + "。");
             }
 
             if (candidates.Count == 0)
@@ -414,6 +433,67 @@ namespace GNH.LocalFixes
                 }));
             }
             Find.WindowStack.Add(new Dialog_DebugOptionListLister(options, null));
+        }
+
+        /// <summary>
+        /// **实时**构建特性目录，格式与作者 `Utility..cctor` 完全一致：
+        /// <c>"{defName} ~ ({degreeLabel}) [{degree}]"</c>，只取 <c>degreeDatas</c> 里的每一项。
+        /// <para>
+        /// 与作者的区别只有一点：**每次调用都重新遍历 `DefDatabase`**，
+        /// 所以运行中新增/移除的特性模组会立即反映出来。
+        /// </para>
+        /// <para>
+        /// 注意这里拼进去的是 <c>degreeData.label</c>（**已按当前语言翻译过**），
+        /// 只是为了与作者的格式保持一致；解析时我们**只取 defName 与 degree**，
+        /// 中间那段 label 全程不参与判断 —— 所以换语言不会影响解析。
+        /// </para>
+        /// </summary>
+        private static List<string> BuildTraitCatalogLive()
+        {
+            try
+            {
+                List<TraitDef> all = DefDatabase<TraitDef>.AllDefsListForReading;
+                if (all == null) return null;
+                List<string> outList = new List<string>();
+                for (int i = 0; i < all.Count; i++)
+                {
+                    TraitDef def = all[i];
+                    if (def == null) continue;
+                    if (string.IsNullOrEmpty(def.defName)) continue;
+                    List<TraitDegreeData> degs = def.degreeDatas;
+                    if (degs == null || degs.Count == 0) continue;
+                    for (int j = 0; j < degs.Count; j++)
+                    {
+                        TraitDegreeData d = degs[j];
+                        if (d == null) continue;
+                        outList.Add(def.defName + " ~ (" + (d.label ?? string.Empty) + ") [" + d.degree + "]");
+                    }
+                }
+                return outList;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("[GNH LocalFixes] 【70】实时构建特性目录失败，将回退到 Utility.Traits：" + ex);
+                return null;
+            }
+        }
+
+        /// <summary>读作者 `Utility..cctor` 构建的那份静态列表（回退用）。</summary>
+        private static List<string> ReadAuthorTraitCatalog()
+        {
+            try
+            {
+                Type utilityType = AccessTools.TypeByName("BackstoryConstructor.Utility");
+                if (utilityType == null) return null;
+                FieldInfo f = AccessTools.Field(utilityType, "Traits");
+                if (f == null) return null;
+                return f.GetValue(null) as List<string>;
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("[GNH LocalFixes] 【70】读 Utility.Traits 失败：" + ex);
+                return null;
+            }
         }
 
         /// <summary>
