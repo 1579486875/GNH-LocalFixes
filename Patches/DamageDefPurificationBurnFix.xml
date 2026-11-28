@@ -2,6 +2,8 @@
 <Patch>
 
   <!--
+    DamageDefPurificationBurnFix.xml —— 把 HediffDef 当成 DamageDef 引用，摘掉那条死引用
+
     【【32】把 HediffDef 当成 DamageDef 引用 —— 摘掉那条死引用】
 
     ── 修的是什么问题 ──

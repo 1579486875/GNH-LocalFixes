@@ -2,6 +2,8 @@
 <Patch>
 
   <!--
+    MiliraNavigatorUniformFix.xml —— 米莉拉领航员制服的 layers / comps 被空元素覆盖，补回
+
     【【31】米莉拉领航员制服的 layers / comps 被空元素覆盖 —— 补回】
 
     ── 修的是什么问题 ──

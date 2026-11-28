@@ -2,6 +2,8 @@
 <Patch>
 
 	<!--
+		IncestuosCloseOnlyIssueRestore.xml —— 补回被删掉的乱伦 issue 戒律档位
+
 		◆ 修的是什么
 		  「乱伦许可」（worldie.allowconsensualincest，Mods\RJW-功能-中世纪风格乱伦许可）
 		  在 Compatibility\Sexperience_Ideology\Patches\IncestPreceptPatch.xml 里，为了

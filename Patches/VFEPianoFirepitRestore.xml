@@ -2,6 +2,8 @@
 <Patch>
 
   <!--
+    VFEPianoFirepitRestore.xml —— VFE 钢琴 / 营火 / 石棺的补丁没执行，补上
+
     补做 Vanilla Furniture Expanded（VFE）被「显示名守卫」挡掉的那几条补丁。
 
     ── 事情的来龙去脉 ──

@@ -2,6 +2,8 @@
 <Patch>
 
 	<!--
+	  Hotwife_InverseFieldCleanup.xml —— 「淫妻与公牛」10 个关系 def 写了不存在的字段
+
 	  ── 「淫妻与公牛」（HotwifeRJW）的 10 个 PawnRelationDef 写了不存在的 <inverse> 字段 ──
 
 	  报错原文（10 条，一条一个 def）：

@@ -2,6 +2,8 @@
 <Patch>
 
 	<!--
+	  RJW17_HediffStageVisibleRemoval.xml —— 移除 1.7 与 1.6 都不存在的 HediffStage.visible 字段
+
 	  ── 1.7 / 1.6 的 HediffStage 都没有 visible 字段 ──
 
 	  ⚠ 这一条不需要版本守卫，而且 1.6 下同样成立：

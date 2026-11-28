@@ -2,6 +2,8 @@
 <Patch>
 
   <!--
+    ConfigErrorCleanup.xml —— 消掉三处「只有开发者模式才会报」的 Config error
+
     消掉三处「只有开发者模式才会报」的 Config error。
 
     ── 为什么要修这个 ──

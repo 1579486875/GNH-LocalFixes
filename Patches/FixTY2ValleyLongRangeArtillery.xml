@@ -2,6 +2,8 @@
 <Patch>
 
   <!--
+    FixTY2ValleyLongRangeArtillery.xml —— 溪谷联邦远距炮塔引用已删除的类型
+
     修复：[天鹰2.0]溪谷联邦 往炮塔 Def 里塞了一个 VFE Security 已删除的类型
 
     ── 现象（2026-10-04 实测）──

@@ -2,6 +2,8 @@
 <Patch>
 
   <!--
+    ElToroAnimsRottiRefFix.xml —— 摘除 ElToro.Anims 指向已删除 Rotti 的悬空引用
+
     摘除 ElToro.Anims 里指向已不存在 Def 的悬空引用。
 
     背景：NewRatkinPlus 1.6 删掉了 Rotti（罗蒂）这个动物，但 ElToros Bestiality

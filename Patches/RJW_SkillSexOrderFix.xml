@@ -2,6 +2,8 @@
 <Patch>
 
 	<!--
+	  RJW_SkillSexOrderFix.xml —— RJW 的 Sex 技能缺 SkillOrderExtension，技能栏排不出来
+
 	  ── RJW 的 `Sex` 技能缺 SkillOrderExtension，会把角色编辑器的技能列表弄乱 ──
 
 	  报错原文（1 条）：

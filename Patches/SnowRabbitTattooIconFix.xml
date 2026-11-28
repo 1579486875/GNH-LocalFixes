@@ -2,6 +2,8 @@
 <Patch>
 
   <!--
+    SnowRabbitTattooIconFix.xml —— 雪兔纹身图标路径大小写不符
+
     修复 SnowRabbit Race Beta（packageId: Gugustar.SnowRabbitRaceBeta）
     的一个「贴图路径大小写」错误。
 
